@@ -1,0 +1,1083 @@
+{
+  "$defs": {
+    "CodeNode": {
+      "description": "Raw code block, preserved verbatim with its language tag.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs_to": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs To",
+          "type": "array"
+        },
+        "refs_from": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs From",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "$ref": "#/$defs/NodeLocation"
+        },
+        "type": {
+          "const": "code",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "lang": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lang"
+        },
+        "block": {
+          "default": true,
+          "title": "Block",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "type",
+        "text"
+      ],
+      "title": "CodeNode",
+      "type": "object"
+    },
+    "DocDate": {
+      "description": "Partial or full document date from manifest metadata.",
+      "properties": {
+        "year": {
+          "title": "Year",
+          "type": "integer"
+        },
+        "month": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Month"
+        },
+        "day": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Day"
+        }
+      },
+      "required": [
+        "year"
+      ],
+      "title": "DocDate",
+      "type": "object"
+    },
+    "DocMetadata": {
+      "description": "Bibliographic metadata for the source document.",
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "authors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Authors",
+          "type": "array"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DocDate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Keywords",
+          "type": "array"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "lang": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lang"
+        }
+      },
+      "required": [
+        "title",
+        "authors"
+      ],
+      "title": "DocMetadata",
+      "type": "object"
+    },
+    "FigureNode": {
+      "description": "Non-table figure (image and other figurable content).",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs_to": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs To",
+          "type": "array"
+        },
+        "refs_from": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs From",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "$ref": "#/$defs/NodeLocation"
+        },
+        "type": {
+          "const": "figure",
+          "title": "Type",
+          "type": "string"
+        },
+        "caption": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caption"
+        },
+        "fig_number": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fig Number"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        },
+        "alt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alt"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "raw_typst": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Typst"
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "type"
+      ],
+      "title": "FigureNode",
+      "type": "object"
+    },
+    "HeadingNode": {
+      "description": "Section heading with nested section content in ``children``.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs_to": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs To",
+          "type": "array"
+        },
+        "refs_from": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs From",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "$ref": "#/$defs/NodeLocation"
+        },
+        "type": {
+          "const": "heading",
+          "title": "Type",
+          "type": "string"
+        },
+        "level": {
+          "title": "Level",
+          "type": "integer"
+        },
+        "numbering": {
+          "title": "Numbering",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "heading_path": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Heading Path",
+          "type": "array"
+        },
+        "children": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "code": "#/$defs/CodeNode",
+                "figure": "#/$defs/FigureNode",
+                "heading": "#/$defs/HeadingNode",
+                "list": "#/$defs/ListNode",
+                "math": "#/$defs/MathNode",
+                "paragraph": "#/$defs/ParagraphNode",
+                "quote": "#/$defs/QuoteNode",
+                "table": "#/$defs/TableNode"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/HeadingNode"
+              },
+              {
+                "$ref": "#/$defs/ParagraphNode"
+              },
+              {
+                "$ref": "#/$defs/TableNode"
+              },
+              {
+                "$ref": "#/$defs/QuoteNode"
+              },
+              {
+                "$ref": "#/$defs/CodeNode"
+              },
+              {
+                "$ref": "#/$defs/MathNode"
+              },
+              {
+                "$ref": "#/$defs/FigureNode"
+              },
+              {
+                "$ref": "#/$defs/ListNode"
+              }
+            ]
+          },
+          "title": "Children",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "type",
+        "level",
+        "numbering",
+        "text",
+        "heading_path"
+      ],
+      "title": "HeadingNode",
+      "type": "object"
+    },
+    "ListItem": {
+      "description": "Single item of a bullet or numbered list.",
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Number"
+        },
+        "children": {
+          "items": {
+            "$ref": "#/$defs/ListItem"
+          },
+          "title": "Children",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "ListItem",
+      "type": "object"
+    },
+    "ListNode": {
+      "description": "Bullet (`ordered=False`) or numbered (`ordered=True`) list.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs_to": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs To",
+          "type": "array"
+        },
+        "refs_from": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs From",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "$ref": "#/$defs/NodeLocation"
+        },
+        "type": {
+          "const": "list",
+          "title": "Type",
+          "type": "string"
+        },
+        "ordered": {
+          "default": false,
+          "title": "Ordered",
+          "type": "boolean"
+        },
+        "tight": {
+          "default": true,
+          "title": "Tight",
+          "type": "boolean"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/ListItem"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "type"
+      ],
+      "title": "ListNode",
+      "type": "object"
+    },
+    "MathNode": {
+      "description": "Block-level equation.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs_to": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs To",
+          "type": "array"
+        },
+        "refs_from": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs From",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "$ref": "#/$defs/NodeLocation"
+        },
+        "type": {
+          "const": "math",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "raw_typst": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Typst"
+        },
+        "numbering": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Numbering"
+        },
+        "block": {
+          "default": true,
+          "title": "Block",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "type",
+        "text"
+      ],
+      "title": "MathNode",
+      "type": "object"
+    },
+    "NodeLocation": {
+      "description": "Physical position of a node in the compiled document.",
+      "properties": {
+        "page": {
+          "title": "Page",
+          "type": "integer"
+        },
+        "span": {
+          "title": "Span",
+          "type": "integer"
+        },
+        "page_span": {
+          "title": "Page Span",
+          "type": "integer"
+        },
+        "parent_span": {
+          "title": "Parent Span",
+          "type": "integer"
+        },
+        "span_count": {
+          "title": "Span Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "page",
+        "span",
+        "page_span",
+        "parent_span",
+        "span_count"
+      ],
+      "title": "NodeLocation",
+      "type": "object"
+    },
+    "NodeRef": {
+      "description": "Resolved cross-reference edge: stable node id plus optional Typst label.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "NodeRef",
+      "type": "object"
+    },
+    "ParagraphNode": {
+      "description": "Plain text paragraph.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs_to": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs To",
+          "type": "array"
+        },
+        "refs_from": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs From",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "$ref": "#/$defs/NodeLocation"
+        },
+        "type": {
+          "const": "paragraph",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "lang": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lang"
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "type",
+        "text"
+      ],
+      "title": "ParagraphNode",
+      "type": "object"
+    },
+    "QuoteNode": {
+      "description": "Block quotation with optional attribution (author or source).",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs_to": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs To",
+          "type": "array"
+        },
+        "refs_from": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs From",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "$ref": "#/$defs/NodeLocation"
+        },
+        "type": {
+          "const": "quote",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "attribution": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attribution"
+        },
+        "block": {
+          "default": true,
+          "title": "Block",
+          "type": "boolean"
+        },
+        "lang": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lang"
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "type",
+        "text"
+      ],
+      "title": "QuoteNode",
+      "type": "object"
+    },
+    "TableCell": {
+      "description": "Single cell inside a table node.",
+      "properties": {
+        "row": {
+          "title": "Row",
+          "type": "integer"
+        },
+        "col": {
+          "title": "Col",
+          "type": "integer"
+        },
+        "rowspan": {
+          "default": 1,
+          "title": "Rowspan",
+          "type": "integer"
+        },
+        "colspan": {
+          "default": 1,
+          "title": "Colspan",
+          "type": "integer"
+        },
+        "is_header": {
+          "default": false,
+          "title": "Is Header",
+          "type": "boolean"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "row",
+        "col",
+        "text"
+      ],
+      "title": "TableCell",
+      "type": "object"
+    },
+    "TableNode": {
+      "description": "Structured table with typed cells and optional caption.\n\n``kind`` distinguishes a semantic ``table`` from a layout ``grid``: both\nshare the same cell model, but a grid carries no tabular semantics.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs_to": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs To",
+          "type": "array"
+        },
+        "refs_from": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs From",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "$ref": "#/$defs/NodeLocation"
+        },
+        "type": {
+          "const": "table",
+          "title": "Type",
+          "type": "string"
+        },
+        "kind": {
+          "default": "table",
+          "enum": [
+            "table",
+            "grid"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "caption": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caption"
+        },
+        "fig_number": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fig Number"
+        },
+        "cells": {
+          "items": {
+            "$ref": "#/$defs/TableCell"
+          },
+          "title": "Cells",
+          "type": "array"
+        },
+        "raw_typst": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Typst"
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "type"
+      ],
+      "title": "TableNode",
+      "type": "object"
+    }
+  },
+  "description": "Top-level CND manifest produced by the ``typst-cnd`` compiler.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "cnd_version": {
+      "title": "Cnd Version",
+      "type": "string"
+    },
+    "doc_hash": {
+      "title": "Doc Hash",
+      "type": "string"
+    },
+    "compiled_at": {
+      "format": "date-time",
+      "title": "Compiled At",
+      "type": "string"
+    },
+    "doc": {
+      "$ref": "#/$defs/DocMetadata"
+    },
+    "nodes": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "code": "#/$defs/CodeNode",
+            "figure": "#/$defs/FigureNode",
+            "heading": "#/$defs/HeadingNode",
+            "list": "#/$defs/ListNode",
+            "math": "#/$defs/MathNode",
+            "paragraph": "#/$defs/ParagraphNode",
+            "quote": "#/$defs/QuoteNode",
+            "table": "#/$defs/TableNode"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/HeadingNode"
+          },
+          {
+            "$ref": "#/$defs/ParagraphNode"
+          },
+          {
+            "$ref": "#/$defs/TableNode"
+          },
+          {
+            "$ref": "#/$defs/QuoteNode"
+          },
+          {
+            "$ref": "#/$defs/CodeNode"
+          },
+          {
+            "$ref": "#/$defs/MathNode"
+          },
+          {
+            "$ref": "#/$defs/FigureNode"
+          },
+          {
+            "$ref": "#/$defs/ListNode"
+          }
+        ]
+      },
+      "title": "Nodes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "cnd_version",
+    "doc_hash",
+    "compiled_at",
+    "doc",
+    "nodes"
+  ],
+  "title": "CND Manifest",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cnd.dev/schema/cnd-manifest.schema.json"
+}

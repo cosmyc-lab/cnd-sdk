@@ -1,0 +1,683 @@
+{
+  "cnd_version": "0.1.0",
+  "doc_hash": "sha256:comprehensive-fixture-v1",
+  "compiled_at": "2026-06-06T12:00:00Z",
+  "doc": {
+    "title": "Manuel d'exploitation DCS — Fixture intégration CND",
+    "authors": [
+      "Équipe CND",
+      "L. Faure"
+    ],
+    "date": {
+      "year": 2026,
+      "month": 6,
+      "day": 6
+    },
+    "keywords": [
+      "DCS",
+      "chunking",
+      "cross-refs",
+      "tables",
+      "fixture"
+    ],
+    "description": "Manifest de référence couvrant les cas limites du chunker : contenu pré-heading, imbrication profonde, refs intra/inter-chunks, tables complexes.",
+    "lang": "fr"
+  },
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-b000-000000000001",
+      "type": "paragraph",
+      "text": "Résumé exécutif placé avant le premier titre. Ce paragraphe doit produire un chunk isolé avec un heading_path vide.",
+      "lang": "fr",
+      "location": {
+        "page": 1,
+        "span": 0,
+        "page_span": 0,
+        "parent_span": 0,
+        "span_count": 1
+      }
+    },
+    {
+      "id": "00000000-0000-4000-b000-000000000002",
+      "type": "heading",
+      "level": 1,
+      "numbering": "1",
+      "text": "Architecture générale",
+      "heading_path": [
+        "1 Architecture générale"
+      ],
+      "label": "ch-architecture",
+      "location": {
+        "page": 1,
+        "span": 1,
+        "page_span": 1,
+        "parent_span": 0,
+        "span_count": 1
+      },
+      "children": [
+        {
+          "id": "00000000-0000-4000-b000-000000000003",
+          "type": "paragraph",
+          "text": "Le système DCS repose sur trois couches fonctionnelles : acquisition, traitement et supervision.",
+          "lang": "fr",
+          "state_metadata": {
+            "revision": "4.2",
+            "status": "approved"
+          },
+          "location": {
+            "page": 1,
+            "span": 2,
+            "page_span": 2,
+            "parent_span": 1,
+            "span_count": 1
+          }
+        },
+        {
+          "id": "00000000-0000-4000-b000-000000000004",
+          "type": "heading",
+          "level": 2,
+          "numbering": "1.1",
+          "text": "Couche d'acquisition",
+          "heading_path": [
+            "1 Architecture générale",
+            "1.1 Couche d'acquisition"
+          ],
+          "label": "sec-acquisition",
+          "refs_to": [
+            {
+              "id": "00000000-0000-4000-b000-000000000007",
+              "label": "tab-plages-mesure"
+            }
+          ],
+          "location": {
+            "page": 2,
+            "span": 3,
+            "page_span": 0,
+            "parent_span": 1,
+            "span_count": 1
+          },
+          "children": [
+            {
+              "id": "00000000-0000-4000-b000-000000000005",
+              "type": "paragraph",
+              "text": "Les capteurs analogiques et numériques sont regroupés par bus de terrain. Voir le tableau des plages de mesure.",
+              "lang": "fr",
+              "refs_to": [
+                {
+                  "id": "00000000-0000-4000-b000-000000000007",
+                  "label": "tab-plages-mesure"
+                }
+              ],
+              "location": {
+                "page": 2,
+                "span": 4,
+                "page_span": 1,
+                "parent_span": 1,
+                "span_count": 1
+              }
+            },
+            {
+              "id": "00000000-0000-4000-b000-000000000006",
+              "type": "paragraph",
+              "text": "La fréquence d'échantillonnage nominale est de 10 Hz pour les boucles rapides.",
+              "lang": "fr",
+              "location": {
+                "page": 2,
+                "span": 5,
+                "page_span": 2,
+                "parent_span": 1,
+                "span_count": 1
+              }
+            },
+            {
+              "id": "00000000-0000-4000-b000-000000000007",
+              "type": "table",
+              "label": "tab-plages-mesure",
+              "caption": "Plages de mesure des capteurs de terrain.",
+              "fig_number": "Table 1",
+              "refs_from": [
+                {
+                  "id": "00000000-0000-4000-b000-000000000004",
+                  "label": "sec-acquisition"
+                },
+                {
+                  "id": "00000000-0000-4000-b000-000000000005",
+                  "label": null
+                }
+              ],
+              "location": {
+                "page": 2,
+                "span": 6,
+                "page_span": 3,
+                "parent_span": 2,
+                "span_count": 1
+              },
+              "cells": [
+                {
+                  "row": 0,
+                  "col": 0,
+                  "rowspan": 1,
+                  "colspan": 2,
+                  "is_header": true,
+                  "text": "Capteur"
+                },
+                {
+                  "row": 0,
+                  "col": 2,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": true,
+                  "text": "Plage"
+                },
+                {
+                  "row": 1,
+                  "col": 0,
+                  "rowspan": 2,
+                  "colspan": 1,
+                  "is_header": false,
+                  "text": "Pression"
+                },
+                {
+                  "row": 1,
+                  "col": 1,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": false,
+                  "text": "PT-101"
+                },
+                {
+                  "row": 1,
+                  "col": 2,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": false,
+                  "text": "0–16 bar"
+                },
+                {
+                  "row": 2,
+                  "col": 1,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": false,
+                  "text": "PT-102"
+                },
+                {
+                  "row": 2,
+                  "col": 2,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": false,
+                  "text": "0–25 bar"
+                },
+                {
+                  "row": 3,
+                  "col": 0,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": false,
+                  "text": "Débit"
+                },
+                {
+                  "row": 3,
+                  "col": 1,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": false,
+                  "text": "FT-201"
+                },
+                {
+                  "row": 3,
+                  "col": 2,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": false,
+                  "text": "0–500 L/min"
+                }
+              ],
+              "raw_typst": "table(columns: (auto, auto, auto), ..)"
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-b000-000000000008",
+          "type": "heading",
+          "level": 2,
+          "numbering": "1.2",
+          "text": "Couche de traitement",
+          "heading_path": [
+            "1 Architecture générale",
+            "1.2 Couche de traitement"
+          ],
+          "label": "sec-traitement",
+          "refs_to": [
+            {
+              "id": "00000000-0000-4000-b000-000000000007",
+              "label": "tab-plages-mesure"
+            },
+            {
+              "id": "00000000-0000-4000-b000-000000000020",
+              "label": "tab-recap-signaux"
+            }
+          ],
+          "location": {
+            "page": 3,
+            "span": 7,
+            "page_span": 0,
+            "parent_span": 1,
+            "span_count": 1
+          },
+          "children": [
+            {
+              "id": "00000000-0000-4000-b000-000000000009",
+              "type": "paragraph",
+              "text": "Les algorithmes de régulation s'exécutent sur le contrôleur redondant. Les plages capteurs (Table 1) et le récapitulatif annexe (Table 4) doivent rester cohérents.",
+              "lang": "fr",
+              "refs_to": [
+                {
+                  "id": "00000000-0000-4000-b000-000000000007",
+                  "label": "tab-plages-mesure"
+                },
+                {
+                  "id": "00000000-0000-4000-b000-000000000020",
+                  "label": "tab-recap-signaux"
+                }
+              ],
+              "location": {
+                "page": 3,
+                "span": 8,
+                "page_span": 1,
+                "parent_span": 1,
+                "span_count": 1
+              }
+            },
+            {
+              "id": "00000000-0000-4000-b000-000000000010",
+              "type": "table",
+              "label": "tab-boucles-regulation",
+              "caption": "Boucles de régulation PID actives.",
+              "fig_number": "Table 2",
+              "refs_from": [
+                {
+                  "id": "00000000-0000-4000-b000-000000000008",
+                  "label": "sec-traitement"
+                }
+              ],
+              "location": {
+                "page": 3,
+                "span": 9,
+                "page_span": 2,
+                "parent_span": 2,
+                "span_count": 1
+              },
+              "cells": [
+                {
+                  "row": 0,
+                  "col": 0,
+                  "is_header": true,
+                  "text": "Boucle"
+                },
+                {
+                  "row": 0,
+                  "col": 1,
+                  "is_header": true,
+                  "text": "Mode"
+                },
+                {
+                  "row": 0,
+                  "col": 2,
+                  "is_header": true,
+                  "text": "Kp"
+                },
+                {
+                  "row": 1,
+                  "col": 0,
+                  "is_header": false,
+                  "text": "LC-101"
+                },
+                {
+                  "row": 1,
+                  "col": 1,
+                  "is_header": false,
+                  "text": "AUTO"
+                },
+                {
+                  "row": 1,
+                  "col": 2,
+                  "is_header": false,
+                  "text": "1.25"
+                },
+                {
+                  "row": 2,
+                  "col": 0,
+                  "is_header": false,
+                  "text": "FC-202"
+                },
+                {
+                  "row": 2,
+                  "col": 1,
+                  "is_header": false,
+                  "text": "CASCADE"
+                },
+                {
+                  "row": 2,
+                  "col": 2,
+                  "is_header": false,
+                  "text": "0.80"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-b000-000000000011",
+      "type": "heading",
+      "level": 1,
+      "numbering": "2",
+      "text": "Exploitation",
+      "heading_path": [
+        "2 Exploitation"
+      ],
+      "label": "ch-exploitation",
+      "location": {
+        "page": 4,
+        "span": 10,
+        "page_span": 0,
+        "parent_span": 0,
+        "span_count": 1
+      },
+      "children": [
+        {
+          "id": "00000000-0000-4000-b000-000000000012",
+          "type": "heading",
+          "level": 2,
+          "numbering": "2.1",
+          "text": "Surveillance opérateur",
+          "heading_path": [
+            "2 Exploitation",
+            "2.1 Surveillance opérateur"
+          ],
+          "location": {
+            "page": 4,
+            "span": 11,
+            "page_span": 1,
+            "parent_span": 1,
+            "span_count": 1
+          },
+          "children": [
+            {
+              "id": "00000000-0000-4000-b000-000000000013",
+              "type": "heading",
+              "level": 3,
+              "numbering": "2.1.1",
+              "text": "Gestion des alarmes",
+              "heading_path": [
+                "2 Exploitation",
+                "2.1 Surveillance opérateur",
+                "2.1.1 Gestion des alarmes"
+              ],
+              "label": "sec-alarmes",
+              "refs_to": [
+                {
+                  "id": "00000000-0000-4000-b000-000000000016",
+                  "label": "tab-delais-alarmes"
+                }
+              ],
+              "location": {
+                "page": 4,
+                "span": 12,
+                "page_span": 2,
+                "parent_span": 2,
+                "span_count": 1
+              },
+              "children": [
+                {
+                  "id": "00000000-0000-4000-b000-000000000014",
+                  "type": "paragraph",
+                  "text": "Les alarmes sont classées en quatre niveaux de criticité : info, avertissement, alarme, critique.",
+                  "lang": "fr",
+                  "location": {
+                    "page": 4,
+                    "span": 13,
+                    "page_span": 3,
+                    "parent_span": 3,
+                    "span_count": 1
+                  }
+                },
+                {
+                  "id": "00000000-0000-4000-b000-000000000015",
+                  "type": "paragraph",
+                  "text": "Le délai d'acquittement maximal est défini par la politique site. Consulter la matrice des délais.",
+                  "lang": "fr",
+                  "refs_to": [
+                    {
+                      "id": "00000000-0000-4000-b000-000000000016",
+                      "label": "tab-delais-alarmes"
+                    }
+                  ],
+                  "location": {
+                    "page": 5,
+                    "span": 14,
+                    "page_span": 0,
+                    "parent_span": 3,
+                    "span_count": 1
+                  }
+                },
+                {
+                  "id": "00000000-0000-4000-b000-000000000016",
+                  "type": "table",
+                  "label": "tab-delais-alarmes",
+                  "caption": "Délais d'acquittement par niveau de criticité.",
+                  "fig_number": "Table 3",
+                  "refs_from": [
+                    {
+                      "id": "00000000-0000-4000-b000-000000000013",
+                      "label": "sec-alarmes"
+                    },
+                    {
+                      "id": "00000000-0000-4000-b000-000000000015",
+                      "label": null
+                    }
+                  ],
+                  "location": {
+                    "page": 5,
+                    "span": 15,
+                    "page_span": 1,
+                    "parent_span": 4,
+                    "span_count": 1
+                  },
+                  "cells": [
+                    {
+                      "row": 0,
+                      "col": 0,
+                      "colspan": 2,
+                      "is_header": true,
+                      "text": "Niveau"
+                    },
+                    {
+                      "row": 0,
+                      "col": 2,
+                      "is_header": true,
+                      "text": "Délai max"
+                    },
+                    {
+                      "row": 1,
+                      "col": 0,
+                      "is_header": false,
+                      "text": "Info"
+                    },
+                    {
+                      "row": 1,
+                      "col": 1,
+                      "is_header": false,
+                      "text": "—"
+                    },
+                    {
+                      "row": 1,
+                      "col": 2,
+                      "is_header": false,
+                      "text": "24 h"
+                    },
+                    {
+                      "row": 2,
+                      "col": 0,
+                      "is_header": false,
+                      "text": "Critique"
+                    },
+                    {
+                      "row": 2,
+                      "col": 1,
+                      "is_header": false,
+                      "text": "P1"
+                    },
+                    {
+                      "row": 2,
+                      "col": 2,
+                      "is_header": false,
+                      "text": "5 min"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-b000-000000000017",
+          "type": "heading",
+          "level": 2,
+          "numbering": "2.2",
+          "text": "Maintenance préventive",
+          "heading_path": [
+            "2 Exploitation",
+            "2.2 Maintenance préventive"
+          ],
+          "label": "sec-maintenance",
+          "location": {
+            "page": 5,
+            "span": 16,
+            "page_span": 2,
+            "parent_span": 1,
+            "span_count": 1
+          },
+          "children": [
+            {
+              "id": "00000000-0000-4000-b000-000000000018",
+              "type": "paragraph",
+              "text": "Les interventions planifiées suivent le calendrier OEM. Aucune table n'est associée à cette section.",
+              "lang": "fr",
+              "location": {
+                "page": 5,
+                "span": 17,
+                "page_span": 3,
+                "parent_span": 2,
+                "span_count": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-b000-000000000019",
+      "type": "heading",
+      "level": 1,
+      "numbering": "3",
+      "text": "Annexes",
+      "heading_path": [
+        "3 Annexes"
+      ],
+      "label": "ch-annexes",
+      "location": {
+        "page": 6,
+        "span": 18,
+        "page_span": 0,
+        "parent_span": 0,
+        "span_count": 1
+      },
+      "children": [
+        {
+          "id": "00000000-0000-4000-b000-000000000020",
+          "type": "table",
+          "label": "tab-recap-signaux",
+          "caption": "Récapitulatif des signaux instrumentés.",
+          "fig_number": "Table 4",
+          "refs_from": [
+            {
+              "id": "00000000-0000-4000-b000-000000000008",
+              "label": "sec-traitement"
+            },
+            {
+              "id": "00000000-0000-4000-b000-000000000009",
+              "label": null
+            }
+          ],
+          "location": {
+            "page": 6,
+            "span": 19,
+            "page_span": 1,
+            "parent_span": 1,
+            "span_count": 1
+          },
+          "cells": [
+            {
+              "row": 0,
+              "col": 0,
+              "is_header": true,
+              "text": "Tag"
+            },
+            {
+              "row": 0,
+              "col": 1,
+              "is_header": true,
+              "text": "Unité"
+            },
+            {
+              "row": 0,
+              "col": 2,
+              "is_header": true,
+              "text": "Bus"
+            },
+            {
+              "row": 1,
+              "col": 0,
+              "is_header": false,
+              "text": "PT-101"
+            },
+            {
+              "row": 1,
+              "col": 1,
+              "is_header": false,
+              "text": "bar"
+            },
+            {
+              "row": 1,
+              "col": 2,
+              "is_header": false,
+              "text": "Profibus"
+            },
+            {
+              "row": 2,
+              "col": 0,
+              "is_header": false,
+              "text": "FT-201"
+            },
+            {
+              "row": 2,
+              "col": 1,
+              "is_header": false,
+              "text": "L/min"
+            },
+            {
+              "row": 2,
+              "col": 2,
+              "is_header": false,
+              "text": "Modbus"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

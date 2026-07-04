@@ -1,0 +1,56 @@
+{
+  "cnd_version": "0.1.0",
+  "doc_hash": "sha256:abc123def4567890",
+  "compiled_at": "2026-05-20T10:00:00Z",
+  "doc": {
+    "title": "Test Document",
+    "authors": [
+      "Jane Doe"
+    ],
+    "date": {
+      "year": 2026,
+      "month": 5,
+      "day": 20
+    },
+    "keywords": [
+      "test",
+      "cnd"
+    ],
+    "description": null,
+    "lang": "fr"
+  },
+  "nodes": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "type": "heading",
+      "level": 1,
+      "numbering": "1",
+      "text": "Introduction",
+      "heading_path": [
+        "1 Introduction"
+      ],
+      "location": {
+        "page": 1,
+        "span": 0,
+        "page_span": 0,
+        "parent_span": 0,
+        "span_count": 1
+      },
+      "children": [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440002",
+          "type": "paragraph",
+          "text": "Premier paragraphe du document.",
+          "lang": "fr",
+          "location": {
+            "page": 1,
+            "span": 1,
+            "page_span": 1,
+            "parent_span": 1,
+            "span_count": 1
+          }
+        }
+      ]
+    }
+  ]
+}
