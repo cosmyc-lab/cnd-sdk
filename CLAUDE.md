@@ -1,6 +1,6 @@
 # cnd-sdk
 
-Reference Python implementation and specification of CND (Contextual Node
+Reference Python implementation and specification of CND (Context Native
 Document): a manifest format for representing a compiled document as a tree
 of typed nodes, with stable cross-references between nodes.
 

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "cnd-sdk"
 version = "0.1.0"
-description = "CND — the Contextual Node Document standard: manifest schema, node types, and reference Python bindings."
+description = "CND — the Context Native Document standard: manifest schema, node types, and reference Python bindings."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"

@@ -1,7 +1,7 @@
 # CND Specification
 
 Status: **draft v0.1**. This document is the reference specification for the
-CND (Contextual Node Document) manifest format. The JSON Schema at
+CND (Context Native Document) manifest format. The JSON Schema at
 [`schema/cnd-manifest.schema.json`](schema/cnd-manifest.schema.json) is
 generated from — and must stay in sync with — the Pydantic models in
 [`src/cnd/core/`](../src/cnd/core/); that generated schema is the

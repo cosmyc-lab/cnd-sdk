@@ -1,4 +1,4 @@
-"""CND — the Contextual Node Document standard.
+"""CND — the Context Native Document standard.
 
 Core parsing (``CndManifest`` and node types) has no optional dependencies.
 Display helpers (``cnd.display``, ``cnd.visitors.node_display_visitor``)
