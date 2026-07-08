@@ -14,6 +14,7 @@ conventions.
 | [0004](adr/0004-schema-generated-from-models.md) | JSON Schema generated from the models | accepted |
 | [0005](adr/0005-display-as-optional-extra.md) | Display as an optional extra | accepted |
 | [0006](adr/0006-scope-manifest-only.md) | Scope: manifest representation only | accepted |
+| [0007](adr/0007-publish-to-pypi.md) | Publish `cnd-sdk` to PyPI | proposed |
 
 ## Proposals (docs/proposals/)
 
