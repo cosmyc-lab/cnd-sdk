@@ -8,9 +8,6 @@ generated from — and must stay in sync with — the Pydantic models in
 machine-readable source of truth. This document is the human-readable prose
 companion.
 
-> TODO: merge in the existing draft spec text, provided separately, with the
-> structure below.
-
 ## Scope
 
 This specification covers the **manifest format**: the JSON structure a
