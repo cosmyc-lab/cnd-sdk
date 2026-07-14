@@ -22,3 +22,4 @@ conventions.
 |---|---|---|
 | [0001](proposals/0001-configurable-table-figure-rendering.md) | Configurable table/figure rendering in `to_text()` | implemented |
 | [0002](proposals/0002-table-content-kind-auto-classification.md) | Automatic classification for `TableNode.content_kind` | draft |
+| [0003](proposals/0003-cross-document-references.md) | Cross-document references | draft |
