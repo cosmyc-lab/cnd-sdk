@@ -3,7 +3,7 @@ title: Configurable table/figure rendering in to_text()
 status: implemented
 date: 2026-07-08
 tags: [rendering, to_text, tables, config]
-related: []
+related: [0002]
 superseded-by: null
 ---
 
@@ -16,8 +16,8 @@ content-based classifier described below under "Auto" was never built.
 hint (§6.3 of the spec) — an unset hint is treated as `"data"`, not
 guessed. Nothing yet sets `content_kind` on ingestion, so a producer has to
 set it explicitly (or a caller can use `"inline"` directly) for a table to
-render as text today; the heuristic remains a possible follow-up, not
-something this pass claims to have delivered.
+render as text today; the heuristic is proposal 0002, not something this
+pass claims to have delivered.
 
 Figures (non-table) are unchanged — still placeholder-only. The
 motivating cases here (a comparison table, a parameter list, vs. a numeric
@@ -91,9 +91,9 @@ dropped for this pass: its threshold was the one genuinely unspecified
 part of this proposal, nothing produces `content_kind` yet to make "auto"
 meaningfully different from "always placeholder" in practice, and shipping
 an unvalidated heuristic as committed schema/spec behavior was worse than
-shipping the explicit hint alone and leaving "auto" honestly narrow. A
-classifier (or an LLM-generated-summary mode, per the callback idea above)
-remains open for a future proposal once there's a producer to drive it.
+shipping the explicit hint alone and leaving "auto" honestly narrow.
+Tracked separately as proposal 0002 (both a cell-content heuristic and a
+caller-supplied classification callback, undecided between them).
 
 ## Impact
 Additive — the default stays "always placeholder" (`to_text()`'s own
