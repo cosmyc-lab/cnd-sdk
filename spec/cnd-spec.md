@@ -129,6 +129,7 @@ All node types inherit the [node base](#4-node-base) fields plus `type`
 | Field | Type |
 |---|---|
 | `kind` | `"table"` \| `"grid"` |
+| `content_kind` | `"data"` \| `"content"` \| null |
 | `caption` | string \| null |
 | `fig_number` | string \| null |
 | `cells` | array of `TableCell` (`row`, `col`, `rowspan`, `colspan`, `is_header`, `text`) |
@@ -136,6 +137,12 @@ All node types inherit the [node base](#4-node-base) fields plus `type`
 
 `kind: "grid"` distinguishes a layout grid from a semantic table; both share
 the same cell model.
+
+`content_kind` is an optional producer-supplied hint consumed by
+`mode="auto"` rendering (§7): `"content"` for a table whose cells read fine
+inlined as text (a short comparison table, a parameter list), `"data"` for
+one that doesn't (a numeric measurement grid). Unset — the common case
+today, since nothing currently sets it — is treated as `"data"`.
 
 ### 6.4 `quote`
 
@@ -184,16 +191,49 @@ the same cell model.
 
 ## 7. Text rendering (`to_text()`)
 
-Every node type exposes a `to_text()` method producing a plain-text
-representation suitable for embedding or display:
+Every node type exposes a zero-argument `to_text()` method producing a
+plain-text representation suitable for embedding or display:
 
 - `heading`, `paragraph`, `math` — return their `text` verbatim.
 - `quote` — text, plus `\n— attribution` when present.
 - `code` — fenced with the language tag (` ```lang `).
 - `list` — rendered as a Markdown bullet or numbered list, recursively.
 - `table`, `figure` — rendered as a parseable placeholder:
-  `[[figure:<id> kind="..." number="..." caption="..."]]`, since tabular/
-  visual content cannot be flattened to plain text.
+  `[[figure:<id> kind="..." number="..." caption="..." header="..."]]`,
+  since tabular/visual content cannot always be flattened to plain text.
+  `header`, present when the table has at least one non-empty cell in its
+  header row (cells flagged `is_header`, or row 0 when none are), is the
+  header row's cell text joined with `" | "` — placeholder mode preserves
+  some of the table's structure even though it doesn't inline the cells.
+
+`to_text()` itself never takes a mode argument and its output for every
+node type is unchanged from the above — a table/figure node's placeholder
+is always what a caller gets by calling `to_text()` directly.
+
+### 7.1 Mode-aware rendering (`node_text.render_node_text`)
+
+`table` nodes additionally support rendering their cells inline as a
+Markdown grid instead of a placeholder, via
+`cnd.core.node_text.render_node_text(node, mode=...)` (or
+`table_node_text(node, mode=...)` for a `TableNode` directly) —
+`to_text()` is unaffected; this is a separate, opt-in entry point. `mode`
+is one of:
+
+- `"placeholder"` (default) — always the placeholder, matching `to_text()`.
+- `"inline"` — always a Markdown grid of the table's `cells`, honoring
+  `rowspan`/`colspan` (a spanned cell's text is placed once, at its own
+  `(row, col)`; the rest of the span is left blank — Markdown has no
+  native merged-cell syntax) and using the header row (`is_header` cells,
+  or row 0) for the separator row. Falls back to the placeholder if the
+  table has no cells.
+- `"auto"` — defers to the table's own `content_kind` (§6.3): inline when
+  it's `"content"`, placeholder when it's `"data"` or unset. There is no
+  content-based classifier — an unset hint is never guessed at, only
+  taken as `"data"`.
+
+Every other node type ignores `mode` and returns its own `to_text()`
+unchanged; a future node type can opt into mode-aware rendering the same
+way without `to_text()`'s own contract changing.
 
 ## 8. Traversal and visitors
 

@@ -20,4 +20,4 @@ conventions.
 
 | # | Title | Status |
 |---|---|---|
-| [0001](proposals/0001-configurable-table-figure-rendering.md) | Configurable table/figure rendering in `to_text()` | draft |
+| [0001](proposals/0001-configurable-table-figure-rendering.md) | Configurable table/figure rendering in `to_text()` | implemented |

@@ -132,6 +132,7 @@
             {
               "id": "00000000-0000-4000-b000-000000000007",
               "type": "table",
+              "content_kind": "content",
               "label": "tab-plages-mesure",
               "caption": "Plages de mesure des capteurs de terrain.",
               "fig_number": "Table 1",

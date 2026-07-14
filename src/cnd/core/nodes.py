@@ -86,6 +86,13 @@ class TableNode(NodeBase):
 
     type: Literal["table"]
     kind: Literal["table", "grid"] = "table"
+    # Optional producer-supplied hint used by mode="auto" rendering (see
+    # cnd.core.node_text.table_node_text): "content" for a table whose cells
+    # read fine inlined as text (a short comparison table, a parameter
+    # list), "data" for one that doesn't (a numeric measurement grid).
+    # Unset (the common case today) is treated as "data" — to_text()'s
+    # default output is unaffected either way.
+    content_kind: Literal["data", "content"] | None = None
     caption: str | None = None
     fig_number: str | None = None
     cells: list[TableCell] = Field(default_factory=list)

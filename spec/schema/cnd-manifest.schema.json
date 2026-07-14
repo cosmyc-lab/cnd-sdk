@@ -947,6 +947,22 @@
           "title": "Kind",
           "type": "string"
         },
+        "content_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "data",
+                "content"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Content Kind"
+        },
         "caption": {
           "anyOf": [
             {
