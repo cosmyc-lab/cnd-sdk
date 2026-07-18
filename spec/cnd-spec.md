@@ -103,13 +103,13 @@ invariant and no `refs_from` field — the reverse index is derived by
 consumers (the reference SDK provides `CndManifest.incoming(node_id)`,
 built lazily from the forward edges).
 
-All three link families share the same skeleton `{id, label, span?}`:
+All three link families share the same skeleton `{id, label, text_span?}`:
 
 | Field | Type | Description |
 |---|---|---|
 | `id` | UUID, required | Target identifier. Resolves in `nodes` for `refs`, in `bibliography` for `cites`, in `footnotes` for `footnotes`. The field name is always `id`. |
 | `label` | string \| null | Mirror of the target's `label`, denormalized so a consumer can display the link without resolving it. Invariant: `link.label == target.label`. |
-| `span` | `[start, end)` array of 2 ints \| null | Optional standoff position of the link's marker (e.g. a `@fig-3` marker) inside the containing node's rendered text. Offsets are **Unicode code points**, not bytes. |
+| `text_span` | `[start, end)` array of 2 ints \| null | Optional standoff position of the link's marker (e.g. a `@fig-3` marker) inside the containing node's rendered text. Offsets are **Unicode code points**, not bytes (docs/adr/0013). |
 
 `NodeRef` is exactly this skeleton. The canonical form is the only form
 accepted by this standard:
@@ -120,8 +120,8 @@ accepted by this standard:
 
 Bare UUID strings or `[label, id]` tuples are **not** valid CND — a
 conformant producer must always emit the canonical object form
-(docs/adr/0002). `span` is an additive optional field on that canonical
-shape.
+(docs/adr/0002). `text_span` is an additive optional field on that
+canonical shape.
 
 `CiteRef` extends the skeleton with citation-specific fields:
 
@@ -130,8 +130,8 @@ shape.
 | `form` | `"normal"` \| `"prose"` \| `"full"` \| `"author"` \| `"year"` \| `"none"` \| null | Citation form, as in the source language. |
 | `supplement` | string \| null | Supplement text (e.g. `"p. 12"`). |
 
-A `CiteRef`'s `span` must be nullable: a `form: "none"` citation renders no
-text, so it has no marker span.
+A `CiteRef`'s `text_span` must be nullable: a `form: "none"` citation
+renders no text, so it has no marker span.
 
 `FootnoteRef` is exactly the shared skeleton.
 
@@ -143,13 +143,13 @@ a footnote marker:
   "type": "paragraph",
   "text": "Selon Smith et al., voir le listing 1.",
   "refs": [
-    { "id": "…-d004", "label": "lst-api", "span": [29, 38] }
+    { "id": "…-d004", "label": "lst-api", "text_span": [29, 38] }
   ],
   "cites": [
-    { "id": "…-d100", "label": "smith2024", "span": [6, 18], "form": "prose", "supplement": "p. 12" }
+    { "id": "…-d100", "label": "smith2024", "text_span": [6, 18], "form": "prose", "supplement": "p. 12" }
   ],
   "footnotes": [
-    { "id": "…-d200", "label": "fn-rest", "span": null }
+    { "id": "…-d200", "label": "fn-rest", "text_span": null }
   ]
 }
 ```

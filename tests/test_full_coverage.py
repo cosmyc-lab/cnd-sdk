@@ -99,7 +99,7 @@ class TestFixtureShape:
 
     def test_refs_with_and_without_span(self) -> None:
         manifest = _load()
-        spans = [ref.span for v in manifest.iter() for ref in v.node.refs]
+        spans = [ref.text_span for v in manifest.iter() for ref in v.node.refs]
         assert any(span is not None for span in spans)
         assert any(span is None for span in spans)
 
@@ -131,7 +131,7 @@ class TestIncomingResolution:
         para = _node(manifest, FULL_PARA_REFS_ID)
 
         [none_cite] = [c for c in para.cites if c.form == "none"]
-        assert none_cite.span is None
+        assert none_cite.text_span is None
         assert none_cite.id == FULL_BIB_MINIMAL_ID
         assert FULL_PARA_REFS_ID in {n.id for n in manifest.incoming(FULL_BIB_MINIMAL_ID)}
 

@@ -129,7 +129,7 @@
           "default": null,
           "title": "Label"
         },
-        "span": {
+        "text_span": {
           "anyOf": [
             {
               "items": {
@@ -142,7 +142,7 @@
             }
           ],
           "default": null,
-          "title": "Span"
+          "title": "Text Span"
         },
         "form": {
           "anyOf": [
@@ -579,7 +579,7 @@
           "default": null,
           "title": "Label"
         },
-        "span": {
+        "text_span": {
           "anyOf": [
             {
               "items": {
@@ -592,7 +592,7 @@
             }
           ],
           "default": null,
-          "title": "Span"
+          "title": "Text Span"
         }
       },
       "required": [
@@ -1052,7 +1052,7 @@
       "type": "object"
     },
     "NodeRef": {
-      "description": "Forward cross-reference edge to another node.\n\nCanonical shape is ``{id, label}`` (docs/adr/0002); ``span`` is an\nadditive optional field marking where the reference marker sits in the\ncontaining node's rendered text, as a ``[start, end)`` pair of Unicode\ncode-point offsets.",
+      "description": "Forward cross-reference edge to another node.\n\nCanonical shape is ``{id, label}`` (docs/adr/0002); ``text_span`` is an\nadditive optional field marking where the reference marker sits in the\ncontaining node's rendered text, as a ``[start, end)`` pair of Unicode\ncode-point offsets (docs/adr/0013).",
       "properties": {
         "id": {
           "format": "uuid",
@@ -1071,7 +1071,7 @@
           "default": null,
           "title": "Label"
         },
-        "span": {
+        "text_span": {
           "anyOf": [
             {
               "items": {
@@ -1084,7 +1084,7 @@
             }
           ],
           "default": null,
-          "title": "Span"
+          "title": "Text Span"
         }
       },
       "required": [

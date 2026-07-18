@@ -95,17 +95,17 @@ class TestPools:
 
         [ref] = para.refs
         assert ref.id == RICH_FIG_CODE_ID
-        assert ref.span == [77, 88]
+        assert ref.text_span == [77, 88]
 
         [cite] = para.cites
         assert cite.id == RICH_BIB_ENTRY_ID
         assert cite.form == "prose"
         assert cite.supplement == "p. 12"
-        assert cite.span == [6, 18]
+        assert cite.text_span == [6, 18]
 
         [footnote_ref] = para.footnotes
         assert footnote_ref.id == RICH_FOOTNOTE_ID
-        assert footnote_ref.span == [57, 61]
+        assert footnote_ref.text_span == [57, 61]
 
     def test_link_label_mirrors_target_label(
         self, rich_content_manifest_path: Path,

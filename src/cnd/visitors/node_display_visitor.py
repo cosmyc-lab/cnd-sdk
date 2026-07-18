@@ -46,12 +46,13 @@ from cnd.visitors.base_visitor import BaseVisitor, VisitTarget
 
 
 def _format_links(links: Sequence[NodeRef | CiteRef | FootnoteRef]) -> str:
-    """Format a link family for display, appending spans when present."""
+    """Format a link family for display, appending text spans when present."""
     parts: list[str] = []
     for link in links:
         text = format_node_ref(link.id, link.label)
-        if link.span is not None:
-            text += f"[{link.span[0]}:{link.span[1]}]" if len(link.span) == 2 else str(link.span)
+        if link.text_span is not None:
+            span = link.text_span
+            text += f"[{span[0]}:{span[1]}]" if len(span) == 2 else str(span)
         parts.append(text)
     return ", ".join(parts)
 

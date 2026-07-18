@@ -1,6 +1,6 @@
 ---
 title: NodeLocation carries layout facts only (page); positions are SDK-derived
-status: proposed
+status: accepted
 date: 2026-07-18
 tags: [schema, breaking-change, location, traversal]
 related: [0008]
@@ -10,7 +10,7 @@ superseded-by: null
 # ADR 0012 — NodeLocation carries layout facts only (page); positions are SDK-derived
 
 ## Status
-Proposed.
+Accepted (shipped in v0.2.0).
 
 ## Context
 `NodeLocation` has carried five producer-supplied integers: `page`, `span`

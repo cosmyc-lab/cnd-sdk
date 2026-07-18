@@ -22,15 +22,15 @@ class NodeLocation(BaseModel):
 class NodeRef(BaseModel):
     """Forward cross-reference edge to another node.
 
-    Canonical shape is ``{id, label}`` (docs/adr/0002); ``span`` is an
+    Canonical shape is ``{id, label}`` (docs/adr/0002); ``text_span`` is an
     additive optional field marking where the reference marker sits in the
     containing node's rendered text, as a ``[start, end)`` pair of Unicode
-    code-point offsets.
+    code-point offsets (docs/adr/0013).
     """
 
     id: UUID
     label: str | None = None
-    span: list[int] | None = None
+    text_span: list[int] | None = None
 
 
 class CiteRef(BaseModel):
@@ -38,7 +38,7 @@ class CiteRef(BaseModel):
 
     id: UUID
     label: str | None = None
-    span: list[int] | None = None
+    text_span: list[int] | None = None
     form: Literal["normal", "prose", "full", "author", "year", "none"] | None = None
     supplement: str | None = None
 
@@ -48,7 +48,7 @@ class FootnoteRef(BaseModel):
 
     id: UUID
     label: str | None = None
-    span: list[int] | None = None
+    text_span: list[int] | None = None
 
 
 class NodeBase(BaseModel):

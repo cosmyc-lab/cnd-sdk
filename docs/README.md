@@ -15,11 +15,12 @@ conventions.
 | [0005](adr/0005-display-as-optional-extra.md) | Display as an optional extra | accepted |
 | [0006](adr/0006-scope-manifest-only.md) | Scope: manifest representation only | accepted |
 | [0007](adr/0007-publish-to-pypi.md) | Publish `cnd-sdk` to PyPI | proposed |
-| [0008](adr/0008-forward-only-cross-reference-edges.md) | Forward-only cross-reference edges | proposed |
+| [0008](adr/0008-forward-only-cross-reference-edges.md) | Forward-only cross-reference edges | accepted |
 | [0009](adr/0009-out-of-tree-referenceable-entities.md) | Out-of-tree referenceable entities; pools and typed link families | proposed |
 | [0010](adr/0010-figure-as-wrapper-node.md) | Figure is a wrapper node; content keeps its own node type | proposed |
 | [0011](adr/0011-rendering-as-sdk-renderer-hierarchy.md) | Rendering is an SDK renderer hierarchy; nodes are pure data | proposed |
-| [0012](adr/0012-location-is-page-only-positions-derived.md) | NodeLocation carries layout facts only (page); positions are SDK-derived | proposed |
+| [0012](adr/0012-location-is-page-only-positions-derived.md) | NodeLocation carries layout facts only (page); positions are SDK-derived | accepted |
+| [0013](adr/0013-rename-link-span-to-text-span.md) | Rename the link-family `span` field to `text_span` | accepted |
 
 ## Proposals (docs/proposals/)
 

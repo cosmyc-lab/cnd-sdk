@@ -117,7 +117,7 @@ skeleton `{id, label, span?}`:
      "form": "normal", "supplement": "p. 104"}
   ],
   "footnotes": [
-    {"id": "0f9c…", "label": "1", "span": [15, 15]}
+    {"id": "0f9c…", "label": "1", "span": [15, 16]}
   ]
 }
 ```

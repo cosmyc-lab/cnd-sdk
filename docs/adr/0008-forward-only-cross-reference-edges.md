@@ -1,6 +1,6 @@
 ---
 title: Forward-only cross-reference edges; drop materialized refs_from
-status: proposed
+status: accepted
 date: 2026-07-18
 tags: [schema, breaking-change, refs]
 related: [0002]
@@ -10,7 +10,7 @@ superseded-by: null
 # ADR 0008 — Forward-only cross-reference edges
 
 ## Status
-Proposed.
+Accepted (shipped in v0.2.0).
 
 ## Context
 Every node has carried both `refs_to` and `refs_from`, with a
