@@ -1,5 +1,188 @@
 {
   "$defs": {
+    "BibEntry": {
+      "description": "Bibliography pool entry \u2014 target of ``cites`` edges.\n\n``rendered`` is the reference string as displayed in the compiled\ndocument (the faithful capture). A curated typed subset of common\nbibliographic fields is lifted alongside it; the full source entry\n(e.g. Hayagriva) is carried losslessly as structured JSON in ``raw``.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "rendered": {
+          "title": "Rendered",
+          "type": "string"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Type"
+        },
+        "authors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Authors",
+          "type": "array"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Year"
+        },
+        "container": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Container"
+        },
+        "doi": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Doi"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "raw": {
+          "additionalProperties": true,
+          "title": "Raw",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "rendered"
+      ],
+      "title": "BibEntry",
+      "type": "object"
+    },
+    "CiteRef": {
+      "description": "Forward citation edge; ``id`` resolves in the manifest ``bibliography`` pool.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Span"
+        },
+        "form": {
+          "anyOf": [
+            {
+              "enum": [
+                "normal",
+                "prose",
+                "full",
+                "author",
+                "year",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Form"
+        },
+        "supplement": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supplement"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "CiteRef",
+      "type": "object"
+    },
     "CodeNode": {
       "description": "Raw code block, preserved verbatim with its language tag.",
       "properties": {
@@ -20,18 +203,25 @@
           "default": null,
           "title": "Label"
         },
-        "refs_to": {
+        "refs": {
           "items": {
             "$ref": "#/$defs/NodeRef"
           },
-          "title": "Refs To",
+          "title": "Refs",
           "type": "array"
         },
-        "refs_from": {
+        "cites": {
           "items": {
-            "$ref": "#/$defs/NodeRef"
+            "$ref": "#/$defs/CiteRef"
           },
-          "title": "Refs From",
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
           "type": "array"
         },
         "state_metadata": {
@@ -181,7 +371,7 @@
       "type": "object"
     },
     "FigureNode": {
-      "description": "Non-table figure (image and other figurable content).",
+      "description": "Captioned/numbered float wrapper \u2014 never a content carrier.\n\nThe wrapped content (image, table, code, \u2026) lives in ``children`` and\nkeeps its own node type and ``location``. ``kind`` is the counter/label\nselector of the figure (\"image\", \"table\", or an author-custom kind like\n\"atom\") \u2014 an open string, never a content discriminator. Nested figures\n(subfigures) are allowed. An unconvertible body yields ``children=[]``\nwith ``raw_typst`` filled.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -200,18 +390,25 @@
           "default": null,
           "title": "Label"
         },
-        "refs_to": {
+        "refs": {
           "items": {
             "$ref": "#/$defs/NodeRef"
           },
-          "title": "Refs To",
+          "title": "Refs",
           "type": "array"
         },
-        "refs_from": {
+        "cites": {
           "items": {
-            "$ref": "#/$defs/NodeRef"
+            "$ref": "#/$defs/CiteRef"
           },
-          "title": "Refs From",
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
           "type": "array"
         },
         "state_metadata": {
@@ -226,6 +423,18 @@
           "const": "figure",
           "title": "Type",
           "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
         },
         "caption": {
           "anyOf": [
@@ -251,41 +460,58 @@
           "default": null,
           "title": "Fig Number"
         },
-        "kind": {
-          "anyOf": [
-            {
-              "type": "string"
+        "children": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "code": "#/$defs/CodeNode",
+                "figure": "#/$defs/FigureNode",
+                "heading": "#/$defs/HeadingNode",
+                "image": "#/$defs/ImageNode",
+                "list": "#/$defs/ListNode",
+                "math": "#/$defs/MathNode",
+                "paragraph": "#/$defs/ParagraphNode",
+                "quote": "#/$defs/QuoteNode",
+                "table": "#/$defs/TableNode",
+                "terms": "#/$defs/TermsNode"
+              },
+              "propertyName": "type"
             },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Kind"
-        },
-        "alt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Alt"
-        },
-        "path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Path"
+            "oneOf": [
+              {
+                "$ref": "#/$defs/HeadingNode"
+              },
+              {
+                "$ref": "#/$defs/ParagraphNode"
+              },
+              {
+                "$ref": "#/$defs/TableNode"
+              },
+              {
+                "$ref": "#/$defs/QuoteNode"
+              },
+              {
+                "$ref": "#/$defs/CodeNode"
+              },
+              {
+                "$ref": "#/$defs/MathNode"
+              },
+              {
+                "$ref": "#/$defs/FigureNode"
+              },
+              {
+                "$ref": "#/$defs/ImageNode"
+              },
+              {
+                "$ref": "#/$defs/ListNode"
+              },
+              {
+                "$ref": "#/$defs/TermsNode"
+              }
+            ]
+          },
+          "title": "Children",
+          "type": "array"
         },
         "raw_typst": {
           "anyOf": [
@@ -308,6 +534,73 @@
       "title": "FigureNode",
       "type": "object"
     },
+    "Footnote": {
+      "description": "Footnote pool entry \u2014 target of ``footnotes`` edges. Flat text.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "text"
+      ],
+      "title": "Footnote",
+      "type": "object"
+    },
+    "FootnoteRef": {
+      "description": "Forward footnote edge; ``id`` resolves in the manifest ``footnotes`` pool.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Span"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "FootnoteRef",
+      "type": "object"
+    },
     "HeadingNode": {
       "description": "Section heading with nested section content in ``children``.",
       "properties": {
@@ -328,18 +621,25 @@
           "default": null,
           "title": "Label"
         },
-        "refs_to": {
+        "refs": {
           "items": {
             "$ref": "#/$defs/NodeRef"
           },
-          "title": "Refs To",
+          "title": "Refs",
           "type": "array"
         },
-        "refs_from": {
+        "cites": {
           "items": {
-            "$ref": "#/$defs/NodeRef"
+            "$ref": "#/$defs/CiteRef"
           },
-          "title": "Refs From",
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
           "type": "array"
         },
         "state_metadata": {
@@ -381,11 +681,13 @@
                 "code": "#/$defs/CodeNode",
                 "figure": "#/$defs/FigureNode",
                 "heading": "#/$defs/HeadingNode",
+                "image": "#/$defs/ImageNode",
                 "list": "#/$defs/ListNode",
                 "math": "#/$defs/MathNode",
                 "paragraph": "#/$defs/ParagraphNode",
                 "quote": "#/$defs/QuoteNode",
-                "table": "#/$defs/TableNode"
+                "table": "#/$defs/TableNode",
+                "terms": "#/$defs/TermsNode"
               },
               "propertyName": "type"
             },
@@ -412,7 +714,13 @@
                 "$ref": "#/$defs/FigureNode"
               },
               {
+                "$ref": "#/$defs/ImageNode"
+              },
+              {
                 "$ref": "#/$defs/ListNode"
+              },
+              {
+                "$ref": "#/$defs/TermsNode"
               }
             ]
           },
@@ -430,6 +738,93 @@
         "heading_path"
       ],
       "title": "HeadingNode",
+      "type": "object"
+    },
+    "ImageNode": {
+      "description": "Leaf image content. A bare image outside any figure is an ``ImageNode``\nwith no wrapper; a captioned image is an ``ImageNode`` inside a\n``FigureNode``.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "$ref": "#/$defs/NodeLocation"
+        },
+        "type": {
+          "const": "image",
+          "title": "Type",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "alt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alt"
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "type"
+      ],
+      "title": "ImageNode",
       "type": "object"
     },
     "ListItem": {
@@ -485,18 +880,25 @@
           "default": null,
           "title": "Label"
         },
-        "refs_to": {
+        "refs": {
           "items": {
             "$ref": "#/$defs/NodeRef"
           },
-          "title": "Refs To",
+          "title": "Refs",
           "type": "array"
         },
-        "refs_from": {
+        "cites": {
           "items": {
-            "$ref": "#/$defs/NodeRef"
+            "$ref": "#/$defs/CiteRef"
           },
-          "title": "Refs From",
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
           "type": "array"
         },
         "state_metadata": {
@@ -558,18 +960,25 @@
           "default": null,
           "title": "Label"
         },
-        "refs_to": {
+        "refs": {
           "items": {
             "$ref": "#/$defs/NodeRef"
           },
-          "title": "Refs To",
+          "title": "Refs",
           "type": "array"
         },
-        "refs_from": {
+        "cites": {
           "items": {
-            "$ref": "#/$defs/NodeRef"
+            "$ref": "#/$defs/CiteRef"
           },
-          "title": "Refs From",
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
           "type": "array"
         },
         "state_metadata": {
@@ -663,7 +1072,7 @@
       "type": "object"
     },
     "NodeRef": {
-      "description": "Resolved cross-reference edge: stable node id plus optional Typst label.",
+      "description": "Forward cross-reference edge to another node.\n\nCanonical shape is ``{id, label}`` (docs/adr/0002); ``span`` is an\nadditive optional field marking where the reference marker sits in the\ncontaining node's rendered text, as a ``[start, end)`` pair of Unicode\ncode-point offsets.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -681,6 +1090,21 @@
           ],
           "default": null,
           "title": "Label"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Span"
         }
       },
       "required": [
@@ -709,18 +1133,25 @@
           "default": null,
           "title": "Label"
         },
-        "refs_to": {
+        "refs": {
           "items": {
             "$ref": "#/$defs/NodeRef"
           },
-          "title": "Refs To",
+          "title": "Refs",
           "type": "array"
         },
-        "refs_from": {
+        "cites": {
           "items": {
-            "$ref": "#/$defs/NodeRef"
+            "$ref": "#/$defs/CiteRef"
           },
-          "title": "Refs From",
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
           "type": "array"
         },
         "state_metadata": {
@@ -782,18 +1213,25 @@
           "default": null,
           "title": "Label"
         },
-        "refs_to": {
+        "refs": {
           "items": {
             "$ref": "#/$defs/NodeRef"
           },
-          "title": "Refs To",
+          "title": "Refs",
           "type": "array"
         },
-        "refs_from": {
+        "cites": {
           "items": {
-            "$ref": "#/$defs/NodeRef"
+            "$ref": "#/$defs/CiteRef"
           },
-          "title": "Refs From",
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
           "type": "array"
         },
         "state_metadata": {
@@ -892,7 +1330,7 @@
       "type": "object"
     },
     "TableNode": {
-      "description": "Structured table with typed cells and optional caption.\n\n``kind`` distinguishes a semantic ``table`` from a layout ``grid``: both\nshare the same cell model, but a grid carries no tabular semantics.",
+      "description": "Structured table with typed cells.\n\n``kind`` distinguishes a semantic ``table`` from a layout ``grid``: both\nshare the same cell model, but a grid carries no tabular semantics.\n\nA table has no caption of its own \u2014 a captioned/numbered table is a\n``TableNode`` wrapped in a ``FigureNode``, which carries the caption.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -911,18 +1349,25 @@
           "default": null,
           "title": "Label"
         },
-        "refs_to": {
+        "refs": {
           "items": {
             "$ref": "#/$defs/NodeRef"
           },
-          "title": "Refs To",
+          "title": "Refs",
           "type": "array"
         },
-        "refs_from": {
+        "cites": {
           "items": {
-            "$ref": "#/$defs/NodeRef"
+            "$ref": "#/$defs/CiteRef"
           },
-          "title": "Refs From",
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
           "type": "array"
         },
         "state_metadata": {
@@ -963,30 +1408,6 @@
           "default": null,
           "title": "Content Kind"
         },
-        "caption": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Caption"
-        },
-        "fig_number": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Fig Number"
-        },
         "cells": {
           "items": {
             "$ref": "#/$defs/TableCell"
@@ -1013,6 +1434,100 @@
         "type"
       ],
       "title": "TableNode",
+      "type": "object"
+    },
+    "TermItem": {
+      "description": "Single term/description pair of a definition list.",
+      "properties": {
+        "term": {
+          "title": "Term",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "term",
+        "description"
+      ],
+      "title": "TermItem",
+      "type": "object"
+    },
+    "TermsNode": {
+      "description": "Definition list (Typst ``/ term: description`` items).",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "$ref": "#/$defs/NodeLocation"
+        },
+        "type": {
+          "const": "terms",
+          "title": "Type",
+          "type": "string"
+        },
+        "tight": {
+          "default": true,
+          "title": "Tight",
+          "type": "boolean"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/TermItem"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "type"
+      ],
+      "title": "TermsNode",
       "type": "object"
     }
   },
@@ -1046,11 +1561,13 @@
             "code": "#/$defs/CodeNode",
             "figure": "#/$defs/FigureNode",
             "heading": "#/$defs/HeadingNode",
+            "image": "#/$defs/ImageNode",
             "list": "#/$defs/ListNode",
             "math": "#/$defs/MathNode",
             "paragraph": "#/$defs/ParagraphNode",
             "quote": "#/$defs/QuoteNode",
-            "table": "#/$defs/TableNode"
+            "table": "#/$defs/TableNode",
+            "terms": "#/$defs/TermsNode"
           },
           "propertyName": "type"
         },
@@ -1077,11 +1594,31 @@
             "$ref": "#/$defs/FigureNode"
           },
           {
+            "$ref": "#/$defs/ImageNode"
+          },
+          {
             "$ref": "#/$defs/ListNode"
+          },
+          {
+            "$ref": "#/$defs/TermsNode"
           }
         ]
       },
       "title": "Nodes",
+      "type": "array"
+    },
+    "bibliography": {
+      "items": {
+        "$ref": "#/$defs/BibEntry"
+      },
+      "title": "Bibliography",
+      "type": "array"
+    },
+    "footnotes": {
+      "items": {
+        "$ref": "#/$defs/Footnote"
+      },
+      "title": "Footnotes",
       "type": "array"
     }
   },

@@ -4,7 +4,7 @@ status: implemented
 date: 2026-07-08
 tags: [rendering, to_text, tables, config]
 related: [0002]
-superseded-by: null
+superseded-by: 0006
 ---
 
 # Proposal — Configurable table/figure rendering in `to_text()`

@@ -4,12 +4,14 @@ from cnd.core.nodes import (
     CodeNode,
     FigureNode,
     HeadingNode,
+    ImageNode,
     ListNode,
     MathNode,
     NodeTraverseContext,
     ParagraphNode,
     QuoteNode,
     TableNode,
+    TermsNode,
     iter_nodes,
 )
 
@@ -71,8 +73,12 @@ class BaseVisitor:
             self.visit_math(node, ctx)
         elif isinstance(node, FigureNode):
             self.visit_figure(node, ctx)
+        elif isinstance(node, ImageNode):
+            self.visit_image(node, ctx)
         elif isinstance(node, ListNode):
             self.visit_list(node, ctx)
+        elif isinstance(node, TermsNode):
+            self.visit_terms(node, ctx)
         else:
             self.visit_unknown(node, ctx)
 
@@ -97,7 +103,13 @@ class BaseVisitor:
     def visit_figure(self, node: FigureNode, ctx: NodeTraverseContext) -> None:
         pass
 
+    def visit_image(self, node: ImageNode, ctx: NodeTraverseContext) -> None:
+        pass
+
     def visit_list(self, node: ListNode, ctx: NodeTraverseContext) -> None:
+        pass
+
+    def visit_terms(self, node: TermsNode, ctx: NodeTraverseContext) -> None:
         pass
 
     def visit_unknown(self, node: CndNode, ctx: NodeTraverseContext) -> None:

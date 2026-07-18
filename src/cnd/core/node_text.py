@@ -1,17 +1,16 @@
-"""Text rendering helpers for CND manifest nodes."""
+"""Shared text-rendering plumbing used by ``cnd.core.render`` renderers."""
 
 from typing import Literal
 from uuid import UUID
 
-from cnd.core.nodes import CndNode, FigureNode, ListItem, ListNode, TableNode
+from cnd.core.nodes import ListItem, TableNode
 
 # docs/proposals/0001-configurable-table-figure-rendering.md.
-# "placeholder" is the default everywhere (TableNode.to_text()'s output is
-# unaffected by this type existing at all): always the parseable
-# placeholder, regardless of content. "inline" always renders the table's
-# cells as text instead. "auto" defers to the node's own content_kind hint
-# (see TableNode) with no classifier — an unset hint resolves to
-# "placeholder", the same as today, rather than being guessed.
+# "placeholder" is the default everywhere: always the parseable placeholder,
+# regardless of content. "inline" always renders the content as text
+# instead. "auto" defers to the node's own content_kind hint (see TableNode)
+# with no classifier — an unset hint resolves to "placeholder" rather than
+# being guessed.
 NodeTextMode = Literal["placeholder", "inline", "auto"]
 
 
@@ -54,7 +53,7 @@ def _render_list_items(items: list[ListItem], ordered: bool, depth: int) -> list
     return lines
 
 
-def _header_row_text(node: TableNode) -> str | None:
+def header_row_text(node: TableNode) -> str | None:
     """The header row's cell text, joined — cells flagged ``is_header``
     when present, else row 0 (the common case for tables that never set
     the flag). Used to give even a placeholder some structure, not just an
@@ -69,23 +68,15 @@ def _header_row_text(node: TableNode) -> str | None:
 
 
 def table_node_placeholder(node: TableNode) -> str:
-    """Placeholder string for a table or grid node."""
+    """Placeholder string for a bare table or grid node.
+
+    Caption and number live on a wrapping ``FigureNode`` when present —
+    a bare table placeholder carries only kind and header structure.
+    """
     return format_figure_placeholder(
         figure_id=node.id,
         kind=node.kind,
-        caption=node.caption,
-        number=node.fig_number,
-        header_row=_header_row_text(node),
-    )
-
-
-def figure_node_placeholder(node: FigureNode) -> str:
-    """Placeholder string for a non-table figure node."""
-    return format_figure_placeholder(
-        figure_id=node.id,
-        kind=node.kind or "image",
-        caption=node.caption,
-        number=node.fig_number,
+        header_row=header_row_text(node),
     )
 
 
@@ -116,9 +107,6 @@ def render_table_markdown(node: TableNode) -> str:
         if row_index == header_row_index:
             lines.append("| " + " | ".join("---" for _ in row) + " |")
 
-    title = " — ".join(part for part in (node.fig_number, node.caption) if part)
-    if title:
-        return f"{title}\n\n" + "\n".join(lines)
     return "\n".join(lines)
 
 
@@ -134,17 +122,3 @@ def table_node_text(node: TableNode, *, mode: NodeTextMode = "placeholder") -> s
         if rendered:
             return rendered
     return table_node_placeholder(node)
-
-
-def render_node_text(node: CndNode, *, mode: NodeTextMode = "placeholder") -> str:
-    """Polymorphic text rendering with mode support (docs/proposals/0001).
-
-    Only table nodes currently vary by ``mode`` — every other node type has
-    exactly one textual representation regardless of content, so this falls
-    through to that type's own zero-argument ``to_text()`` unchanged; a
-    future node type can opt into mode-aware rendering the same way tables
-    did, without ``to_text()`` itself ever needing a parameter.
-    """
-    if isinstance(node, TableNode):
-        return table_node_text(node, mode=mode)
-    return node.to_text()

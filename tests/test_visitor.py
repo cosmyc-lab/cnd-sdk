@@ -143,7 +143,7 @@ class TestNodeVisitor:
             (TABLE001_ID, [
                 "1 Description du système",
                 "1.1 Paramètres nominaux",
-            ], 2),
+            ], 3),
         ]
 
     def test_context_is_passed_to_visit_hooks(

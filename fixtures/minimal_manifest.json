@@ -1,5 +1,5 @@
 {
-  "cnd_version": "0.1.0",
+  "cnd_version": "0.2.0",
   "doc_hash": "sha256:abc123def4567890",
   "compiled_at": "2026-05-20T10:00:00Z",
   "doc": {
@@ -52,5 +52,7 @@
         }
       ]
     }
-  ]
+  ],
+  "bibliography": [],
+  "footnotes": []
 }

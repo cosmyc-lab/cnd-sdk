@@ -18,3 +18,13 @@ def structured_manifest_path() -> Path:
 @pytest.fixture
 def comprehensive_manifest_path() -> Path:
     return FIXTURES_DIR / "comprehensive_manifest.json"
+
+
+@pytest.fixture
+def rich_content_manifest_path() -> Path:
+    return FIXTURES_DIR / "rich_content_manifest.json"
+
+
+@pytest.fixture
+def full_coverage_manifest_path() -> Path:
+    return FIXTURES_DIR / "full_coverage_manifest.json"

@@ -24,10 +24,35 @@ class NodeLocation(BaseModel):
 
 
 class NodeRef(BaseModel):
-    """Resolved cross-reference edge: stable node id plus optional Typst label."""
+    """Forward cross-reference edge to another node.
+
+    Canonical shape is ``{id, label}`` (docs/adr/0002); ``span`` is an
+    additive optional field marking where the reference marker sits in the
+    containing node's rendered text, as a ``[start, end)`` pair of Unicode
+    code-point offsets.
+    """
 
     id: UUID
     label: str | None = None
+    span: list[int] | None = None
+
+
+class CiteRef(BaseModel):
+    """Forward citation edge; ``id`` resolves in the manifest ``bibliography`` pool."""
+
+    id: UUID
+    label: str | None = None
+    span: list[int] | None = None
+    form: Literal["normal", "prose", "full", "author", "year", "none"] | None = None
+    supplement: str | None = None
+
+
+class FootnoteRef(BaseModel):
+    """Forward footnote edge; ``id`` resolves in the manifest ``footnotes`` pool."""
+
+    id: UUID
+    label: str | None = None
+    span: list[int] | None = None
 
 
 class NodeBase(BaseModel):
@@ -35,8 +60,9 @@ class NodeBase(BaseModel):
 
     id: UUID
     label: str | None = None
-    refs_to: list[NodeRef] = Field(default_factory=list)
-    refs_from: list[NodeRef] = Field(default_factory=list)
+    refs: list[NodeRef] = Field(default_factory=list)
+    cites: list[CiteRef] = Field(default_factory=list)
+    footnotes: list[FootnoteRef] = Field(default_factory=list)
     state_metadata: dict[str, Any] = Field(default_factory=dict)
     location: NodeLocation
 
@@ -51,9 +77,6 @@ class HeadingNode(NodeBase):
     heading_path: list[str]
     children: list["CndNode"] = Field(default_factory=list)
 
-    def to_text(self) -> str:
-        return self.text
-
 
 class ParagraphNode(NodeBase):
     """Plain text paragraph."""
@@ -61,9 +84,6 @@ class ParagraphNode(NodeBase):
     type: Literal["paragraph"]
     text: str
     lang: str | None = None
-
-    def to_text(self) -> str:
-        return self.text
 
 
 class TableCell(BaseModel):
@@ -78,30 +98,25 @@ class TableCell(BaseModel):
 
 
 class TableNode(NodeBase):
-    """Structured table with typed cells and optional caption.
+    """Structured table with typed cells.
 
     ``kind`` distinguishes a semantic ``table`` from a layout ``grid``: both
     share the same cell model, but a grid carries no tabular semantics.
+
+    A table has no caption of its own — a captioned/numbered table is a
+    ``TableNode`` wrapped in a ``FigureNode``, which carries the caption.
     """
 
     type: Literal["table"]
     kind: Literal["table", "grid"] = "table"
     # Optional producer-supplied hint used by mode="auto" rendering (see
-    # cnd.core.node_text.table_node_text): "content" for a table whose cells
+    # cnd.core.render.MarkdownRenderer): "content" for a table whose cells
     # read fine inlined as text (a short comparison table, a parameter
     # list), "data" for one that doesn't (a numeric measurement grid).
-    # Unset (the common case today) is treated as "data" — to_text()'s
-    # default output is unaffected either way.
+    # Unset (the common case today) is treated as "data".
     content_kind: Literal["data", "content"] | None = None
-    caption: str | None = None
-    fig_number: str | None = None
     cells: list[TableCell] = Field(default_factory=list)
     raw_typst: str | None = None
-
-    def to_text(self) -> str:
-        from cnd.core.node_text import table_node_placeholder
-
-        return table_node_placeholder(self)
 
 
 class QuoteNode(NodeBase):
@@ -113,11 +128,6 @@ class QuoteNode(NodeBase):
     block: bool = True
     lang: str | None = None
 
-    def to_text(self) -> str:
-        if self.attribution:
-            return f"{self.text}\n— {self.attribution}"
-        return self.text
-
 
 class CodeNode(NodeBase):
     """Raw code block, preserved verbatim with its language tag."""
@@ -126,10 +136,6 @@ class CodeNode(NodeBase):
     text: str
     lang: str | None = None
     block: bool = True
-
-    def to_text(self) -> str:
-        fence = f"```{self.lang or ''}".rstrip()
-        return f"{fence}\n{self.text}\n```"
 
 
 class MathNode(NodeBase):
@@ -141,25 +147,34 @@ class MathNode(NodeBase):
     numbering: str | None = None
     block: bool = True
 
-    def to_text(self) -> str:
-        return self.text
+
+class ImageNode(NodeBase):
+    """Leaf image content. A bare image outside any figure is an ``ImageNode``
+    with no wrapper; a captioned image is an ``ImageNode`` inside a
+    ``FigureNode``."""
+
+    type: Literal["image"]
+    path: str | None = None
+    alt: str | None = None
 
 
 class FigureNode(NodeBase):
-    """Non-table figure (image and other figurable content)."""
+    """Captioned/numbered float wrapper — never a content carrier.
+
+    The wrapped content (image, table, code, …) lives in ``children`` and
+    keeps its own node type and ``location``. ``kind`` is the counter/label
+    selector of the figure ("image", "table", or an author-custom kind like
+    "atom") — an open string, never a content discriminator. Nested figures
+    (subfigures) are allowed. An unconvertible body yields ``children=[]``
+    with ``raw_typst`` filled.
+    """
 
     type: Literal["figure"]
+    kind: str | None = None
     caption: str | None = None
     fig_number: str | None = None
-    kind: str | None = None
-    alt: str | None = None
-    path: str | None = None
+    children: list["CndNode"] = Field(default_factory=list)
     raw_typst: str | None = None
-
-    def to_text(self) -> str:
-        from cnd.core.node_text import figure_node_placeholder
-
-        return figure_node_placeholder(self)
 
 
 class ListItem(BaseModel):
@@ -178,10 +193,20 @@ class ListNode(NodeBase):
     tight: bool = True
     items: list[ListItem] = Field(default_factory=list)
 
-    def to_text(self) -> str:
-        from cnd.core.node_text import render_list_markdown
 
-        return render_list_markdown(self.items, ordered=self.ordered)
+class TermItem(BaseModel):
+    """Single term/description pair of a definition list."""
+
+    term: str
+    description: str
+
+
+class TermsNode(NodeBase):
+    """Definition list (Typst ``/ term: description`` items)."""
+
+    type: Literal["terms"]
+    tight: bool = True
+    items: list[TermItem] = Field(default_factory=list)
 
 
 CndNode = Annotated[
@@ -193,7 +218,9 @@ CndNode = Annotated[
         CodeNode,
         MathNode,
         FigureNode,
+        ImageNode,
         ListNode,
+        TermsNode,
     ],
     Field(discriminator="type"),
 ]
@@ -201,6 +228,7 @@ CndNode = Annotated[
 ListItem.model_rebuild()
 
 HeadingNode.model_rebuild()  # For recursive reference to children
+FigureNode.model_rebuild()  # For recursive reference to children
 
 
 @dataclass(frozen=True)
@@ -248,7 +276,7 @@ def _iter_nodes(
         )
         yield NodeTraverse(node=node, ctx=visit_ctx)
 
-        if not isinstance(node, HeadingNode) or not node.children:
+        if not isinstance(node, (HeadingNode, FigureNode)) or not node.children:
             continue
         if max_depth is not None and ctx.depth >= max_depth:
             continue
@@ -257,7 +285,9 @@ def _iter_nodes(
 
         child_ctx = NodeTraverseContext(
             depth=ctx.depth + 1,
-            heading_path=node.heading_path,
+            heading_path=(
+                node.heading_path if isinstance(node, HeadingNode) else ctx.heading_path
+            ),
             parent=node,
         )
         yield from _iter_nodes(node.children, child_ctx, max_depth, stop_predicate)
