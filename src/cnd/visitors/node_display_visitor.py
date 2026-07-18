@@ -27,6 +27,7 @@ from cnd.core.nodes import (
     TableNode,
     TermsNode,
 )
+from cnd.core.node_text import render_table_markdown
 from cnd.core.render import MarkdownRenderer, NodeRenderer
 from cnd.display.theme import (
     NODE_STYLE,
@@ -36,6 +37,7 @@ from cnd.display.theme import (
     kv_line,
     legend_panel,
     options_panel,
+    pool_panel,
     print_header_grid,
     summary_panel,
     typed_panel,
@@ -80,6 +82,7 @@ class NodeDisplayVisitor(BaseVisitor):
         show_summary: bool = True,
         show_tree: bool = True,
         show_legend: bool = True,
+        show_pools: bool = True,
     ) -> None:
         self._console = console or Console(highlight=False)
         self._renderer = renderer or MarkdownRenderer()
@@ -91,6 +94,7 @@ class NodeDisplayVisitor(BaseVisitor):
         self._show_summary = show_summary
         self._show_tree = show_tree
         self._show_legend = show_legend
+        self._show_pools = show_pools
         self._counts: Counter[str] = Counter()
         self._tree: Tree | None = None
         self._tree_stack: list[Tree] = []
@@ -123,7 +127,9 @@ class NodeDisplayVisitor(BaseVisitor):
     @override
     def visit_table(self, node: TableNode, ctx: NodeTraverseContext) -> None:
         self._counts["table"] += 1
-        title = node.label or "Table"
+        # Preview the actual cell content (inline pipe grid), like text nodes
+        # preview their text; the label stays visible on the identity line.
+        title = render_table_markdown(node) or node.label or "Table"
         details: dict[str, str] = {
             "cells": str(len(node.cells)),
             "kind": node.kind,
@@ -242,6 +248,35 @@ class NodeDisplayVisitor(BaseVisitor):
         if self._show_summary and self._counts:
             self._console.print(self._build_summary())
 
+        if self._show_pools and isinstance(target, CndManifest):
+            self._print_pools(target)
+
+    def _print_pools(self, manifest: CndManifest) -> None:
+        def sources(entry_id) -> int:
+            # incoming() already returns distinct citing nodes.
+            return len(manifest.incoming(entry_id))
+
+        if manifest.bibliography:
+            rows = [
+                (
+                    f"@{entry.label}",
+                    self._preview(entry.rendered),
+                    f"id={str(entry.id)[:8]}   cited by {sources(entry.id)}",
+                )
+                for entry in manifest.bibliography
+            ]
+            self._console.print(pool_panel("Bibliography", rows))
+        if manifest.footnotes:
+            rows = [
+                (
+                    f"@{note.label}",
+                    self._preview(note.text),
+                    f"id={str(note.id)[:8]}   referenced by {sources(note.id)}",
+                )
+                for note in manifest.footnotes
+            ]
+            self._console.print(pool_panel("Footnotes", rows))
+
     def _print_manifest_header(self, manifest: CndManifest) -> None:
         panels = [
             document_panel(manifest),
@@ -349,17 +384,16 @@ class NodeDisplayVisitor(BaseVisitor):
             lines.append(refs)
 
         if self._show_location:
-            loc = node.location
             location = Text()
             location.append("loc", "dim")
             location.append("  ")
-            location.append(f"page={loc.page}", "bright_black")
+            location.append(f"page={node.location.page}", "bright_black")
             location.append("   ·   ", "dim")
-            location.append(f"span={loc.span}", "bright_black")
+            location.append(f"child={ctx.sibling_index}/{ctx.sibling_count}", "bright_black")
             location.append("   ·   ", "dim")
-            location.append(f"page_span={loc.page_span}", "bright_black")
+            location.append(f"on-page={ctx.page_index}/{ctx.page_count}", "bright_black")
             location.append("   ·   ", "dim")
-            location.append(f"parent_span={loc.parent_span}", "bright_black")
+            location.append(f"doc={ctx.doc_index}/{ctx.doc_count}", "bright_black")
             lines.append(location)
 
         return lines

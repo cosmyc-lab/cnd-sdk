@@ -55,6 +55,16 @@ ids alike — is unique across the whole manifest. A link's resolution domain
 is carried by the field it appears in (`refs` → nodes, `cites` →
 `bibliography`, `footnotes` → `footnotes`), never by the shape of the id.
 
+**Reading order (normative)**: the node tree is in document reading order —
+a depth-first traversal of `nodes` (each node before its `children`,
+siblings in list order) visits nodes exactly in the order they are read in
+the compiled document. Producers MUST emit nodes in reading order. No
+serialized field encodes position: document order, within-page order, and
+within-parent order are all derived from the tree by consumers (the
+reference SDK computes them during traversal, §8). Only `page` is
+serialized, because page breaks are a layout result that cannot be
+reconstructed from the tree.
+
 ## 3. Document metadata
 
 `DocMetadata`:
@@ -80,7 +90,7 @@ Every node (see `NodeBase` in `src/cnd/core/nodes.py`) shares:
 | `cites` | array of [`CiteRef`](#5-cross-references-and-link-families) | Outgoing citations, resolving in the `bibliography` pool. |
 | `footnotes` | array of [`FootnoteRef`](#5-cross-references-and-link-families) | Outgoing footnote markers, resolving in the `footnotes` pool. |
 | `state_metadata` | object | Free-form extension bag for compiler- or consumer-specific state. Not interpreted by the standard. |
-| `location` | `NodeLocation` | Physical position in the compiled document (`page`, `span`, `page_span`, `parent_span`, `span_count`). |
+| `location` | `NodeLocation` | Layout facts the consumer cannot derive from the tree. A single field: `page`, the page on which the node **begins** in the compiled document. |
 
 All three link families live on nodes and point **outward** — there is no
 serialized incoming-edge field of any kind.
@@ -337,6 +347,14 @@ is its JSON serialization itself (`model_dump_json()`), not a renderer.
   `heading_path`, `parent`). Traversal descends into every children-bearing
   node — `heading` and `figure` alike; a consumer that wants to treat
   figures as atomic prunes them with a `stop_predicate`.
+- Because the tree is normatively in reading order (§2), the traversal
+  engine derives positions and attaches them to every yielded context as
+  1-based `index`/`count` pairs: `doc_index`/`doc_count` (position in the
+  whole document), `sibling_index`/`sibling_count` (position among the
+  parent's children), and `page_index`/`page_count` (position among the
+  nodes beginning on the same `location.page`). The totals come from a
+  cheap cached pre-pass; pruning a branch does not shift the positions of
+  the nodes still visited.
 - `CndManifest.incoming(id)` returns the nodes whose forward edges
   (`refs`, `cites`, `footnotes`) target `id` — the derived reverse index
   (§5), built lazily and cached.

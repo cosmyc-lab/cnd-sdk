@@ -34,6 +34,14 @@ SDK release 0.3.0 implements CND **format 0.2.0** (`cnd_version: "0.2.0"`).
   deprecated fields are left behind.
 - **Traversal descends into every children-bearing node** (`heading` and
   now `figure`); prune with a `stop_predicate` to treat figures as atomic.
+- **`NodeLocation` reduced to layout facts only** (docs/adr/0012): a single
+  `page` field (the page the node begins on). `span`, `page_span`,
+  `parent_span`, `span_count`, and `NodeLocation`'s span-based ordering are
+  removed. Reading order is now a normative invariant of the tree, and the
+  traversal engine derives positions onto every `NodeTraverseContext`:
+  `doc_index`/`doc_count`, `sibling_index`/`sibling_count`,
+  `page_index`/`page_count` (1-based; totals from a cached pre-pass;
+  pruning does not shift positions).
 - `cnd.core.node_text` is now internal plumbing for renderers:
   `figure_node_placeholder` removed, `table_node_placeholder` and
   `render_table_markdown` no longer emit caption/number (the wrapper owns

@@ -19,6 +19,7 @@ conventions.
 | [0009](adr/0009-out-of-tree-referenceable-entities.md) | Out-of-tree referenceable entities; pools and typed link families | proposed |
 | [0010](adr/0010-figure-as-wrapper-node.md) | Figure is a wrapper node; content keeps its own node type | proposed |
 | [0011](adr/0011-rendering-as-sdk-renderer-hierarchy.md) | Rendering is an SDK renderer hierarchy; nodes are pure data | proposed |
+| [0012](adr/0012-location-is-page-only-positions-derived.md) | NodeLocation carries layout facts only (page); positions are SDK-derived | proposed |
 
 ## Proposals (docs/proposals/)
 

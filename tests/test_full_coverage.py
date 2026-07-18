@@ -114,6 +114,8 @@ class TestIncomingResolution:
         manifest = _load()
         sources = manifest.incoming(FULL_BIB_FULL_ID)
         assert {n.id for n in sources} == {FULL_PARA_INTRO_ID, FULL_PARA_REFS_ID}
+        # para-intro cites this entry twice; incoming() returns it once.
+        assert len(sources) == 2
 
     def test_incoming_resolves_a_footnote_target(self) -> None:
         manifest = _load()

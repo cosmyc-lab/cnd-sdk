@@ -123,9 +123,10 @@ class TestNodeDisplayVisitor:
         assert "Paramètres nominaux de fonctionnement." in text
         assert "Table 1" in text
         assert "page=1" in text
-        assert "span=2" in text
-        assert "page_span=2" in text
-        assert "parent_span=1" in text
+        assert "child=1/2" in text
+        assert "on-page=3/5" in text
+        assert "doc=3/5" in text
+        assert "doc=5/5" in text
 
     def test_can_hide_refs_and_location(
         self, structured_manifest_path: Path,
@@ -241,3 +242,63 @@ class TestNodeDisplayVisitorRichContent:
         assert "cites" in text
         assert "@smith2024[6:18]" in text
         assert "@fn-rest[57:61]" in text
+
+
+class TestTableContentPreview:
+    def test_table_preview_shows_cells_not_just_label(
+        self, structured_manifest_path: Path,
+    ) -> None:
+        manifest = _load(structured_manifest_path)
+        output, console = _capture_output()
+
+        NodeDisplayVisitor(console=console).visit(manifest)
+
+        text = output.getvalue()
+        assert "| Paramètre | Valeur |" in text
+        assert "Débit nominal" in text
+        # The label is still available on the identity line.
+        assert "label=tab-params-nominaux" in text
+
+
+class TestPoolPanels:
+    def test_pool_panels_list_entries_with_incoming_counts(
+        self, rich_content_manifest_path: Path,
+    ) -> None:
+        manifest = _load(rich_content_manifest_path)
+        output, console = _capture_output()
+
+        NodeDisplayVisitor(console=console).visit(manifest)
+
+        text = output.getvalue()
+        assert "Bibliography" in text
+        assert "@smith2024" in text
+        assert "Smith, J., & Doe, A." in text
+        assert "cited by 1" in text
+        assert "Footnotes" in text
+        assert "@fn-rest" in text
+        assert "REST : Representational State" in text
+        assert "referenced by 1" in text
+
+    def test_show_pools_false_hides_pool_panels(
+        self, rich_content_manifest_path: Path,
+    ) -> None:
+        manifest = _load(rich_content_manifest_path)
+        output, console = _capture_output()
+
+        NodeDisplayVisitor(console=console, show_pools=False).visit(manifest)
+
+        text = output.getvalue()
+        assert "Bibliography" not in text
+        assert "referenced by" not in text
+
+    def test_empty_pools_render_no_panels(
+        self, minimal_manifest_path: Path,
+    ) -> None:
+        manifest = _load(minimal_manifest_path)
+        output, console = _capture_output()
+
+        NodeDisplayVisitor(console=console).visit(manifest)
+
+        text = output.getvalue()
+        assert "Bibliography" not in text
+        assert "Footnotes" not in text

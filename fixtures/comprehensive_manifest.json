@@ -30,11 +30,7 @@
       "text": "Résumé exécutif placé avant le premier titre. Ce paragraphe doit produire un chunk isolé avec un heading_path vide.",
       "lang": "fr",
       "location": {
-        "page": 1,
-        "span": 0,
-        "page_span": 0,
-        "parent_span": 0,
-        "span_count": 1
+        "page": 1
       }
     },
     {
@@ -48,11 +44,7 @@
       ],
       "label": "ch-architecture",
       "location": {
-        "page": 1,
-        "span": 1,
-        "page_span": 1,
-        "parent_span": 0,
-        "span_count": 1
+        "page": 1
       },
       "children": [
         {
@@ -65,11 +57,7 @@
             "status": "approved"
           },
           "location": {
-            "page": 1,
-            "span": 2,
-            "page_span": 2,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 1
           }
         },
         {
@@ -84,11 +72,7 @@
           ],
           "label": "sec-acquisition",
           "location": {
-            "page": 2,
-            "span": 3,
-            "page_span": 0,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 2
           },
           "children": [
             {
@@ -97,11 +81,7 @@
               "text": "Les capteurs analogiques et numériques sont regroupés par bus de terrain. Voir le tableau des plages de mesure.",
               "lang": "fr",
               "location": {
-                "page": 2,
-                "span": 4,
-                "page_span": 1,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 2
               },
               "refs": [
                 {
@@ -116,11 +96,7 @@
               "text": "La fréquence d'échantillonnage nominale est de 10 Hz pour les boucles rapides.",
               "lang": "fr",
               "location": {
-                "page": 2,
-                "span": 5,
-                "page_span": 2,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 2
               }
             },
             {
@@ -130,11 +106,7 @@
               "caption": "Plages de mesure des capteurs de terrain.",
               "fig_number": "Table 1",
               "location": {
-                "page": 2,
-                "span": 6,
-                "page_span": 3,
-                "parent_span": 2,
-                "span_count": 1
+                "page": 2
               },
               "children": [
                 {
@@ -143,11 +115,7 @@
                   "content_kind": "content",
                   "label": "tab-plages-mesure",
                   "location": {
-                    "page": 2,
-                    "span": 6,
-                    "page_span": 3,
-                    "parent_span": 2,
-                    "span_count": 1
+                    "page": 2
                   },
                   "cells": [
                     {
@@ -255,11 +223,7 @@
           ],
           "label": "sec-traitement",
           "location": {
-            "page": 3,
-            "span": 7,
-            "page_span": 0,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 3
           },
           "children": [
             {
@@ -268,11 +232,7 @@
               "text": "Les algorithmes de régulation s'exécutent sur le contrôleur redondant. Les plages capteurs (Table 1) et le récapitulatif annexe (Table 4) doivent rester cohérents.",
               "lang": "fr",
               "location": {
-                "page": 3,
-                "span": 8,
-                "page_span": 1,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 3
               },
               "refs": [
                 {
@@ -292,11 +252,7 @@
               "caption": "Boucles de régulation PID actives.",
               "fig_number": "Table 2",
               "location": {
-                "page": 3,
-                "span": 9,
-                "page_span": 2,
-                "parent_span": 2,
-                "span_count": 1
+                "page": 3
               },
               "children": [
                 {
@@ -304,11 +260,7 @@
                   "type": "table",
                   "label": "tab-boucles-regulation",
                   "location": {
-                    "page": 3,
-                    "span": 9,
-                    "page_span": 2,
-                    "parent_span": 2,
-                    "span_count": 1
+                    "page": 3
                   },
                   "cells": [
                     {
@@ -394,11 +346,7 @@
       ],
       "label": "ch-exploitation",
       "location": {
-        "page": 4,
-        "span": 10,
-        "page_span": 0,
-        "parent_span": 0,
-        "span_count": 1
+        "page": 4
       },
       "children": [
         {
@@ -412,11 +360,7 @@
             "2.1 Surveillance opérateur"
           ],
           "location": {
-            "page": 4,
-            "span": 11,
-            "page_span": 1,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 4
           },
           "children": [
             {
@@ -432,11 +376,7 @@
               ],
               "label": "sec-alarmes",
               "location": {
-                "page": 4,
-                "span": 12,
-                "page_span": 2,
-                "parent_span": 2,
-                "span_count": 1
+                "page": 4
               },
               "children": [
                 {
@@ -445,11 +385,7 @@
                   "text": "Les alarmes sont classées en quatre niveaux de criticité : info, avertissement, alarme, critique.",
                   "lang": "fr",
                   "location": {
-                    "page": 4,
-                    "span": 13,
-                    "page_span": 3,
-                    "parent_span": 3,
-                    "span_count": 1
+                    "page": 4
                   }
                 },
                 {
@@ -458,11 +394,7 @@
                   "text": "Le délai d'acquittement maximal est défini par la politique site. Consulter la matrice des délais.",
                   "lang": "fr",
                   "location": {
-                    "page": 5,
-                    "span": 14,
-                    "page_span": 0,
-                    "parent_span": 3,
-                    "span_count": 1
+                    "page": 5
                   },
                   "refs": [
                     {
@@ -478,11 +410,7 @@
                   "caption": "Délais d'acquittement par niveau de criticité.",
                   "fig_number": "Table 3",
                   "location": {
-                    "page": 5,
-                    "span": 15,
-                    "page_span": 1,
-                    "parent_span": 4,
-                    "span_count": 1
+                    "page": 5
                   },
                   "children": [
                     {
@@ -490,11 +418,7 @@
                       "type": "table",
                       "label": "tab-delais-alarmes",
                       "location": {
-                        "page": 5,
-                        "span": 15,
-                        "page_span": 1,
-                        "parent_span": 4,
-                        "span_count": 1
+                        "page": 5
                       },
                       "cells": [
                         {
@@ -572,11 +496,7 @@
           ],
           "label": "sec-maintenance",
           "location": {
-            "page": 5,
-            "span": 16,
-            "page_span": 2,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 5
           },
           "children": [
             {
@@ -585,11 +505,7 @@
               "text": "Les interventions planifiées suivent le calendrier OEM. Aucune table n'est associée à cette section.",
               "lang": "fr",
               "location": {
-                "page": 5,
-                "span": 17,
-                "page_span": 3,
-                "parent_span": 2,
-                "span_count": 1
+                "page": 5
               }
             }
           ]
@@ -607,11 +523,7 @@
       ],
       "label": "ch-annexes",
       "location": {
-        "page": 6,
-        "span": 18,
-        "page_span": 0,
-        "parent_span": 0,
-        "span_count": 1
+        "page": 6
       },
       "children": [
         {
@@ -621,11 +533,7 @@
           "caption": "Récapitulatif des signaux instrumentés.",
           "fig_number": "Table 4",
           "location": {
-            "page": 6,
-            "span": 19,
-            "page_span": 1,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 6
           },
           "children": [
             {
@@ -633,11 +541,7 @@
               "type": "table",
               "label": "tab-recap-signaux",
               "location": {
-                "page": 6,
-                "span": 19,
-                "page_span": 1,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 6
               },
               "cells": [
                 {

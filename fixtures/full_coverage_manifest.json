@@ -39,11 +39,7 @@
         "status": "approved"
       },
       "location": {
-        "page": 1,
-        "span": 0,
-        "page_span": 0,
-        "parent_span": 0,
-        "span_count": 1
+        "page": 1
       },
       "children": [
         {
@@ -101,11 +97,7 @@
             }
           ],
           "location": {
-            "page": 1,
-            "span": 1,
-            "page_span": 1,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 1
           }
         },
         {
@@ -134,11 +126,7 @@
             }
           ],
           "location": {
-            "page": 1,
-            "span": 2,
-            "page_span": 2,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 1
           }
         },
         {
@@ -155,11 +143,7 @@
             }
           ],
           "location": {
-            "page": 1,
-            "span": 3,
-            "page_span": 3,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 1
           }
         },
         {
@@ -181,11 +165,7 @@
             }
           ],
           "location": {
-            "page": 2,
-            "span": 4,
-            "page_span": 0,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 2
           }
         },
         {
@@ -196,11 +176,7 @@
           "block": true,
           "lang": "fr",
           "location": {
-            "page": 2,
-            "span": 5,
-            "page_span": 1,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 2
           }
         },
         {
@@ -210,11 +186,7 @@
           "lang": "python",
           "block": true,
           "location": {
-            "page": 2,
-            "span": 6,
-            "page_span": 2,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 2
           }
         },
         {
@@ -226,11 +198,7 @@
           "block": true,
           "label": "eq-erreur",
           "location": {
-            "page": 2,
-            "span": 7,
-            "page_span": 3,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 2
           }
         },
         {
@@ -251,11 +219,7 @@
             }
           ],
           "location": {
-            "page": 3,
-            "span": 8,
-            "page_span": 0,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 3
           },
           "children": [
             {
@@ -266,11 +230,7 @@
               "caption": "Mesures nominales par capteur.",
               "fig_number": "Table 1",
               "location": {
-                "page": 3,
-                "span": 9,
-                "page_span": 1,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 3
               },
               "children": [
                 {
@@ -314,11 +274,7 @@
                   ],
                   "raw_typst": "table(columns: 2, ..)",
                   "location": {
-                    "page": 3,
-                    "span": 9,
-                    "page_span": 1,
-                    "parent_span": 1,
-                    "span_count": 1
+                    "page": 3
                   }
                 }
               ]
@@ -359,11 +315,7 @@
               ],
               "raw_typst": "grid(columns: 3, ..)",
               "location": {
-                "page": 3,
-                "span": 10,
-                "page_span": 2,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 3
               }
             },
             {
@@ -374,11 +326,7 @@
               "caption": "Schéma du banc de mesure.",
               "fig_number": "Figure 1",
               "location": {
-                "page": 4,
-                "span": 11,
-                "page_span": 0,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 4
               },
               "children": [
                 {
@@ -387,11 +335,7 @@
                   "path": "figures/banc.png",
                   "alt": "Vue d'ensemble du banc de mesure",
                   "location": {
-                    "page": 4,
-                    "span": 11,
-                    "page_span": 0,
-                    "parent_span": 1,
-                    "span_count": 1
+                    "page": 4
                   }
                 }
               ]
@@ -404,11 +348,7 @@
               "caption": "Configuration de l'acquisition.",
               "fig_number": "Listing 1",
               "location": {
-                "page": 4,
-                "span": 12,
-                "page_span": 1,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 4
               },
               "children": [
                 {
@@ -418,11 +358,7 @@
                   "lang": "json",
                   "block": true,
                   "location": {
-                    "page": 4,
-                    "span": 12,
-                    "page_span": 1,
-                    "parent_span": 1,
-                    "span_count": 1
+                    "page": 4
                   }
                 }
               ]
@@ -435,11 +371,7 @@
               "caption": "Comparaison avant/après étalonnage.",
               "fig_number": "Figure 2",
               "location": {
-                "page": 5,
-                "span": 13,
-                "page_span": 0,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 5
               },
               "children": [
                 {
@@ -448,11 +380,7 @@
                   "kind": "image",
                   "caption": "(a) Avant étalonnage.",
                   "location": {
-                    "page": 5,
-                    "span": 13,
-                    "page_span": 0,
-                    "parent_span": 2,
-                    "span_count": 1
+                    "page": 5
                   },
                   "children": [
                     {
@@ -461,11 +389,7 @@
                       "path": "figures/avant.png",
                       "alt": "Courbe avant étalonnage",
                       "location": {
-                        "page": 5,
-                        "span": 13,
-                        "page_span": 0,
-                        "parent_span": 2,
-                        "span_count": 1
+                        "page": 5
                       }
                     }
                   ]
@@ -476,11 +400,7 @@
                   "kind": "image",
                   "caption": "(b) Après étalonnage.",
                   "location": {
-                    "page": 5,
-                    "span": 14,
-                    "page_span": 1,
-                    "parent_span": 2,
-                    "span_count": 1
+                    "page": 5
                   },
                   "children": [
                     {
@@ -489,11 +409,7 @@
                       "path": "figures/apres.png",
                       "alt": "Courbe après étalonnage",
                       "location": {
-                        "page": 5,
-                        "span": 14,
-                        "page_span": 1,
-                        "parent_span": 2,
-                        "span_count": 1
+                        "page": 5
                       }
                     }
                   ]
@@ -508,11 +424,7 @@
               "caption": "Structure atomique du réseau mesuré.",
               "fig_number": "Atome 1",
               "location": {
-                "page": 6,
-                "span": 15,
-                "page_span": 0,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 6
               },
               "children": [
                 {
@@ -521,11 +433,7 @@
                   "path": "figures/reseau.svg",
                   "alt": "Maille cristalline",
                   "location": {
-                    "page": 6,
-                    "span": 15,
-                    "page_span": 0,
-                    "parent_span": 1,
-                    "span_count": 1
+                    "page": 6
                   }
                 }
               ]
@@ -540,11 +448,7 @@
               "children": [],
               "raw_typst": "#figure(canvas(length: 1cm, { plot(..) }))",
               "location": {
-                "page": 6,
-                "span": 16,
-                "page_span": 1,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 6
               }
             },
             {
@@ -553,11 +457,7 @@
               "path": "figures/logo-banc.png",
               "alt": "Logo du banc, image nue hors figure",
               "location": {
-                "page": 6,
-                "span": 17,
-                "page_span": 2,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 6
               }
             },
             {
@@ -566,11 +466,7 @@
               "path": null,
               "alt": "Image incorporée sans chemin extrait",
               "location": {
-                "page": 6,
-                "span": 18,
-                "page_span": 3,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 6
               }
             }
           ]
@@ -588,11 +484,7 @@
       ],
       "label": "ch-references",
       "location": {
-        "page": 7,
-        "span": 19,
-        "page_span": 0,
-        "parent_span": 0,
-        "span_count": 1
+        "page": 7
       },
       "children": [
         {
@@ -656,11 +548,7 @@
             }
           ],
           "location": {
-            "page": 7,
-            "span": 20,
-            "page_span": 1,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 7
           }
         }
       ]

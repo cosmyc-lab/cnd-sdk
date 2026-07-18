@@ -38,6 +38,7 @@ from cnd.core import (
     TermItem,
     TermsNode,
     iter_nodes,
+    position_totals,
 )
 from cnd.visitors import BaseVisitor, VisitTarget
 
@@ -75,4 +76,5 @@ __all__ = [
     "TermsNode",
     "VisitTarget",
     "iter_nodes",
+    "position_totals",
 ]

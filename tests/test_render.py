@@ -32,14 +32,8 @@ FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 ALL_FIXTURES = sorted(FIXTURES_DIR.glob("*.json"))
 
 
-def _location(span: int = 0) -> NodeLocation:
-    return NodeLocation(
-        page=1,
-        span=span,
-        page_span=span,
-        parent_span=0,
-        span_count=1,
-    )
+def _location() -> NodeLocation:
+    return NodeLocation(page=1)
 
 
 def _base(**kwargs):

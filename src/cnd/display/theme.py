@@ -14,19 +14,64 @@ from rich.text import Text
 
 from cnd.core.manifest import CndManifest
 
-# (color, badge) per node kind.
+# (color, badge) per node kind — a categorical palette of 10 hue-separated
+# truecolor flags for a dark terminal (OKLCH L 0.48-0.67, chroma >= 0.10,
+# >= 3:1 on a dark surface); legend/summary row adjacency checked with the
+# dataviz palette validator. Order is alphabetical EXCEPT image and quote are
+# swapped in row position: after the image<->quote color swap, olive-quote sat
+# next to amber-table (near-identical under protanopia); swapping their rows
+# moves olive clear of both amber and green so every adjacent pair stays
+# distinct. Legend and summary both follow this dict order.
 NODE_STYLE: dict[str, tuple[str, str]] = {
-    "heading": ("blue", "H"),
-    "paragraph": ("green", "P"),
-    "table": ("magenta", "T"),
-    "quote": ("yellow", "Q"),
-    "code": ("bright_black", "C"),
-    "math": ("cyan", "M"),
-    "figure": ("bright_magenta", "Fg"),
-    "image": ("bright_cyan", "Im"),
-    "list": ("bright_green", "L"),
-    "terms": ("bright_yellow", "D"),
+    "code": ("#00a3c4", "C"),
+    "figure": ("#d95926", "Fg"),
+    "heading": ("#8a55f2", "H"),
+    "quote": ("#8a8c1a", "Q"),
+    "list": ("#9085e9", "L"),
+    "math": ("#e66767", "M"),
+    "paragraph": ("#008300", "P"),
+    "image": ("#c94fb4", "Im"),
+    "table": ("#c98500", "T"),
+    "terms": ("#199e70", "D"),
 }
+
+# Chrome: the header menu panels (Document, Render options, Legend) wear the
+# blue frame — blue is the chrome identity, which is why the heading flag is
+# magenta, not blue. Node panels and the summary keep a quiet neutral gray
+# so the categorical flags stay the only vivid elements in the tree.
+CHROME_BORDER = "#3987e5"
+NEUTRAL_BORDER = "#898781"
+
+# Widest badge is 2 chars ("Fg"/"Im"); every chip pads to this width so kind
+# labels after a chip always start in the same column.
+_BADGE_WIDTH = 2
+
+
+def badge_foreground(color: str) -> str:
+    """Ink for a badge letter on its colored chip, picked per chip by
+    luminance so the letter always contrasts (dark ink on light chips,
+    light ink on dark chips). Non-hex (named) colors fall back to black
+    ink — the only named chip color is the white unknown-kind fallback."""
+    if not color.startswith("#") or len(color) != 7:
+        return "black"
+
+    def _lin(channel: int) -> float:
+        c = channel / 255
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+    luminance = (
+        0.2126 * _lin(int(color[1:3], 16))
+        + 0.7152 * _lin(int(color[3:5], 16))
+        + 0.0722 * _lin(int(color[5:7], 16))
+    )
+    # Dark ink wins iff its WCAG contrast beats white ink's:
+    # (L+0.05)/0.05 > 1.05/(L+0.05)  <=>  L > sqrt(0.0525) - 0.05.
+    return "#0d0d0d" if luminance > 0.179 else "#ffffff"
+
+
+def badge_chip(color: str, badge: str) -> str:
+    """Markup for a uniform-width badge chip with contrast-safe lettering."""
+    return f"[bold {badge_foreground(color)} on {color}] {badge:<{_BADGE_WIDTH}} [/]"
 
 
 def format_node_ref(node_id: UUID, label: str | None = None) -> str:
@@ -117,7 +162,7 @@ def document_panel(manifest: CndManifest) -> Panel:
     return Panel(
         doc_table,
         title="[bold]Document[/]",
-        border_style="blue",
+        border_style=CHROME_BORDER,
         box=box.ROUNDED,
         padding=(0, 1),
     )
@@ -132,7 +177,7 @@ def options_panel(title: str, rows: Sequence[tuple[str, str]]) -> Panel:
     return Panel(
         stats,
         title=f"[bold]{title}[/]",
-        border_style="cyan",
+        border_style=CHROME_BORDER,
         box=box.ROUNDED,
         padding=(0, 1),
     )
@@ -148,13 +193,13 @@ def legend_panel(
     legend.add_column(style="white")
     for kind, (color, badge) in styles.items():
         legend.add_row(
-            f"[bold black on {color}] {badge} [/]",
+            badge_chip(color, badge),
             f"[bold {color}]{kind.upper()}[/]",
         )
     return Panel(
         legend,
         title=f"[bold]{title}[/]",
-        border_style="bright_black",
+        border_style=CHROME_BORDER,
         box=box.ROUNDED,
         padding=(0, 1),
     )
@@ -181,11 +226,13 @@ def summary_panel(
     table.add_column("Share", justify="right", style="dim")
     table.add_column("Distribution", ratio=1)
 
-    for kind, count in sorted(counts.items()):
+    known = [(k, counts[k]) for k in style_map if k in counts]
+    extra = sorted((k, c) for k, c in counts.items() if k not in style_map)
+    for kind, count in known + extra:
         color, badge = style_map.get(kind, ("white", "?"))
         fraction = count / divisor
         table.add_row(
-            f"[bold black on {color}] {badge} [/]  [bold {color}]{kind}[/]",
+            f"{badge_chip(color, badge)}  [bold {color}]{kind}[/]",
             str(count),
             f"{fraction * 100:.1f}%",
             ShareBar(fraction, color),
@@ -201,7 +248,7 @@ def summary_panel(
         body,
         title=f"[bold]{title}[/]",
         title_align="left",
-        border_style="bright_black",
+        border_style=CHROME_BORDER,
         box=box.ROUNDED,
         padding=(1, 2),
         expand=True,
@@ -215,7 +262,7 @@ def typed_panel(
 ) -> Panel:
     color, badge = style_map.get(kind, ("white", "?"))
     panel_title = Text.assemble(
-        (f" {badge} ", f"bold black on {color}"),
+        (f" {badge:<{_BADGE_WIDTH}} ", f"bold {badge_foreground(color)} on {color}"),
         ("  ", ""),
         (kind.upper(), f"bold {color}"),
     )
@@ -223,10 +270,29 @@ def typed_panel(
         Group(*body_parts),
         title=panel_title,
         title_align="left",
-        border_style=color,
+        border_style=NEUTRAL_BORDER,
         box=box.ROUNDED,
         padding=(1, 2),
         expand=False,
+    )
+
+
+def pool_panel(title: str, rows: Sequence[tuple[str, str, str]]) -> Panel:
+    """Panel listing out-of-tree pool entries: (label, body, meta) rows."""
+    grid = Table.grid(expand=True, padding=(0, 2))
+    grid.add_column(style="bold", no_wrap=True)
+    grid.add_column(style="white", ratio=1)
+    grid.add_column(style="dim", no_wrap=True, justify="right")
+    for label, body, meta in rows:
+        grid.add_row(label, body, meta)
+    return Panel(
+        grid,
+        title=f"[bold]{title}[/]",
+        title_align="left",
+        border_style=CHROME_BORDER,
+        box=box.ROUNDED,
+        padding=(1, 2),
+        expand=True,
     )
 
 

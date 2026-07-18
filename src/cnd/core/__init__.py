@@ -24,6 +24,7 @@ from cnd.core.nodes import (
     TermItem,
     TermsNode,
     iter_nodes,
+    position_totals,
 )
 from cnd.core.render import MarkdownRenderer, NodeRenderer
 
@@ -59,4 +60,5 @@ __all__ = [
     "TermItem",
     "TermsNode",
     "iter_nodes",
+    "position_totals",
 ]

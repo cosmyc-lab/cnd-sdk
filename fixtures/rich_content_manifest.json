@@ -34,11 +34,7 @@
       ],
       "label": "ch-interfaces",
       "location": {
-        "page": 1,
-        "span": 0,
-        "page_span": 0,
-        "parent_span": 0,
-        "span_count": 1
+        "page": 1
       },
       "children": [
         {
@@ -79,11 +75,7 @@
             }
           ],
           "location": {
-            "page": 1,
-            "span": 1,
-            "page_span": 1,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 1
           }
         },
         {
@@ -101,11 +93,7 @@
             }
           ],
           "location": {
-            "page": 1,
-            "span": 2,
-            "page_span": 2,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 1
           }
         },
         {
@@ -116,11 +104,7 @@
           "caption": "Appel du point d'accès de santé.",
           "fig_number": "Listing 1",
           "location": {
-            "page": 2,
-            "span": 3,
-            "page_span": 0,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 2
           },
           "children": [
             {
@@ -130,11 +114,7 @@
               "lang": "bash",
               "block": true,
               "location": {
-                "page": 2,
-                "span": 3,
-                "page_span": 0,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 2
               }
             }
           ]
@@ -145,11 +125,7 @@
           "path": "figures/architecture.png",
           "alt": "Schéma d'architecture des interfaces",
           "location": {
-            "page": 2,
-            "span": 4,
-            "page_span": 1,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 2
           }
         },
         {
@@ -160,11 +136,7 @@
           "caption": "Flux d'authentification.",
           "fig_number": "Figure 1",
           "location": {
-            "page": 3,
-            "span": 5,
-            "page_span": 0,
-            "parent_span": 1,
-            "span_count": 1
+            "page": 3
           },
           "children": [
             {
@@ -173,11 +145,7 @@
               "path": "figures/auth-flow.png",
               "alt": "Diagramme de séquence du flux d'authentification",
               "location": {
-                "page": 3,
-                "span": 5,
-                "page_span": 0,
-                "parent_span": 1,
-                "span_count": 1
+                "page": 3
               }
             }
           ]

@@ -1,26 +1,22 @@
-from functools import total_ordering
 from uuid import UUID
 from typing import Annotated, Any, Literal, Union
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from pydantic import BaseModel, Field
 
 
-@total_ordering
 class NodeLocation(BaseModel):
-    """Physical position of a node in the compiled document."""
+    """Layout facts the SDK cannot derive from the tree: the page where the
+    node begins in the compiled document.
+
+    Positions in reading order (document/sibling/page index and totals) are
+    NOT serialized — the node tree is normatively in reading order, so the
+    SDK derives them during traversal (see ``NodeTraverseContext``), the
+    same way reverse reference edges are derived (docs/adr/0008).
+    """
 
     page: int
-    span: int
-    page_span: int
-    parent_span: int
-    span_count: int
-
-    def __lt__(self, other: object) -> bool:
-        if not isinstance(other, NodeLocation):
-            return NotImplemented
-        return self.span < other.span
 
 
 class NodeRef(BaseModel):
@@ -233,11 +229,32 @@ FigureNode.model_rebuild()  # For recursive reference to children
 
 @dataclass(frozen=True)
 class NodeTraverseContext:
-    """Traversal state passed to visitor hooks for the current node."""
+    """Traversal state passed to visitor hooks for the current node.
+
+    The position attributes are derived by the traversal engine from the
+    normative reading order of the tree (all 1-based, ``index``/``count``
+    pairs suitable for an "x/y" display):
+
+    - ``doc_index``/``doc_count`` — position among all nodes of the walk.
+    - ``sibling_index``/``sibling_count`` — position among the parent's
+      children.
+    - ``page_index``/``page_count`` — position among the nodes that begin
+      on the same page (``location.page``).
+
+    They are document facts, not walk artifacts: pruning a branch with
+    ``max_depth``/``stop_predicate`` does not shift the positions of the
+    nodes that are still visited.
+    """
 
     depth: int
     heading_path: list[str]
     parent: CndNode | None = None
+    doc_index: int = 0
+    doc_count: int = 0
+    sibling_index: int = 0
+    sibling_count: int = 0
+    page_index: int = 0
+    page_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -251,15 +268,70 @@ class NodeTraverse:
 StopPredicate = Callable[[CndNode, NodeTraverseContext], bool]
 
 
+def _children_of(node: CndNode) -> list["CndNode"]:
+    """The child list of a children-bearing node (heading, figure)."""
+    if isinstance(node, (HeadingNode, FigureNode)):
+        return node.children
+    return []
+
+
+def position_totals(nodes: list[CndNode]) -> tuple[int, dict[int, int]]:
+    """One cheap pre-pass over the tree: total node count and per-page
+    node counts (keyed on ``location.page``). Feeds the ``*_count``
+    attributes of ``NodeTraverseContext``."""
+    doc_count = 0
+    page_counts: dict[int, int] = {}
+    stack = list(reversed(nodes))
+    while stack:
+        node = stack.pop()
+        doc_count += 1
+        page = node.location.page
+        page_counts[page] = page_counts.get(page, 0) + 1
+        stack.extend(reversed(_children_of(node)))
+    return doc_count, page_counts
+
+
+@dataclass
+class _WalkCounters:
+    """Mutable reading-order counters shared across the recursive walk."""
+
+    doc_index: int = 0
+    page_indices: dict[int, int] = field(default_factory=dict)
+
+    def advance(self, node: CndNode) -> tuple[int, int]:
+        """Count ``node`` and return its (doc_index, page_index)."""
+        self.doc_index += 1
+        page = node.location.page
+        self.page_indices[page] = self.page_indices.get(page, 0) + 1
+        return self.doc_index, self.page_indices[page]
+
+    def skip_subtree(self, nodes: list[CndNode]) -> None:
+        """Advance past a pruned subtree without yielding it, so positions
+        stay document-true for the nodes visited after it."""
+        stack = list(nodes)
+        while stack:
+            node = stack.pop()
+            self.advance(node)
+            stack.extend(_children_of(node))
+
+
 def iter_nodes(
     nodes: list[CndNode],
     *,
     max_depth: int | None = None,
     stop_predicate: StopPredicate | None = None,
+    _totals: tuple[int, dict[int, int]] | None = None,
 ) -> Iterator[NodeTraverse]:
-    """Walk a node tree depth-first, yielding each node with its context."""
+    """Walk a node tree depth-first, yielding each node with its context.
+
+    The tree is normatively in document reading order, so the walk order is
+    reading order and the derived position attributes on the context are
+    document positions. ``_totals`` lets a caller (``CndManifest.iter``)
+    reuse a cached ``position_totals`` result.
+    """
+    totals = _totals if _totals is not None else position_totals(nodes)
     root_ctx = NodeTraverseContext(depth=0, heading_path=[], parent=None)
-    yield from _iter_nodes(nodes, root_ctx, max_depth, stop_predicate)
+    yield from _iter_nodes(nodes, root_ctx, max_depth, stop_predicate, totals, _WalkCounters())
 
 
 def _iter_nodes(
@@ -267,20 +339,32 @@ def _iter_nodes(
     ctx: NodeTraverseContext,
     max_depth: int | None,
     stop_predicate: StopPredicate | None,
+    totals: tuple[int, dict[int, int]],
+    counters: _WalkCounters,
 ) -> Iterator[NodeTraverse]:
-    for node in nodes:
+    doc_count, page_counts = totals
+    for sibling_index, node in enumerate(nodes, start=1):
+        doc_index, page_index = counters.advance(node)
         visit_ctx = NodeTraverseContext(
             depth=ctx.depth,
             heading_path=ctx.heading_path,
             parent=ctx.parent,
+            doc_index=doc_index,
+            doc_count=doc_count,
+            sibling_index=sibling_index,
+            sibling_count=len(nodes),
+            page_index=page_index,
+            page_count=page_counts[node.location.page],
         )
         yield NodeTraverse(node=node, ctx=visit_ctx)
 
-        if not isinstance(node, (HeadingNode, FigureNode)) or not node.children:
+        children = _children_of(node)
+        if not children:
             continue
-        if max_depth is not None and ctx.depth >= max_depth:
-            continue
-        if stop_predicate is not None and stop_predicate(node, visit_ctx):
+        if (max_depth is not None and ctx.depth >= max_depth) or (
+            stop_predicate is not None and stop_predicate(node, visit_ctx)
+        ):
+            counters.skip_subtree(children)
             continue
 
         child_ctx = NodeTraverseContext(
@@ -290,4 +374,6 @@ def _iter_nodes(
             ),
             parent=node,
         )
-        yield from _iter_nodes(node.children, child_ctx, max_depth, stop_predicate)
+        yield from _iter_nodes(
+            children, child_ctx, max_depth, stop_predicate, totals, counters
+        )

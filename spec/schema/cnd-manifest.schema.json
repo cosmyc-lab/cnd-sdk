@@ -1038,35 +1038,15 @@
       "type": "object"
     },
     "NodeLocation": {
-      "description": "Physical position of a node in the compiled document.",
+      "description": "Layout facts the SDK cannot derive from the tree: the page where the\nnode begins in the compiled document.\n\nPositions in reading order (document/sibling/page index and totals) are\nNOT serialized \u2014 the node tree is normatively in reading order, so the\nSDK derives them during traversal (see ``NodeTraverseContext``), the\nsame way reverse reference edges are derived (docs/adr/0008).",
       "properties": {
         "page": {
           "title": "Page",
           "type": "integer"
-        },
-        "span": {
-          "title": "Span",
-          "type": "integer"
-        },
-        "page_span": {
-          "title": "Page Span",
-          "type": "integer"
-        },
-        "parent_span": {
-          "title": "Parent Span",
-          "type": "integer"
-        },
-        "span_count": {
-          "title": "Span Count",
-          "type": "integer"
         }
       },
       "required": [
-        "page",
-        "span",
-        "page_span",
-        "parent_span",
-        "span_count"
+        "page"
       ],
       "title": "NodeLocation",
       "type": "object"
