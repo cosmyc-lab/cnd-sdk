@@ -1,4 +1,5 @@
 from collections import Counter
+from collections.abc import Sequence
 
 from rich.console import Console, ConsoleRenderable
 from rich.padding import Padding
@@ -10,21 +11,27 @@ from typing_extensions import override
 
 from cnd.core.manifest import CndManifest
 from cnd.core.nodes import (
+    CiteRef,
     CndNode,
     CodeNode,
     FigureNode,
+    FootnoteRef,
     HeadingNode,
+    ImageNode,
     ListNode,
     MathNode,
+    NodeRef,
     NodeTraverseContext,
     ParagraphNode,
     QuoteNode,
     TableNode,
+    TermsNode,
 )
+from cnd.core.render import MarkdownRenderer, NodeRenderer
 from cnd.display.theme import (
     NODE_STYLE,
     document_panel,
-    format_node_refs,
+    format_node_ref,
     format_preview,
     kv_line,
     legend_panel,
@@ -36,8 +43,23 @@ from cnd.display.theme import (
 from cnd.visitors.base_visitor import BaseVisitor, VisitTarget
 
 
+def _format_links(links: Sequence[NodeRef | CiteRef | FootnoteRef]) -> str:
+    """Format a link family for display, appending spans when present."""
+    parts: list[str] = []
+    for link in links:
+        text = format_node_ref(link.id, link.label)
+        if link.span is not None:
+            text += f"[{link.span[0]}:{link.span[1]}]" if len(link.span) == 2 else str(link.span)
+        parts.append(text)
+    return ", ".join(parts)
+
+
 class NodeDisplayVisitor(BaseVisitor):
     """Render a readable, colorized trace of each node while visiting a manifest.
+
+    Text previews are produced by a ``NodeRenderer`` (composition — the
+    default is a plain ``MarkdownRenderer``; pass ``renderer=`` to change
+    verbosity or format).
 
     Example::
 
@@ -49,6 +71,7 @@ class NodeDisplayVisitor(BaseVisitor):
         self,
         *,
         console: Console | None = None,
+        renderer: NodeRenderer | None = None,
         max_text_len: int = 80,
         truncate_text: bool = True,
         show_fields: bool = True,
@@ -59,6 +82,7 @@ class NodeDisplayVisitor(BaseVisitor):
         show_legend: bool = True,
     ) -> None:
         self._console = console or Console(highlight=False)
+        self._renderer = renderer or MarkdownRenderer()
         self._max_text_len = max_text_len
         self._truncate_text = truncate_text
         self._show_fields = show_fields
@@ -72,6 +96,11 @@ class NodeDisplayVisitor(BaseVisitor):
         self._tree_stack: list[Tree] = []
         self._max_depth: int = 0
         self._refs_total: int = 0
+
+    def _preview(self, text: str) -> str:
+        return format_preview(
+            text, max_len=self._max_text_len, truncate_text=self._truncate_text
+        )
 
     @override
     def visit_heading(self, node: HeadingNode, ctx: NodeTraverseContext) -> None:
@@ -89,55 +118,29 @@ class NodeDisplayVisitor(BaseVisitor):
         details: dict[str, str] = {}
         if node.lang:
             details["lang"] = node.lang
-        self._render_node(
-            "paragraph",
-            node,
-            ctx,
-            format_preview(node.text, max_len=self._max_text_len, truncate_text=self._truncate_text),
-            details,
-        )
+        self._render_node("paragraph", node, ctx, self._preview(node.text), details)
 
     @override
     def visit_table(self, node: TableNode, ctx: NodeTraverseContext) -> None:
         self._counts["table"] += 1
-        title = node.caption or node.fig_number or node.label or "Table"
+        title = node.label or "Table"
         details: dict[str, str] = {
             "cells": str(len(node.cells)),
             "kind": node.kind,
         }
-        if node.fig_number:
-            details["fig_number"] = node.fig_number
-        if node.caption and node.caption != title:
-            details["caption"] = format_preview(
-                node.caption, max_len=self._max_text_len, truncate_text=self._truncate_text
-            )
-        self._render_node(
-            "table",
-            node,
-            ctx,
-            format_preview(title, max_len=self._max_text_len, truncate_text=self._truncate_text),
-            details,
-        )
+        if node.content_kind:
+            details["content_kind"] = node.content_kind
+        self._render_node("table", node, ctx, self._preview(title), details)
 
     @override
     def visit_quote(self, node: QuoteNode, ctx: NodeTraverseContext) -> None:
         self._counts["quote"] += 1
         details: dict[str, str] = {}
         if node.attribution:
-            details["attribution"] = format_preview(
-                node.attribution,
-                max_len=self._max_text_len,
-                truncate_text=self._truncate_text,
-            )
+            details["attribution"] = self._preview(node.attribution)
         if node.lang:
             details["lang"] = node.lang
-        self._render_node(
-            "quote",
-            node,
-            ctx,
-            format_preview(node.text, max_len=self._max_text_len, truncate_text=self._truncate_text),
-            details,
-        )
+        self._render_node("quote", node, ctx, self._preview(node.text), details)
 
     @override
     def visit_code(self, node: CodeNode, ctx: NodeTraverseContext) -> None:
@@ -145,13 +148,7 @@ class NodeDisplayVisitor(BaseVisitor):
         details: dict[str, str] = {}
         if node.lang:
             details["lang"] = node.lang
-        self._render_node(
-            "code",
-            node,
-            ctx,
-            format_preview(node.text, max_len=self._max_text_len, truncate_text=self._truncate_text),
-            details,
-        )
+        self._render_node("code", node, ctx, self._preview(node.text), details)
 
     @override
     def visit_math(self, node: MathNode, ctx: NodeTraverseContext) -> None:
@@ -159,36 +156,33 @@ class NodeDisplayVisitor(BaseVisitor):
         details: dict[str, str] = {}
         if node.numbering:
             details["numbering"] = node.numbering
-        self._render_node(
-            "math",
-            node,
-            ctx,
-            format_preview(node.text, max_len=self._max_text_len, truncate_text=self._truncate_text),
-            details,
-        )
+        self._render_node("math", node, ctx, self._preview(node.text), details)
 
     @override
     def visit_figure(self, node: FigureNode, ctx: NodeTraverseContext) -> None:
         self._counts["figure"] += 1
         title = node.caption or node.fig_number or node.label or "Figure"
-        details: dict[str, str] = {}
+        details: dict[str, str] = {
+            "children": str(len(node.children)),
+        }
         if node.kind:
             details["kind"] = node.kind
         if node.fig_number:
             details["fig_number"] = node.fig_number
-        if node.alt:
-            details["alt"] = format_preview(
-                node.alt, max_len=self._max_text_len, truncate_text=self._truncate_text
-            )
+        if node.caption and node.caption != title:
+            details["caption"] = self._preview(node.caption)
+        self._render_node("figure", node, ctx, self._preview(title), details)
+
+    @override
+    def visit_image(self, node: ImageNode, ctx: NodeTraverseContext) -> None:
+        self._counts["image"] += 1
+        title = node.alt or node.path or node.label or "Image"
+        details: dict[str, str] = {}
         if node.path:
             details["path"] = node.path
-        self._render_node(
-            "figure",
-            node,
-            ctx,
-            format_preview(title, max_len=self._max_text_len, truncate_text=self._truncate_text),
-            details,
-        )
+        if node.alt:
+            details["alt"] = self._preview(node.alt)
+        self._render_node("image", node, ctx, self._preview(title), details)
 
     @override
     def visit_list(self, node: ListNode, ctx: NodeTraverseContext) -> None:
@@ -200,10 +194,19 @@ class NodeDisplayVisitor(BaseVisitor):
             "items": str(len(node.items)),
             "tight": str(node.tight).lower(),
         }
-        preview = format_preview(
-            node.to_text(), max_len=self._max_text_len, truncate_text=self._truncate_text
-        )
+        preview = self._preview(self._renderer.render(node))
         self._render_node("list", node, ctx, preview or title, details)
+
+    @override
+    def visit_terms(self, node: TermsNode, ctx: NodeTraverseContext) -> None:
+        self._counts["terms"] += 1
+        title = f"terms ({len(node.items)} items)"
+        details: dict[str, str] = {
+            "items": str(len(node.items)),
+            "tight": str(node.tight).lower(),
+        }
+        preview = self._preview(self._renderer.render(node))
+        self._render_node("terms", node, ctx, preview or title, details)
 
     @override
     def visit_unknown(self, node: CndNode, ctx: NodeTraverseContext) -> None:
@@ -246,6 +249,8 @@ class NodeDisplayVisitor(BaseVisitor):
                 "Render options",
                 [
                     ("root nodes", str(len(manifest.nodes))),
+                    ("bibliography", str(len(manifest.bibliography))),
+                    ("footnotes", str(len(manifest.footnotes))),
                     ("truncate", "on" if self._truncate_text else "off"),
                     ("fields", "on" if self._show_fields else "off"),
                     ("tree mode", "on" if self._show_tree else "off"),
@@ -267,7 +272,7 @@ class NodeDisplayVisitor(BaseVisitor):
         details: dict[str, str],
     ) -> None:
         self._max_depth = max(self._max_depth, ctx.depth)
-        self._refs_total += len(node.refs_to) + len(node.refs_from)
+        self._refs_total += len(node.refs) + len(node.cites) + len(node.footnotes)
 
         body_parts: list[ConsoleRenderable] = []
         if title:
@@ -325,18 +330,22 @@ class NodeDisplayVisitor(BaseVisitor):
             path.append(" > ".join(ctx.heading_path), "italic cyan")
             lines.append(path)
 
-        if self._show_refs and (node.refs_to or node.refs_from):
+        if self._show_refs and (node.refs or node.cites or node.footnotes):
             refs = Text()
-            if node.refs_to:
-                refs.append("refs_to", "dim")
-                refs.append("  ")
-                refs.append(format_node_refs(node.refs_to), "yellow")
-            if node.refs_from:
-                if node.refs_to:
+            first = True
+            for name, links in (
+                ("refs", node.refs),
+                ("cites", node.cites),
+                ("footnotes", node.footnotes),
+            ):
+                if not links:
+                    continue
+                if not first:
                     refs.append("    ")
-                refs.append("refs_from", "dim")
+                refs.append(name, "dim")
                 refs.append("  ")
-                refs.append(format_node_refs(node.refs_from), "yellow")
+                refs.append(_format_links(links), "yellow")
+                first = False
             lines.append(refs)
 
         if self._show_location:

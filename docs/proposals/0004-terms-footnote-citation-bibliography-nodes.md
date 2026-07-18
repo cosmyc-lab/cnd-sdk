@@ -1,117 +1,169 @@
 ---
-title: Definition lists, footnotes, and citation/bibliography content are missing from the manifest
-status: draft
+title: Terms nodes; footnote and bibliography pools; typed citation edges
+status: implemented
 date: 2026-07-18
-tags: [nodes, schema, completeness]
-related: []
+tags: [nodes, pools, refs, schema, breaking-change]
+related: [0002, 0008, 0009]
 superseded-by: null
 ---
 
-# Proposal — Definition lists, footnotes, and citation/bibliography content are missing from the manifest
+# Proposal — Terms nodes; footnote and bibliography pools; typed citation edges
 
 ## Status
-Draft. Recorded to track a real coverage gap found by auditing a native
-content-element list against what a producer's conversion pass currently
-handles — not a commitment to a particular node shape or implementation
-order yet.
+Implemented. This rewrites the earlier draft of this proposal, which recorded
+the coverage gap but leaned toward "everything is a node"
+(`FootnoteNode`, `BibliographyNode`). That direction is now wrong: the
+agreed design is two-tier (ADR 0009) — only content with a reading-flow
+position becomes a node; referenceable out-of-flow content becomes
+top-level pool entries reached through typed link families.
 
 ## Motivation
-A CND manifest is meant to be a faithful tree representation of a compiled
-document (spec §1: "captures... the document body as a tree of typed
-nodes"). Auditing the source language's own native structural elements
-against what a producer's conversion pass actually converts turns up four
-elements with no conversion path at all today — not mis-rendered, entirely
-absent from the resulting manifest:
+A CND manifest is meant to be a faithful tree representation of a
+compiled document (spec §1). Auditing the source language's native
+structural elements against what a producer's conversion pass handles
+turns up four elements with no representation at all — not mis-rendered,
+absent:
 
-- Definition lists — a first-class structural element, sibling to
-  bulleted/numbered lists, which the manifest already models (`ListNode`).
-- Footnotes — supporting prose attached to a point in the document,
-  silently dropped.
-- Inline citations — references to bibliography entries.
-- The bibliography/reference-list section itself — the cited works' own
-  bibliographic data (authors, titles, years).
+- Definition lists — a first-class structural sibling of the
+  bulleted/numbered lists the manifest already models (`ListNode`).
+- Footnotes — supporting prose attached to a point in the text.
+- Inline citations — references to bibliography entries, including their
+  rendering form (`@key` vs. "Author (Year)" vs. suppressed).
+- The bibliography itself — the cited works' bibliographic data.
 
-By contrast, decorative or fully-derived content correctly has no node
-representation today — an auto-generated table of contents duplicates
-information already present in the heading tree, and inline text
-formatting/links are already captured as part of their containing
-paragraph's text. The four items above are different: they carry content
-that exists nowhere else in the tree once dropped.
-
-This is a format-completeness question, not a rendering-policy question —
-a manifest missing this content isn't something a consumer can correct
-after the fact; the source material simply isn't there to work with.
+This content exists nowhere else in the tree once dropped; a consumer
+cannot reconstruct it after the fact. The four split cleanly across the
+two tiers: a definition list is a block in the reading flow (a node); a
+footnote or bibliography entry is referenced *from* the flow but sits
+outside it (a pool entry).
 
 ## Proposed change
-Not fully decided — this proposal establishes scope and a starting shape,
-not a final schema.
 
-Two of the four are self-contained and structurally straightforward:
+### In-tree: `TermsNode`
+A new member of the discriminated `CndNode` union, modeled on
+`ListNode`/`ListItem`: `type: "terms"`, `items: list[TermItem]`,
+`tight: bool = true`. `TermItem = {term: str, description: str}` — flat
+text, no `id`, not ref-targetable, same as `ListItem`/`TableCell`.
 
-1. **A `TermsNode` type**, modeled on the existing `ListNode`/`ListItem`
-   pair — a list of (term, description) pairs. Sibling in the
-   discriminated `CndNode` union; `to_text()` renders both parts
-   unconditionally — a definition list is always textual, with no
-   rendering-mode ambiguity the way `TableNode.content_kind` has.
-2. **A `FootnoteNode` type**, holding the footnote's own text, linked to
-   its anchor point in the surrounding content through the existing
-   `refs_to`/`refs_from` cross-reference graph (spec §5) rather than being
-   nested inside the anchoring node — footnote content is logically
-   attached to a point, not a container.
+```json
+{
+  "type": "terms",
+  "items": [
+    {"term": "manifest", "description": "The serialized document tree."},
+    {"term": "pool", "description": "Out-of-tree referenceable entities."}
+  ],
+  "tight": true
+}
+```
 
-The other two are a connected pair and structurally harder, because
-resolving a citation to the bibliography entry it points at requires
-correlating two separate elements rather than simple label matching:
+### Out-of-tree: two pools on the manifest
+Top-level fields on `CndManifest`, siblings of `nodes`, always present
+(default `[]`, never null):
 
-3. **A `BibliographyNode` type** (or a list of structured entries)
-   carrying each cited work's bibliographic fields, independent of whether
-   any citation to it resolves — this half stands alone and answers "what
-   sources does this document draw on" on its own.
-4. **Citation edges** — inline citations as `NodeRef`-shaped pointers from
-   the citing node to the corresponding bibliography entry, following the
-   existing `refs_to` graph pattern rather than inventing a new pointer
-   shape.
+- `footnotes: list[Footnote]` with `Footnote = {id, label, text}` — flat
+  text only; block/subtree content inside footnotes is deliberately not
+  modeled at this cut.
+- `bibliography: list[BibEntry]`. Each entry is lossless-plus-curated:
+  `id`, `label` (the source `@key`), `rendered` (required — the reference
+  string as displayed in the compiled document), a curated typed optional
+  subset (`type`, `authors: list[str]`, `title`, `year`, `container`,
+  `doi`, `url`), and `raw: dict` — the full source entry (e.g. Hayagriva)
+  passed through as *structured JSON*, carrying every field the typed
+  subset doesn't.
 
-Whether (3)/(4) ship together or (3) ships first as a standalone addition
-is open — (3) alone is useful with no dependency on citation resolution
-working.
+```json
+{
+  "bibliography": [
+    {
+      "id": "6b6f7a2e-…",
+      "label": "smith2024",
+      "rendered": "Smith, J. (2024). Context-native pipelines. JODS 12(3).",
+      "type": "article",
+      "authors": ["Smith, J."],
+      "title": "Context-native pipelines",
+      "year": 2024,
+      "container": "JODS",
+      "doi": null,
+      "url": null,
+      "raw": {"type": "article", "page-range": "101-118"}
+    }
+  ],
+  "footnotes": [
+    {"id": "0f9c…", "label": "1", "text": "First noted in the 2023 audit."}
+  ]
+}
+```
+
+### Link families on nodes
+Per ADR 0009, every node carries three forward-only lists with the shared
+skeleton `{id, label, span?}`:
+
+- `refs: list[NodeRef]` — resolves in `nodes`. `NodeRef` keeps its
+  canonical `{id, label}` core (ADR 0002) and gains optional
+  `span: [int, int] | null` for positioned markers.
+- `cites: list[CiteRef]` — resolves in `bibliography`. `CiteRef` adds
+  `form: "normal" | "prose" | "full" | "author" | "year" | "none" | null`
+  and `supplement: str | null`. `span` must stay nullable: a
+  `form: "none"` citation renders no text and has no span.
+- `footnotes: list[FootnoteRef]` — resolves in the footnotes pool;
+  `FootnoteRef = {id, label, span?}`.
+
+```json
+{
+  "type": "paragraph",
+  "text": "Pipelines drift without manifests [1].",
+  "cites": [
+    {"id": "6b6f7a2e-…", "label": "smith2024", "span": [34, 37],
+     "form": "normal", "supplement": "p. 104"}
+  ],
+  "footnotes": [
+    {"id": "0f9c…", "label": "1", "span": [15, 15]}
+  ]
+}
+```
+
+Invariants (spec §5): the id field is named `id` everywhere — the
+resolution domain is carried by the field, not the field name; a link's
+`label` mirrors its target's `label`; ids are globally unique across all
+nodes and pool entries; spans are offsets in Unicode code points into the
+containing node's rendered text.
 
 ## Alternatives considered
-**Route all four through the existing `FigureNode.kind` field instead of
-new node types.** Rejected: `FigureNode` represents a captioned float
-(spec §6.7 — `caption`, `fig_number`, `kind`, `alt`, `path`) and none of
-these four are that; using it as a catch-all bucket for "any content type
-without a proper node yet" is exactly what produced the current situation
-where `kind` is a free `string | null` with no enforced vocabulary. A
-discriminated node type per content shape keeps `to_text()` and any future
-consumer-side visitor exhaustive and type-checked, consistent with how
-`QuoteNode`/`CodeNode`/`MathNode` were each given their own type rather
-than folded into `FigureNode`.
+**Everything as nodes** (this proposal's own first draft): a
+`FootnoteNode` anchored through the generic ref graph, a
+`BibliographyNode` holding entries. Rejected — footnotes and bibliography
+entries have no reading-flow position, so each node would need a fake
+`location`, and generic `NodeRef` anchoring cannot carry citation form or
+supplement without bloating the shape every other ref uses.
 
-**Do nothing, treat this as a producer-only concern.** Considered and
-rejected for the same reason ADR 0006 keeps this SDK owning the manifest
-shape: if a producer cannot represent this content in any manifest node,
-no producer implementation can close the gap on its own — the schema has
-to grow the vocabulary first.
+**Route the content through `FigureNode.kind`.** Still rejected, for the
+reason the first draft gave: none of these are captioned floats, and a
+catch-all `kind` destroys exhaustive, type-checked consumers. ADR 0010
+now pins `kind` as a counter selector, never a content discriminator.
+
+**One unified link list with a domain tag per entry.** Rejected —
+separate typed fields keep each list homogeneous, let `CiteRef` grow
+citation metadata without touching `NodeRef`, and make the resolution
+domain statically knowable.
+
+**Bibliography passthrough as a YAML string.** Rejected — `raw` as
+structured JSON keeps the manifest self-describing under one schema.
 
 ## Impact
-Additive to the schema: new node types joining the `CndNode` discriminated
-union, no change to existing node types' meaning. A version bump for the
-format (`cnd_version`) is expected, consistent with how prior node-type
-additions were versioned. Any producer implementation still needs its own
-follow-up work per node type once the schema exists — out of this SDK's
-scope per ADR 0006, tracked separately from this proposal.
+Breaking format change, shipped with proposals 0005/0006 in the single
+`cnd_version` 0.2.0 bump: two new always-present top-level pools, the
+three link families on every node (alongside ADR 0008's
+`refs_to`→`refs` rename), one new node type. Fixtures migrate; the
+reverse index stays SDK-derived (`CndManifest.incoming`). Producer
+support for emitting the new content is out of scope per ADR 0006.
 
 ## Implementation checklist
-- [ ] Decide `TermsNode`/`FootnoteNode` field shapes precisely (mirroring
-      `ListNode`/`ListItem` and the `refs_to` anchor pattern respectively)
-- [ ] Decide whether `BibliographyNode` ships standalone before
-      citation-edge resolution, or the two land together
-- [ ] Define the citation edge shape (reuse `NodeRef`, or does resolving
-      to a bibliography entry need its own pointer type)
-- [ ] spec/cnd-spec.md updated with the new node types and, if applicable,
-      the citation edge shape
-- [ ] spec/schema/cnd-manifest.schema.json regenerated
-- [ ] Pydantic models updated (`cnd.core.nodes`)
-- [ ] tests updated, tests/test_schema.py passes
-- [ ] status flipped to `implemented`
+- [x] spec/cnd-spec.md updated (§5 link families and invariants, §6
+      `TermsNode`, new out-of-tree entities section)
+- [x] spec/schema/cnd-manifest.schema.json regenerated
+- [x] Pydantic models updated (`TermsNode`, `Footnote`, `BibEntry`,
+      `CiteRef`, `FootnoteRef`, `NodeRef.span`, manifest pools)
+- [x] fixtures cover a terms node, a citation + bibliography entry, a
+      footnote
+- [x] tests updated, tests/test_schema.py passes
+- [x] status flipped to `implemented`

@@ -1,24 +1,33 @@
 """CND — the Context Native Document standard.
 
-Core parsing (``CndManifest`` and node types) has no optional dependencies.
-Display helpers (``cnd.display``, ``cnd.visitors.node_display_visitor``)
-require the ``display`` extra: ``pip install cnd-sdk[display]``.
+Core parsing (``CndManifest`` and node types) and rendering
+(``MarkdownRenderer``) have no optional dependencies. Display helpers
+(``cnd.display``, ``cnd.visitors.node_display_visitor``) require the
+``display`` extra: ``pip install cnd-sdk[display]``.
 """
 
 from cnd.core import (
+    BibEntry,
+    CiteRef,
     CndManifest,
     CndNode,
     CodeNode,
     DocDate,
     DocMetadata,
     FigureNode,
+    Footnote,
+    FootnoteRef,
     HeadingNode,
+    ImageNode,
     ListItem,
     ListNode,
+    MarkdownRenderer,
     MathNode,
     NodeBase,
     NodeLocation,
     NodeRef,
+    NodeRenderer,
+    NodeTextMode,
     NodeTraverse,
     NodeTraverseContext,
     ParagraphNode,
@@ -26,25 +35,35 @@ from cnd.core import (
     StopPredicate,
     TableCell,
     TableNode,
+    TermItem,
+    TermsNode,
     iter_nodes,
 )
 from cnd.visitors import BaseVisitor, VisitTarget
 
 __all__ = [
     "BaseVisitor",
+    "BibEntry",
+    "CiteRef",
     "CndManifest",
     "CndNode",
     "CodeNode",
     "DocDate",
     "DocMetadata",
     "FigureNode",
+    "Footnote",
+    "FootnoteRef",
     "HeadingNode",
+    "ImageNode",
     "ListItem",
     "ListNode",
+    "MarkdownRenderer",
     "MathNode",
     "NodeBase",
     "NodeLocation",
     "NodeRef",
+    "NodeRenderer",
+    "NodeTextMode",
     "NodeTraverse",
     "NodeTraverseContext",
     "ParagraphNode",
@@ -52,6 +71,8 @@ __all__ = [
     "StopPredicate",
     "TableCell",
     "TableNode",
+    "TermItem",
+    "TermsNode",
     "VisitTarget",
     "iter_nodes",
 ]

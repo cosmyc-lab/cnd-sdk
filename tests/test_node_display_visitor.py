@@ -9,6 +9,9 @@ from ids import (
     MINIMAL_HEADING_ID,
     MINIMAL_PARAGRAPH_ID,
     PARA001_ID,
+    RICH_CODE_ID,
+    RICH_IMAGE_ID,
+    RICH_TERMS_ID,
     TABLE001_ID,
 )
 
@@ -55,7 +58,7 @@ class TestNodeDisplayVisitor:
 
         text = output.getvalue()
         assert "Test Document" in text
-        assert "v0.1.0" in text
+        assert "v0.2.0" in text
         assert "sha256:abc123def45678" in text
 
     def test_tree_mode_shows_hierarchy(
@@ -137,8 +140,7 @@ class TestNodeDisplayVisitor:
         ).visit(manifest)
 
         text = output.getvalue()
-        assert "refs_to" not in text
-        assert "refs_from" not in text
+        assert "@tab-params-nominaux" not in text
         assert "page=1" not in text
         assert str(TABLE001_ID) in text
 
@@ -206,3 +208,36 @@ class TestNodeDisplayVisitor:
         visitor.visit(manifest)
 
         assert visitor._counts == {"heading": 1, "paragraph": 1}
+
+
+class TestNodeDisplayVisitorRichContent:
+    def test_shows_new_node_types_and_descends_figures(
+        self, rich_content_manifest_path: Path,
+    ) -> None:
+        manifest = _load(rich_content_manifest_path)
+        output, console = _capture_output()
+
+        NodeDisplayVisitor(console=console).visit(manifest)
+
+        text = output.getvalue()
+        assert "TERMS" in text
+        assert str(RICH_TERMS_ID) in text
+        assert "IMAGE" in text
+        assert str(RICH_IMAGE_ID) in text
+        # The code node lives inside a figure wrapper — descent required.
+        assert str(RICH_CODE_ID) in text
+
+    def test_shows_link_families_with_spans(
+        self, rich_content_manifest_path: Path,
+    ) -> None:
+        manifest = _load(rich_content_manifest_path)
+        output, console = _capture_output()
+
+        NodeDisplayVisitor(console=console, truncate_text=False).visit(manifest)
+
+        text = output.getvalue()
+        assert "refs" in text
+        assert "@lst-api[77:88]" in text
+        assert "cites" in text
+        assert "@smith2024[6:18]" in text
+        assert "@fn-rest[57:61]" in text

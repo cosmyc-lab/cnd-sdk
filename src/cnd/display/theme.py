@@ -23,7 +23,9 @@ NODE_STYLE: dict[str, tuple[str, str]] = {
     "code": ("bright_black", "C"),
     "math": ("cyan", "M"),
     "figure": ("bright_magenta", "Fg"),
+    "image": ("bright_cyan", "Im"),
     "list": ("bright_green", "L"),
+    "terms": ("bright_yellow", "D"),
 }
 
 

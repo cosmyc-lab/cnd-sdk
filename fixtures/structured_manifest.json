@@ -1,5 +1,5 @@
 {
-  "cnd_version": "0.1.0",
+  "cnd_version": "0.2.0",
   "doc_hash": "sha256:fedcba9876543210",
   "compiled_at": "2026-05-31T14:30:00Z",
   "doc": {
@@ -49,7 +49,7 @@
             "1.1 Paramètres nominaux"
           ],
           "label": "sec-params",
-          "refs_to": [
+          "refs": [
             {
               "id": "00000000-0000-4000-a000-000000000004",
               "label": "tab-params-nominaux"
@@ -68,7 +68,7 @@
               "type": "paragraph",
               "text": "Le système est composé de quatre modules principaux.",
               "lang": "fr",
-              "refs_to": [
+              "refs": [
                 {
                   "id": "00000000-0000-4000-a000-000000000004",
                   "label": "tab-params-nominaux"
@@ -83,21 +83,11 @@
               }
             },
             {
-              "id": "00000000-0000-4000-a000-000000000004",
-              "type": "table",
-              "label": "tab-params-nominaux",
+              "id": "00000000-0000-4000-a000-000000000005",
+              "type": "figure",
+              "kind": "table",
               "caption": "Paramètres nominaux de fonctionnement.",
               "fig_number": "Table 1",
-              "refs_from": [
-                {
-                  "id": "00000000-0000-4000-a000-000000000002",
-                  "label": "sec-params"
-                },
-                {
-                  "id": "00000000-0000-4000-a000-000000000003",
-                  "label": null
-                }
-              ],
               "location": {
                 "page": 1,
                 "span": 3,
@@ -105,45 +95,61 @@
                 "parent_span": 2,
                 "span_count": 1
               },
-              "cells": [
+              "children": [
                 {
-                  "row": 0,
-                  "col": 0,
-                  "rowspan": 1,
-                  "colspan": 2,
-                  "is_header": true,
-                  "text": "Paramètre"
-                },
-                {
-                  "row": 0,
-                  "col": 1,
-                  "rowspan": 1,
-                  "colspan": 1,
-                  "is_header": true,
-                  "text": "Valeur"
-                },
-                {
-                  "row": 1,
-                  "col": 0,
-                  "rowspan": 1,
-                  "colspan": 1,
-                  "is_header": false,
-                  "text": "Débit nominal"
-                },
-                {
-                  "row": 1,
-                  "col": 1,
-                  "rowspan": 1,
-                  "colspan": 1,
-                  "is_header": false,
-                  "text": "120 L/min"
+                  "id": "00000000-0000-4000-a000-000000000004",
+                  "type": "table",
+                  "label": "tab-params-nominaux",
+                  "location": {
+                    "page": 1,
+                    "span": 3,
+                    "page_span": 3,
+                    "parent_span": 2,
+                    "span_count": 1
+                  },
+                  "cells": [
+                    {
+                      "row": 0,
+                      "col": 0,
+                      "rowspan": 1,
+                      "colspan": 2,
+                      "is_header": true,
+                      "text": "Paramètre"
+                    },
+                    {
+                      "row": 0,
+                      "col": 1,
+                      "rowspan": 1,
+                      "colspan": 1,
+                      "is_header": true,
+                      "text": "Valeur"
+                    },
+                    {
+                      "row": 1,
+                      "col": 0,
+                      "rowspan": 1,
+                      "colspan": 1,
+                      "is_header": false,
+                      "text": "Débit nominal"
+                    },
+                    {
+                      "row": 1,
+                      "col": 1,
+                      "rowspan": 1,
+                      "colspan": 1,
+                      "is_header": false,
+                      "text": "120 L/min"
+                    }
+                  ],
+                  "raw_typst": "table(columns: (auto, auto), ...)"
                 }
-              ],
-              "raw_typst": "table(columns: (auto, auto), ...)"
+              ]
             }
           ]
         }
       ]
     }
-  ]
+  ],
+  "bibliography": [],
+  "footnotes": []
 }

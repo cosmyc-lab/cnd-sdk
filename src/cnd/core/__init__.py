@@ -1,9 +1,13 @@
-from cnd.core.manifest import CndManifest, DocDate, DocMetadata
+from cnd.core.manifest import BibEntry, CndManifest, DocDate, DocMetadata, Footnote
+from cnd.core.node_text import NodeTextMode
 from cnd.core.nodes import (
+    CiteRef,
     CndNode,
     CodeNode,
     FigureNode,
+    FootnoteRef,
     HeadingNode,
+    ImageNode,
     ListItem,
     ListNode,
     MathNode,
@@ -17,23 +21,34 @@ from cnd.core.nodes import (
     StopPredicate,
     TableCell,
     TableNode,
+    TermItem,
+    TermsNode,
     iter_nodes,
 )
+from cnd.core.render import MarkdownRenderer, NodeRenderer
 
 __all__ = [
+    "BibEntry",
+    "CiteRef",
     "CndManifest",
     "CndNode",
     "CodeNode",
     "DocDate",
     "DocMetadata",
     "FigureNode",
+    "Footnote",
+    "FootnoteRef",
     "HeadingNode",
+    "ImageNode",
     "ListItem",
     "ListNode",
+    "MarkdownRenderer",
     "MathNode",
     "NodeBase",
     "NodeLocation",
     "NodeRef",
+    "NodeRenderer",
+    "NodeTextMode",
     "NodeTraverse",
     "NodeTraverseContext",
     "ParagraphNode",
@@ -41,5 +56,7 @@ __all__ = [
     "StopPredicate",
     "TableCell",
     "TableNode",
+    "TermItem",
+    "TermsNode",
     "iter_nodes",
 ]

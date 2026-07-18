@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from ids import HEADING001_ID, HEADING002_ID, PARA001_ID, TABLE001_ID
+from ids import FIGURE001_ID, HEADING001_ID, HEADING002_ID, PARA001_ID, TABLE001_ID
 
 from cnd.core.manifest import CndManifest
-from cnd.core.nodes import HeadingNode, ParagraphNode, TableNode, iter_nodes
+from cnd.core.nodes import FigureNode, HeadingNode, ParagraphNode, TableNode, iter_nodes
 
 
 def _load(path: Path) -> CndManifest:
@@ -22,6 +22,7 @@ class TestIterNodes:
             HEADING001_ID,
             HEADING002_ID,
             PARA001_ID,
+            FIGURE001_ID,
             TABLE001_ID,
         ]
 
@@ -92,7 +93,7 @@ class TestIterNodes:
 
         ids = [visit.node.id for visit in iter_nodes([section])]
 
-        assert ids == [HEADING002_ID, PARA001_ID, TABLE001_ID]
+        assert ids == [HEADING002_ID, PARA001_ID, FIGURE001_ID, TABLE001_ID]
 
     def test_consumer_can_filter_by_node_type(
         self, minimal_manifest_path: Path,
@@ -118,3 +119,40 @@ class TestIterNodes:
 
         assert len(tables) == 1
         assert tables[0].id == TABLE001_ID
+
+
+class TestFigureDescent:
+    def test_iter_descends_into_figure_children(
+        self, structured_manifest_path: Path,
+    ) -> None:
+        manifest = _load(structured_manifest_path)
+
+        table_visit = next(
+            visit for visit in manifest if isinstance(visit.node, TableNode)
+        )
+
+        assert table_visit.node.id == TABLE001_ID
+        assert isinstance(table_visit.ctx.parent, FigureNode)
+        assert table_visit.ctx.parent.id == FIGURE001_ID
+        assert table_visit.ctx.depth == 3
+        # A figure carries no heading_path of its own — children keep the
+        # enclosing section's path.
+        assert table_visit.ctx.heading_path == [
+            "1 Description du système",
+            "1.1 Paramètres nominaux",
+        ]
+
+    def test_stop_predicate_treats_figure_as_atomic(
+        self, structured_manifest_path: Path,
+    ) -> None:
+        manifest = _load(structured_manifest_path)
+
+        ids = [
+            visit.node.id
+            for visit in manifest.iter(
+                stop_predicate=lambda node, _ctx: node.type == "figure",
+            )
+        ]
+
+        assert FIGURE001_ID in ids
+        assert TABLE001_ID not in ids
