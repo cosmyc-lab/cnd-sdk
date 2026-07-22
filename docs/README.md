@@ -21,6 +21,7 @@ conventions.
 | [0011](adr/0011-rendering-as-sdk-renderer-hierarchy.md) | Rendering is an SDK renderer hierarchy; nodes are pure data | proposed |
 | [0012](adr/0012-location-is-page-only-positions-derived.md) | NodeLocation carries layout facts only (page); positions are SDK-derived | accepted |
 | [0013](adr/0013-rename-link-span-to-text-span.md) | Rename the link-family `span` field to `text_span` | accepted |
+| [0014](adr/0014-relation-to-doclang.md) | CND's relation to DocLang — coexistence and interoperability, not convergence | proposed |
 | [0015](adr/0015-manifests-immutable-ids-not-durable.md) | Manifests are immutable build artifacts; node ids are not durable | proposed |
 | [0016](adr/0016-content-hashing.md) | Derived content hashing — canonical serialisation and excluded presentation state | proposed |
 
