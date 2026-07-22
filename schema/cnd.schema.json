@@ -1,10 +1,7 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cnd.dev/schema/cnd.schema.json",
-  "title": "CND",
   "$defs": {
     "BibEntry": {
-      "description": "Bibliography pool entry \u2014 target of ``cites`` edges.\n\n``rendered`` is the reference string as displayed in the compiled\ndocument (the faithful capture). A curated typed subset of common\nbibliographic fields is lifted alongside it; the full source entry\n(e.g. Hayagriva) is carried losslessly as structured JSON in ``raw``.",
+      "description": "Bibliography pool entry \u2014 target of ``cites`` edges.\n\n``formatted`` is the reference string as displayed in the built\ndocument (the faithful capture). It is nullable because requiring it\npresupposes a style engine ran, which a hand author or a markdown\nproducer has no reason to have. A curated typed subset of common\nbibliographic fields is lifted alongside it; the full source entry\n(e.g. Hayagriva) is carried losslessly as structured JSON in ``fields``.\n\nAn entry must carry ``formatted``, structured fields, or both \u2014 never an\nempty, unconsumable entry. That floor is a validator rule, not a shape\nthe type system can express.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -15,9 +12,17 @@
           "title": "Label",
           "type": "string"
         },
-        "rendered": {
-          "title": "Rendered",
-          "type": "string"
+        "formatted": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Formatted"
         },
         "type": {
           "anyOf": [
@@ -98,39 +103,25 @@
           "default": null,
           "title": "Url"
         },
-        "raw": {
+        "fields": {
           "additionalProperties": true,
-          "title": "Raw",
+          "title": "Fields",
           "type": "object"
         }
       },
       "required": [
         "id",
-        "label",
-        "rendered"
+        "label"
       ],
       "title": "BibEntry",
       "type": "object"
     },
     "CiteRef": {
-      "description": "Forward citation edge; ``id`` resolves in the CND ``bibliography`` pool.",
+      "description": "Forward citation edge; ``label`` resolves in the CND ``bibliography`` pool.",
       "properties": {
-        "id": {
-          "format": "uuid",
-          "title": "Id",
-          "type": "string"
-        },
         "label": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Label"
+          "title": "Label",
+          "type": "string"
         },
         "text_span": {
           "anyOf": [
@@ -181,7 +172,7 @@
         }
       },
       "required": [
-        "id"
+        "label"
       ],
       "title": "CiteRef",
       "type": "object"
@@ -233,7 +224,15 @@
           "type": "object"
         },
         "location": {
-          "$ref": "#/$defs/NodeLocation"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "type": {
           "const": "code",
@@ -264,7 +263,6 @@
       },
       "required": [
         "id",
-        "location",
         "type",
         "text"
       ],
@@ -310,7 +308,7 @@
       "type": "object"
     },
     "DocMetadata": {
-      "description": "Bibliographic metadata for the source document.",
+      "description": "Bibliographic metadata for the work the CND represents.\n\nThis identifies the *work* \u2014 title, authors, date. The input artifact it\nwas built from is ``Cnd.source``, deliberately separate: the same work\ncan be built from a Typst source and later re-imported from another\nformat (docs/proposals/0008).",
       "properties": {
         "title": {
           "title": "Title",
@@ -367,14 +365,13 @@
         }
       },
       "required": [
-        "title",
-        "authors"
+        "title"
       ],
       "title": "DocMetadata",
       "type": "object"
     },
     "FigureNode": {
-      "description": "Captioned/numbered float wrapper \u2014 never a content carrier.\n\nThe wrapped content (image, table, code, \u2026) lives in ``children`` and\nkeeps its own node type and ``location``. ``kind`` is the counter/label\nselector of the figure (\"image\", \"table\", or an author-custom kind like\n\"atom\") \u2014 an open string, never a content discriminator. Nested figures\n(subfigures) are allowed. An unconvertible body yields ``children=[]``\nwith ``raw_typst`` filled.",
+      "description": "Captioned/numbered float wrapper \u2014 never a content carrier.\n\nThe wrapped content (image, table, code, \u2026) lives in ``children`` and\nkeeps its own node type and ``location``. ``kind`` is the counter/label\nselector of the figure (\"image\", \"table\", or an author-custom kind like\n\"atom\") \u2014 an open string, never a content discriminator. Nested figures\n(subfigures) are allowed. An unconvertible body yields ``children=[]``\nwith ``raw`` filled.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -420,7 +417,15 @@
           "type": "object"
         },
         "location": {
-          "$ref": "#/$defs/NodeLocation"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "type": {
           "const": "figure",
@@ -451,7 +456,7 @@
           "default": null,
           "title": "Caption"
         },
-        "fig_number": {
+        "number": {
           "anyOf": [
             {
               "type": "string"
@@ -461,7 +466,7 @@
             }
           ],
           "default": null,
-          "title": "Fig Number"
+          "title": "Number"
         },
         "children": {
           "items": {
@@ -516,22 +521,20 @@
           "title": "Children",
           "type": "array"
         },
-        "raw_typst": {
+        "raw": {
           "anyOf": [
             {
-              "type": "string"
+              "$ref": "#/$defs/RawSource"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Raw Typst"
+          "default": null
         }
       },
       "required": [
         "id",
-        "location",
         "type"
       ],
       "title": "FigureNode",
@@ -563,24 +566,11 @@
       "type": "object"
     },
     "FootnoteRef": {
-      "description": "Forward footnote edge; ``id`` resolves in the CND ``footnotes`` pool.",
+      "description": "Forward footnote edge; ``label`` resolves in the CND ``footnotes`` pool.",
       "properties": {
-        "id": {
-          "format": "uuid",
-          "title": "Id",
-          "type": "string"
-        },
         "label": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Label"
+          "title": "Label",
+          "type": "string"
         },
         "text_span": {
           "anyOf": [
@@ -599,13 +589,13 @@
         }
       },
       "required": [
-        "id"
+        "label"
       ],
       "title": "FootnoteRef",
       "type": "object"
     },
     "HeadingNode": {
-      "description": "Section heading with nested section content in ``children``.",
+      "description": "Section heading with nested section content in ``children``.\n\n``number`` \u2014 shared in shape with ``MathNode`` and ``FigureNode`` \u2014 is\nthe counter value **as resolved and displayed** (``\"2.1.1\"``, ``\"(1)\"``,\n``\"3\"``), never the pattern that produced it: a consumer cannot replay a\ncounter engine, so only the resolved value is usable. The counter-label\nword is excluded \u2014 ``\"Figure 3\"`` bakes a locale into data, and\ncomposing that prefix is a rendering decision (docs/proposals/0008).",
       "properties": {
         "id": {
           "format": "uuid",
@@ -651,7 +641,15 @@
           "type": "object"
         },
         "location": {
-          "$ref": "#/$defs/NodeLocation"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "type": {
           "const": "heading",
@@ -662,9 +660,17 @@
           "title": "Level",
           "type": "integer"
         },
-        "numbering": {
-          "title": "Numbering",
-          "type": "string"
+        "number": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Number"
         },
         "text": {
           "title": "Text",
@@ -733,10 +739,8 @@
       },
       "required": [
         "id",
-        "location",
         "type",
         "level",
-        "numbering",
         "text",
         "heading_path"
       ],
@@ -790,7 +794,15 @@
           "type": "object"
         },
         "location": {
-          "$ref": "#/$defs/NodeLocation"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "type": {
           "const": "image",
@@ -824,7 +836,6 @@
       },
       "required": [
         "id",
-        "location",
         "type"
       ],
       "title": "ImageNode",
@@ -910,7 +921,15 @@
           "type": "object"
         },
         "location": {
-          "$ref": "#/$defs/NodeLocation"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "type": {
           "const": "list",
@@ -937,7 +956,6 @@
       },
       "required": [
         "id",
-        "location",
         "type"
       ],
       "title": "ListNode",
@@ -990,7 +1008,15 @@
           "type": "object"
         },
         "location": {
-          "$ref": "#/$defs/NodeLocation"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "type": {
           "const": "math",
@@ -1001,19 +1027,18 @@
           "title": "Text",
           "type": "string"
         },
-        "raw_typst": {
+        "raw": {
           "anyOf": [
             {
-              "type": "string"
+              "$ref": "#/$defs/RawSource"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Raw Typst"
+          "default": null
         },
-        "numbering": {
+        "number": {
           "anyOf": [
             {
               "type": "string"
@@ -1023,7 +1048,7 @@
             }
           ],
           "default": null,
-          "title": "Numbering"
+          "title": "Number"
         },
         "block": {
           "default": true,
@@ -1033,7 +1058,6 @@
       },
       "required": [
         "id",
-        "location",
         "type",
         "text"
       ],
@@ -1041,7 +1065,7 @@
       "type": "object"
     },
     "NodeLocation": {
-      "description": "Layout facts the SDK cannot derive from the tree: the page where the\nnode begins in the compiled document.\n\nPositions in reading order (document/sibling/page index and totals) are\nNOT serialized \u2014 the node tree is normatively in reading order, so the\nSDK derives them during traversal (see ``NodeTraverseContext``), the\nsame way reverse reference edges are derived (docs/adr/0008).",
+      "description": "Layout facts the SDK cannot derive from the tree: the page where the\nnode begins in the built document.\n\nNullable, because a page only exists for a paginated source. Pagination\nis all-or-nothing across a CND \u2014 either every node carries a location or\nnone does \u2014 so ``location`` never encodes \"unknown page\" (docs/adr/0012,\ndocs/proposals/0008). Whether a CND is paginated is itself derived, not\nserialized: see ``Cnd.paginated``.\n\nPositions in reading order (document/sibling/page index and totals) are\nNOT serialized \u2014 the node tree is normatively in reading order, so the\nSDK derives them during traversal (see ``NodeTraverseContext``), the\nsame way reverse reference edges are derived (docs/adr/0008).",
       "properties": {
         "page": {
           "title": "Page",
@@ -1055,24 +1079,11 @@
       "type": "object"
     },
     "NodeRef": {
-      "description": "Forward cross-reference edge to another node.\n\nCanonical shape is ``{id, label}`` (docs/adr/0002); ``text_span`` is an\nadditive optional field marking where the reference marker sits in the\ncontaining node's rendered text, as a ``[start, end)`` pair of Unicode\ncode-point offsets (docs/adr/0013).",
+      "description": "Forward cross-reference edge to another node.\n\nAn edge is ``{label, text_span?}``: it names its target by label and\nresolves through the CND's label index (docs/adr/0017, superseding the\n``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the\nreference marker sits in the containing node's rendered text, as a\n``[start, end)`` pair of Unicode code-point offsets (docs/adr/0013).",
       "properties": {
-        "id": {
-          "format": "uuid",
-          "title": "Id",
-          "type": "string"
-        },
         "label": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Label"
+          "title": "Label",
+          "type": "string"
         },
         "text_span": {
           "anyOf": [
@@ -1091,7 +1102,7 @@
         }
       },
       "required": [
-        "id"
+        "label"
       ],
       "title": "NodeRef",
       "type": "object"
@@ -1143,7 +1154,15 @@
           "type": "object"
         },
         "location": {
-          "$ref": "#/$defs/NodeLocation"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "type": {
           "const": "paragraph",
@@ -1169,7 +1188,6 @@
       },
       "required": [
         "id",
-        "location",
         "type",
         "text"
       ],
@@ -1223,7 +1241,15 @@
           "type": "object"
         },
         "location": {
-          "$ref": "#/$defs/NodeLocation"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "type": {
           "const": "quote",
@@ -1266,11 +1292,60 @@
       },
       "required": [
         "id",
-        "location",
         "type",
         "text"
       ],
       "title": "QuoteNode",
+      "type": "object"
+    },
+    "RawSource": {
+      "description": "The producer's verbatim source for a node, with its language.\n\nA bare string dropped the one thing a consumer needs to decide whether\nto attempt a parse: which language the content is in. ``format`` is an\nopen string (``\"typst\"``, ``\"latex\"``, ``\"mathml\"``\u2026), never a closed\nenum \u2014 a new producer must not require a spec revision.",
+      "properties": {
+        "format": {
+          "title": "Format",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "format",
+        "value"
+      ],
+      "title": "RawSource",
+      "type": "object"
+    },
+    "SourceInfo": {
+      "description": "The input artifact the CND was built from.\n\n``hash`` is self-describing (``\"sha256:\u2026\"``). Its comparability is\nnarrow and normative: two hashes are comparable only between CNDs from\nthe **same producer over the same source**, where equal means unchanged\nand different means changed. Comparing across producers is meaningless.\n\n``uri`` is an identifier in the producer's own space and is **never\npromised resolvable** \u2014 a consumer must not dereference it.",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "hash": {
+          "title": "Hash",
+          "type": "string"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uri"
+        }
+      },
+      "required": [
+        "type",
+        "hash"
+      ],
+      "title": "SourceInfo",
       "type": "object"
     },
     "TableCell": {
@@ -1359,7 +1434,15 @@
           "type": "object"
         },
         "location": {
-          "$ref": "#/$defs/NodeLocation"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "type": {
           "const": "table",
@@ -1398,22 +1481,20 @@
           "title": "Cells",
           "type": "array"
         },
-        "raw_typst": {
+        "raw": {
           "anyOf": [
             {
-              "type": "string"
+              "$ref": "#/$defs/RawSource"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Raw Typst"
+          "default": null
         }
       },
       "required": [
         "id",
-        "location",
         "type"
       ],
       "title": "TableNode",
@@ -1485,7 +1566,15 @@
           "type": "object"
         },
         "location": {
-          "$ref": "#/$defs/NodeLocation"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "type": {
           "const": "terms",
@@ -1507,7 +1596,6 @@
       },
       "required": [
         "id",
-        "location",
         "type"
       ],
       "title": "TermsNode",
@@ -1525,14 +1613,21 @@
       "title": "Cnd Version",
       "type": "string"
     },
-    "doc_hash": {
-      "title": "Doc Hash",
+    "built_at": {
+      "format": "date-time",
+      "title": "Built At",
       "type": "string"
     },
-    "compiled_at": {
-      "format": "date-time",
-      "title": "Compiled At",
-      "type": "string"
+    "source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "doc": {
       "$ref": "#/$defs/DocMetadata"
@@ -1607,10 +1702,12 @@
   },
   "required": [
     "cnd_version",
-    "doc_hash",
-    "compiled_at",
+    "built_at",
     "doc",
     "nodes"
   ],
-  "type": "object"
+  "title": "CND",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cnd.dev/schema/cnd.schema.json"
 }

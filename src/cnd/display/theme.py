@@ -74,21 +74,17 @@ def badge_chip(color: str, badge: str) -> str:
     return f"[bold {badge_foreground(color)} on {color}] {badge:<{_BADGE_WIDTH}} [/]"
 
 
-def format_node_ref(node_id: UUID, label: str | None = None) -> str:
-    """Human-readable cross-reference for display (label preferred)."""
-    if label:
-        return f"@{label}"
-    return str(node_id)
+def format_node_ref(label: str) -> str:
+    """Human-readable cross-reference for display."""
+    return f"@{label}"
 
 
 def format_node_refs(refs: Sequence[Any]) -> str:
-    """Format a sequence of node refs or raw UUIDs for display."""
+    """Format a sequence of link edges, or bare labels, for display."""
     parts: list[str] = []
     for ref in refs:
-        if hasattr(ref, "id"):
-            parts.append(format_node_ref(ref.id, getattr(ref, "label", None)))
-        else:
-            parts.append(str(ref))
+        label = getattr(ref, "label", ref)
+        parts.append(format_node_ref(str(label)))
     return ", ".join(parts)
 
 
@@ -154,7 +150,9 @@ def document_panel(cnd: Cnd) -> Panel:
     doc_table.add_column(style="white", ratio=3)
     doc_table.add_row("title", doc.title)
     doc_table.add_row("version", f"v{cnd.cnd_version}")
-    doc_table.add_row("doc_hash", cnd.doc_hash)
+    doc_table.add_row("paginated", "yes" if cnd.paginated else "no")
+    if cnd.source:
+        doc_table.add_row("source", f"{cnd.source.type}   {cnd.source.hash}")
     if doc.lang:
         doc_table.add_row("lang", doc.lang)
     if doc.authors:

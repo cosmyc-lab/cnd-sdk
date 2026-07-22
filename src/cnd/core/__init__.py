@@ -1,4 +1,12 @@
-from cnd.core.cnd import BibEntry, Cnd, DocDate, DocMetadata, Footnote
+from cnd.core.cnd import (
+    BibEntry,
+    Cnd,
+    DocDate,
+    DocMetadata,
+    Footnote,
+    LinkTarget,
+    SourceInfo,
+)
 from cnd.core.node_text import NodeTextMode
 from cnd.core.nodes import (
     CiteRef,
@@ -18,6 +26,7 @@ from cnd.core.nodes import (
     NodeTraverseContext,
     ParagraphNode,
     QuoteNode,
+    RawSource,
     StopPredicate,
     TableCell,
     TableNode,
@@ -41,6 +50,7 @@ __all__ = [
     "FootnoteRef",
     "HeadingNode",
     "ImageNode",
+    "LinkTarget",
     "ListItem",
     "ListNode",
     "MarkdownRenderer",
@@ -54,6 +64,8 @@ __all__ = [
     "NodeTraverseContext",
     "ParagraphNode",
     "QuoteNode",
+    "RawSource",
+    "SourceInfo",
     "StopPredicate",
     "TableCell",
     "TableNode",

@@ -52,3 +52,19 @@ FULL_BIB_FULL_ID = UUID("00000000-0000-4000-e000-000000000100")
 FULL_BIB_MINIMAL_ID = UUID("00000000-0000-4000-e000-000000000101")
 FULL_FOOTNOTE_UNIT_ID = UUID("00000000-0000-4000-e000-000000000200")
 FULL_FOOTNOTE_PROTO_ID = UUID("00000000-0000-4000-e000-000000000201")
+
+# Labels — the durable identity a link resolves through (docs/adr/0017).
+# Node ids stay above for identity assertions; anything that resolves an
+# edge keys on the label instead.
+TABLE001_LABEL = "tab-params-nominaux"
+HEADING002_LABEL = "sec-params"
+
+RICH_FIG_CODE_LABEL = "lst-api"
+RICH_BIB_ENTRY_LABEL = "smith2024"
+RICH_FOOTNOTE_LABEL = "fn-rest"
+
+FULL_FIG_TABLE_LABEL = "tab-mesures"
+FULL_BIB_FULL_LABEL = "durand2025"
+FULL_BIB_MINIMAL_LABEL = "nguyen2023"
+FULL_FOOTNOTE_UNIT_LABEL = "fn-unit"
+FULL_FOOTNOTE_PROTO_LABEL = "fn-proto"

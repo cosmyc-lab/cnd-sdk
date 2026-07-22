@@ -1,5 +1,5 @@
 """Kitchen-sink fixture coverage: every node type/variant, link family,
-and pool feature of format 0.2.0, exercised through the public SDK surface.
+and pool feature of format 0.3.0, exercised through the public SDK surface.
 
 The generic rendering sweep (all fixtures x all verbosity modes) lives in
 test_render.py and picks this fixture up automatically; the tests here pin
@@ -10,7 +10,9 @@ from pathlib import Path
 from ids import (
     FULL_BARE_IMAGE_ID,
     FULL_BIB_FULL_ID,
+    FULL_BIB_FULL_LABEL,
     FULL_BIB_MINIMAL_ID,
+    FULL_BIB_MINIMAL_LABEL,
     FULL_FIG_ATOM_ID,
     FULL_FIG_CODE_ID,
     FULL_FIG_OUTER_ID,
@@ -18,8 +20,9 @@ from ids import (
     FULL_FIG_SUB_A_ID,
     FULL_FIG_SUB_B_ID,
     FULL_FIG_TABLE_ID,
-    FULL_FOOTNOTE_PROTO_ID,
-    FULL_FOOTNOTE_UNIT_ID,
+    FULL_FIG_TABLE_LABEL,
+    FULL_FOOTNOTE_PROTO_LABEL,
+    FULL_FOOTNOTE_UNIT_LABEL,
     FULL_GRID_ID,
     FULL_PARA_INTRO_ID,
     FULL_PARA_REFS_ID,
@@ -107,22 +110,22 @@ class TestFixtureShape:
 class TestIncomingResolution:
     def test_incoming_resolves_a_node_target(self) -> None:
         cnd = _load()
-        sources = cnd.incoming(FULL_FIG_TABLE_ID)
+        sources = cnd.incoming(FULL_FIG_TABLE_LABEL)
         assert [n.id for n in sources] == [FULL_PARA_INTRO_ID]
 
     def test_incoming_resolves_a_bibliography_target_via_cites(self) -> None:
         cnd = _load()
-        sources = cnd.incoming(FULL_BIB_FULL_ID)
+        sources = cnd.incoming(FULL_BIB_FULL_LABEL)
         assert {n.id for n in sources} == {FULL_PARA_INTRO_ID, FULL_PARA_REFS_ID}
         # para-intro cites this entry twice; incoming() returns it once.
         assert len(sources) == 2
 
     def test_incoming_resolves_a_footnote_target(self) -> None:
         cnd = _load()
-        assert [n.id for n in cnd.incoming(FULL_FOOTNOTE_UNIT_ID)] == [
+        assert [n.id for n in cnd.incoming(FULL_FOOTNOTE_UNIT_LABEL)] == [
             FULL_PARA_INTRO_ID
         ]
-        assert [n.id for n in cnd.incoming(FULL_FOOTNOTE_PROTO_ID)] == [
+        assert [n.id for n in cnd.incoming(FULL_FOOTNOTE_PROTO_LABEL)] == [
             FULL_PARA_REFS_ID
         ]
 
@@ -132,15 +135,15 @@ class TestIncomingResolution:
 
         [none_cite] = [c for c in para.cites if c.form == "none"]
         assert none_cite.text_span is None
-        assert none_cite.id == FULL_BIB_MINIMAL_ID
-        assert FULL_PARA_REFS_ID in {n.id for n in cnd.incoming(FULL_BIB_MINIMAL_ID)}
+        assert none_cite.label == FULL_BIB_MINIMAL_LABEL
+        assert FULL_PARA_REFS_ID in {n.id for n in cnd.incoming(FULL_BIB_MINIMAL_LABEL)}
 
-    def test_pool_entries_resolve_by_id(self) -> None:
+    def test_pool_entries_carry_lifted_and_source_fields(self) -> None:
         cnd = _load()
         full = next(e for e in cnd.bibliography if e.id == FULL_BIB_FULL_ID)
         minimal = next(e for e in cnd.bibliography if e.id == FULL_BIB_MINIMAL_ID)
-        assert full.raw["parent"]["volume"] == 8
-        assert minimal.type is None and minimal.authors == [] and minimal.raw == {}
+        assert full.fields["parent"]["volume"] == 8
+        assert minimal.type is None and minimal.authors == [] and minimal.fields == {}
         assert len(cnd.footnotes) == 2
 
 
@@ -218,7 +221,7 @@ class TestRendering:
         figure = _node(cnd, FULL_FIG_RAW_ONLY_ID)
         assert isinstance(figure, FigureNode)
         assert figure.children == []
-        assert figure.raw_typst is not None
+        assert figure.raw is not None and figure.raw.format == "typst"
 
         for renderer in (MarkdownRenderer(), MarkdownRenderer(figures="inline")):
             rendered = renderer.render(figure)

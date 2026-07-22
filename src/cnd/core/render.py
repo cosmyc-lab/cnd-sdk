@@ -179,7 +179,7 @@ class MarkdownRenderer(NodeRenderer):
             figure_id=node.id,
             kind=node.kind or self._infer_figure_kind(node),
             caption=node.caption,
-            number=node.fig_number,
+            number=node.number,
             header_row=self._figure_header_row(node),
             summary=self._figure_summary(node),
         )
@@ -201,7 +201,7 @@ class MarkdownRenderer(NodeRenderer):
 
     @staticmethod
     def _figure_caption_line(node: FigureNode) -> str | None:
-        title = ": ".join(part for part in (node.fig_number, node.caption) if part)
+        title = ": ".join(part for part in (node.number, node.caption) if part)
         return f"*{title}*" if title else None
 
     @staticmethod

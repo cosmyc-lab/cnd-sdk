@@ -1,7 +1,11 @@
 {
-  "cnd_version": "0.2.0",
-  "doc_hash": "sha256:abc123def4567890",
-  "compiled_at": "2026-05-20T10:00:00Z",
+  "cnd_version": "0.3.0",
+  "built_at": "2026-05-20T10:00:00Z",
+  "source": {
+    "type": "typst",
+    "hash": "sha256:abc123def4567890",
+    "uri": "main.typ"
+  },
   "doc": {
     "title": "Test Document",
     "authors": [
@@ -24,7 +28,7 @@
       "id": "550e8400-e29b-41d4-a716-446655440001",
       "type": "heading",
       "level": 1,
-      "numbering": "1",
+      "number": "1",
       "text": "Introduction",
       "heading_path": [
         "1 Introduction"

@@ -71,7 +71,7 @@ class TestMarkdownRenderer:
         node = HeadingNode(
             type="heading",
             level=2,
-            numbering="1.1",
+            number="1.1",
             text="Interfaces",
             heading_path=["1 X", "1.1 Interfaces"],
             **_base(),
@@ -193,13 +193,13 @@ class TestFigureRendering:
         node = self._figure(
             kind="image",
             caption="Diagram",
-            fig_number="Figure 1",
+            number="1",
             children=[ImageNode(type="image", path="a.png", alt="Alt", **_base())],
         )
         rendered = MarkdownRenderer().render(node)
         assert rendered.startswith(f"[[figure:{node.id} ")
         assert 'kind="image"' in rendered
-        assert 'number="Figure 1"' in rendered
+        assert 'number="1"' in rendered
         assert 'caption="Diagram"' in rendered
         assert 'summary="Alt"' in rendered
 
@@ -223,12 +223,12 @@ class TestFigureRendering:
 
     def test_inline_renders_children_with_caption_line(self) -> None:
         image = ImageNode(type="image", path="a.png", alt="Alt", **_base())
-        node = self._figure(kind="image", caption="Diagram", fig_number="Figure 1", children=[image])
+        node = self._figure(kind="image", caption="Diagram", number="1", children=[image])
         rendered = MarkdownRenderer(figures="inline").render(node)
-        assert rendered == "![Alt](a.png)\n\n*Figure 1: Diagram*"
+        assert rendered == "![Alt](a.png)\n\n*1: Diagram*"
 
     def test_inline_with_no_children_falls_back_to_placeholder(self) -> None:
-        node = self._figure(kind="atom", children=[], raw_typst="#figure(..)")
+        node = self._figure(kind="atom", children=[], raw={"format": "typst", "value": "#figure(..)"})
         assert MarkdownRenderer(figures="inline").render(node).startswith("[[figure:")
 
     def test_auto_inlines_wrapped_content_table(self) -> None:

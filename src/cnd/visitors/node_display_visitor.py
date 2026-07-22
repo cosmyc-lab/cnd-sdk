@@ -49,7 +49,7 @@ def _format_links(links: Sequence[NodeRef | CiteRef | FootnoteRef]) -> str:
     """Format a link family for display, appending text spans when present."""
     parts: list[str] = []
     for link in links:
-        text = format_node_ref(link.id, link.label)
+        text = format_node_ref(link.label)
         if link.text_span is not None:
             span = link.text_span
             text += f"[{span[0]}:{span[1]}]" if len(span) == 2 else str(span)
@@ -112,7 +112,7 @@ class NodeDisplayVisitor(BaseVisitor):
         self._counts["heading"] += 1
         title = f"H{node.level} {node.text}"
         details = {
-            "numbering": node.numbering,
+            "number": node.number or "-",
             "children": str(len(node.children)),
         }
         self._render_node("heading", node, ctx, title, details)
@@ -161,21 +161,21 @@ class NodeDisplayVisitor(BaseVisitor):
     def visit_math(self, node: MathNode, ctx: NodeTraverseContext) -> None:
         self._counts["math"] += 1
         details: dict[str, str] = {}
-        if node.numbering:
-            details["numbering"] = node.numbering
+        if node.number:
+            details["number"] = node.number
         self._render_node("math", node, ctx, self._preview(node.text), details)
 
     @override
     def visit_figure(self, node: FigureNode, ctx: NodeTraverseContext) -> None:
         self._counts["figure"] += 1
-        title = node.caption or node.fig_number or node.label or "Figure"
+        title = node.caption or node.number or node.label or "Figure"
         details: dict[str, str] = {
             "children": str(len(node.children)),
         }
         if node.kind:
             details["kind"] = node.kind
-        if node.fig_number:
-            details["fig_number"] = node.fig_number
+        if node.number:
+            details["number"] = node.number
         if node.caption and node.caption != title:
             details["caption"] = self._preview(node.caption)
         self._render_node("figure", node, ctx, self._preview(title), details)
@@ -253,16 +253,16 @@ class NodeDisplayVisitor(BaseVisitor):
             self._print_pools(target)
 
     def _print_pools(self, cnd: Cnd) -> None:
-        def sources(entry_id) -> int:
+        def sources(label: str) -> int:
             # incoming() already returns distinct citing nodes.
-            return len(cnd.incoming(entry_id))
+            return len(cnd.incoming(label))
 
         if cnd.bibliography:
             rows = [
                 (
                     f"@{entry.label}",
-                    self._preview(entry.rendered),
-                    f"id={str(entry.id)[:8]}   cited by {sources(entry.id)}",
+                    self._preview(entry.formatted or entry.title or ""),
+                    f"id={str(entry.id)[:8]}   cited by {sources(entry.label)}",
                 )
                 for entry in cnd.bibliography
             ]
@@ -272,7 +272,7 @@ class NodeDisplayVisitor(BaseVisitor):
                 (
                     f"@{note.label}",
                     self._preview(note.text),
-                    f"id={str(note.id)[:8]}   referenced by {sources(note.id)}",
+                    f"id={str(note.id)[:8]}   referenced by {sources(note.label)}",
                 )
                 for note in cnd.footnotes
             ]
@@ -388,12 +388,18 @@ class NodeDisplayVisitor(BaseVisitor):
             location = Text()
             location.append("loc", "dim")
             location.append("  ")
-            location.append(f"page={node.location.page}", "bright_black")
-            location.append("   ·   ", "dim")
+            # An unpaginated CND has no page and no page-derived position;
+            # both are omitted rather than shown as a fabricated zero.
+            if node.location is not None:
+                location.append(f"page={node.location.page}", "bright_black")
+                location.append("   ·   ", "dim")
             location.append(f"child={ctx.sibling_index}/{ctx.sibling_count}", "bright_black")
             location.append("   ·   ", "dim")
-            location.append(f"on-page={ctx.page_index}/{ctx.page_count}", "bright_black")
-            location.append("   ·   ", "dim")
+            if ctx.page_index is not None:
+                location.append(
+                    f"on-page={ctx.page_index}/{ctx.page_count}", "bright_black"
+                )
+                location.append("   ·   ", "dim")
             location.append(f"doc={ctx.doc_index}/{ctx.doc_count}", "bright_black")
             lines.append(location)
 

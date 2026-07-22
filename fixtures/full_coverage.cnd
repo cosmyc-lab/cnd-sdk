@@ -1,7 +1,10 @@
 {
-  "cnd_version": "0.2.0",
-  "doc_hash": "sha256:full-coverage-fixture-v1",
-  "compiled_at": "2026-07-15T08:30:00Z",
+  "cnd_version": "0.3.0",
+  "built_at": "2026-07-15T08:30:00Z",
+  "source": {
+    "type": "typst",
+    "hash": "sha256:full-coverage-fixture-v1"
+  },
   "doc": {
     "title": "Rapport d'essais du banc de mesure — Fixture couverture totale",
     "authors": [
@@ -28,7 +31,6 @@
       "id": "00000000-0000-4000-e000-000000000001",
       "type": "heading",
       "level": 1,
-      "numbering": "1",
       "text": "Vue d'ensemble",
       "heading_path": [
         "1 Vue d'ensemble"
@@ -53,7 +55,6 @@
           },
           "refs": [
             {
-              "id": "00000000-0000-4000-e000-000000000010",
               "label": "tab-mesures",
               "text_span": [
                 48,
@@ -61,13 +62,11 @@
               ]
             },
             {
-              "id": "00000000-0000-4000-e000-000000000023",
               "label": "fig-atom"
             }
           ],
           "cites": [
             {
-              "id": "00000000-0000-4000-e000-000000000100",
               "label": "durand2025",
               "text_span": [
                 4,
@@ -77,7 +76,6 @@
               "supplement": "p. 42"
             },
             {
-              "id": "00000000-0000-4000-e000-000000000100",
               "label": "durand2025",
               "text_span": [
                 68,
@@ -88,7 +86,6 @@
           ],
           "footnotes": [
             {
-              "id": "00000000-0000-4000-e000-000000000200",
               "label": "fn-unit",
               "text_span": [
                 12,
@@ -193,19 +190,21 @@
           "id": "00000000-0000-4000-e000-000000000008",
           "type": "math",
           "text": "e(t) = m(t) - r(t)",
-          "raw_typst": "$ e(t) = m(t) - r(t) $",
-          "numbering": "(1)",
           "block": true,
           "label": "eq-erreur",
           "location": {
             "page": 2
+          },
+          "number": "(1)",
+          "raw": {
+            "format": "typst",
+            "value": "$ e(t) = m(t) - r(t) $"
           }
         },
         {
           "id": "00000000-0000-4000-e000-000000000030",
           "type": "heading",
           "level": 2,
-          "numbering": "1.1",
           "text": "Résultats et figures",
           "heading_path": [
             "1 Vue d'ensemble",
@@ -214,7 +213,6 @@
           "label": "sec-figures",
           "refs": [
             {
-              "id": "00000000-0000-4000-e000-000000000013",
               "label": "fig-schema"
             }
           ],
@@ -228,7 +226,6 @@
               "kind": "table",
               "label": "tab-mesures",
               "caption": "Mesures nominales par capteur.",
-              "fig_number": "Table 1",
               "location": {
                 "page": 3
               },
@@ -272,12 +269,16 @@
                       "text": "250 L/min"
                     }
                   ],
-                  "raw_typst": "table(columns: 2, ..)",
                   "location": {
                     "page": 3
+                  },
+                  "raw": {
+                    "format": "typst",
+                    "value": "table(columns: 2, ..)"
                   }
                 }
-              ]
+              ],
+              "number": "Table 1"
             },
             {
               "id": "00000000-0000-4000-e000-000000000012",
@@ -313,9 +314,12 @@
                   "text": "12.6"
                 }
               ],
-              "raw_typst": "grid(columns: 3, ..)",
               "location": {
                 "page": 3
+              },
+              "raw": {
+                "format": "typst",
+                "value": "grid(columns: 3, ..)"
               }
             },
             {
@@ -324,7 +328,6 @@
               "kind": "image",
               "label": "fig-schema",
               "caption": "Schéma du banc de mesure.",
-              "fig_number": "Figure 1",
               "location": {
                 "page": 4
               },
@@ -338,7 +341,8 @@
                     "page": 4
                   }
                 }
-              ]
+              ],
+              "number": "Figure 1"
             },
             {
               "id": "00000000-0000-4000-e000-000000000015",
@@ -346,7 +350,6 @@
               "kind": "listing",
               "label": "lst-config",
               "caption": "Configuration de l'acquisition.",
-              "fig_number": "Listing 1",
               "location": {
                 "page": 4
               },
@@ -361,7 +364,8 @@
                     "page": 4
                   }
                 }
-              ]
+              ],
+              "number": "Listing 1"
             },
             {
               "id": "00000000-0000-4000-e000-000000000017",
@@ -369,7 +373,6 @@
               "kind": "image",
               "label": "fig-compare",
               "caption": "Comparaison avant/après étalonnage.",
-              "fig_number": "Figure 2",
               "location": {
                 "page": 5
               },
@@ -414,7 +417,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "number": "Figure 2"
             },
             {
               "id": "00000000-0000-4000-e000-000000000023",
@@ -422,7 +426,6 @@
               "kind": "atom",
               "label": "fig-atom",
               "caption": "Structure atomique du réseau mesuré.",
-              "fig_number": "Atome 1",
               "location": {
                 "page": 6
               },
@@ -436,7 +439,8 @@
                     "page": 6
                   }
                 }
-              ]
+              ],
+              "number": "Atome 1"
             },
             {
               "id": "00000000-0000-4000-e000-000000000025",
@@ -444,11 +448,14 @@
               "kind": "canvas",
               "label": "fig-canvas",
               "caption": "Tracé vectoriel non convertible.",
-              "fig_number": "Figure 3",
               "children": [],
-              "raw_typst": "#figure(canvas(length: 1cm, { plot(..) }))",
               "location": {
                 "page": 6
+              },
+              "number": "Figure 3",
+              "raw": {
+                "format": "typst",
+                "value": "#figure(canvas(length: 1cm, { plot(..) }))"
               }
             },
             {
@@ -469,15 +476,16 @@
                 "page": 6
               }
             }
-          ]
+          ],
+          "number": "1.1"
         }
-      ]
+      ],
+      "number": "1"
     },
     {
       "id": "00000000-0000-4000-e000-000000000040",
       "type": "heading",
       "level": 1,
-      "numbering": "2",
       "text": "Références",
       "heading_path": [
         "2 Références"
@@ -494,7 +502,6 @@
           "lang": "fr",
           "refs": [
             {
-              "id": "00000000-0000-4000-e000-000000000012",
               "label": "grid-layout",
               "text_span": [
                 0,
@@ -504,7 +511,6 @@
           ],
           "cites": [
             {
-              "id": "00000000-0000-4000-e000-000000000101",
               "label": "nguyen2023",
               "text_span": [
                 24,
@@ -513,7 +519,6 @@
               "form": "full"
             },
             {
-              "id": "00000000-0000-4000-e000-000000000100",
               "label": "durand2025",
               "text_span": [
                 58,
@@ -522,7 +527,6 @@
               "form": "author"
             },
             {
-              "id": "00000000-0000-4000-e000-000000000101",
               "label": "nguyen2023",
               "text_span": [
                 69,
@@ -531,7 +535,6 @@
               "form": "year"
             },
             {
-              "id": "00000000-0000-4000-e000-000000000101",
               "label": "nguyen2023",
               "text_span": null,
               "form": "none"
@@ -539,7 +542,6 @@
           ],
           "footnotes": [
             {
-              "id": "00000000-0000-4000-e000-000000000201",
               "label": "fn-proto",
               "text_span": [
                 7,
@@ -551,14 +553,14 @@
             "page": 7
           }
         }
-      ]
+      ],
+      "number": "2"
     }
   ],
   "bibliography": [
     {
       "id": "00000000-0000-4000-e000-000000000100",
       "label": "durand2025",
-      "rendered": "Durand, M., & Petit, C. (2025). Étalonnage automatique des chaînes de mesure. Revue de Métrologie Appliquée, 8(2), 101–118.",
       "type": "article",
       "authors": [
         "Durand, M.",
@@ -569,7 +571,8 @@
       "container": "Revue de Métrologie Appliquée",
       "doi": "10.1000/rma.2025.808",
       "url": "https://example.org/rma/808",
-      "raw": {
+      "formatted": "Durand, M., & Petit, C. (2025). Étalonnage automatique des chaînes de mesure. Revue de Métrologie Appliquée, 8(2), 101–118.",
+      "fields": {
         "type": "article",
         "title": "Étalonnage automatique des chaînes de mesure",
         "author": [
@@ -593,7 +596,7 @@
     {
       "id": "00000000-0000-4000-e000-000000000101",
       "label": "nguyen2023",
-      "rendered": "Nguyen, T. (2023). Field bus diagnostics in practice. Munich: Feldbus Verlag."
+      "formatted": "Nguyen, T. (2023). Field bus diagnostics in practice. Munich: Feldbus Verlag."
     }
   ],
   "footnotes": [
