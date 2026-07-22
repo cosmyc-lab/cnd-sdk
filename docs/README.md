@@ -26,6 +26,7 @@ conventions.
 | [0016](adr/0016-content-hashing.md) | Derived content hashing — canonical serialisation and excluded presentation state | proposed |
 | [0017](adr/0017-cross-references-resolve-by-label.md) | Cross-references resolve by target label; drop the id from link families | proposed |
 | [0018](adr/0018-reconciliation-reference-algorithm.md) | Reconciliation (diff, id inheritance) is a versioned reference algorithm, not a format guarantee | proposed |
+| [0019](adr/0019-production-topology-two-doors.md) | Production topology — a declarative door and a direct door over one shared contract | proposed |
 
 ## Proposals (docs/proposals/)
 
