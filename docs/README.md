@@ -9,7 +9,7 @@ conventions.
 | # | Title | Status |
 |---|---|---|
 | [0001](adr/0001-record-architecture-decisions.md) | Record architecture decisions as ADRs | accepted |
-| [0002](adr/0002-canonical-noderef-only.md) | Canonical NodeRef `{id, label}` form only | accepted |
+| [0002](adr/0002-canonical-noderef-only.md) | Canonical NodeRef `{id, label}` form only | superseded by 0017 |
 | [0003](adr/0003-apache-2-license.md) | Apache-2.0 license | accepted |
 | [0004](adr/0004-schema-generated-from-models.md) | JSON Schema generated from the models | accepted |
 | [0005](adr/0005-display-as-optional-extra.md) | Display as an optional extra | accepted |
@@ -24,6 +24,7 @@ conventions.
 | [0014](adr/0014-relation-to-doclang.md) | CND's relation to DocLang — coexistence and interoperability, not convergence | proposed |
 | [0015](adr/0015-manifests-immutable-ids-not-durable.md) | Manifests are immutable build artifacts; node ids are not durable | proposed |
 | [0016](adr/0016-content-hashing.md) | Derived content hashing — canonical serialisation and excluded presentation state | proposed |
+| [0017](adr/0017-cross-references-resolve-by-label.md) | Cross-references resolve by target label; drop the id from link families | proposed |
 
 ## Proposals (docs/proposals/)
 
