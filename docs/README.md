@@ -27,7 +27,9 @@ conventions.
 | [0017](adr/0017-cross-references-resolve-by-label.md) | Cross-references resolve by target label; drop the id from link families | proposed |
 | [0018](adr/0018-reconciliation-reference-algorithm.md) | Reconciliation (diff, id inheritance) is a versioned reference algorithm, not a format guarantee | proposed |
 | [0019](adr/0019-production-topology-two-doors.md) | Production topology — a declarative door and a direct door over one shared contract | proposed |
-| [0020](adr/0020-repository-as-conformance-hub.md) | The repository is a conformance hub; consumption moves to per-language satellites | proposed |
+| [0020](adr/0020-repository-as-conformance-hub.md) | The repository is a conformance hub; the hub ships a conformance CLI | proposed |
+| [0021](adr/0021-artifact-naming-and-file-identity.md) | Artifact naming and file identity — the CND and the declaration | proposed |
+| [0022](adr/0022-rust-succession-plan.md) | Rust succession plan — Python is the reference until the format freezes | proposed |
 
 ## Proposals (docs/proposals/)
 
@@ -39,5 +41,6 @@ conventions.
 | [0004](proposals/0004-terms-footnote-citation-bibliography-nodes.md) | Terms nodes; footnote and bibliography pools; typed citation edges | implemented |
 | [0005](proposals/0005-figure-wrapper-image-node.md) | Figure as a wrapper node; new `ImageNode`; `TableNode` loses its caption | implemented |
 | [0006](proposals/0006-multi-format-rendering.md) | Multi-format rendering via renderer classes; remove `to_text()` | implemented |
-| [0007](proposals/0007-manifest-converters.md) | Manifest-level converters to complete document artifacts | draft |
+| [0007](proposals/0007-manifest-converters.md) | Outbound converters — a whole CND to a complete document artifact | draft |
 | [0008](proposals/0008-cnd-0.3.0-format-changes.md) | CND 0.3.0 format changes — field audit, provenance, and label-keyed links | draft |
+| [0009](proposals/0009-declarative-and-direct-producers.md) | Declarative and direct producers — bringing foreign formats into CND | draft |

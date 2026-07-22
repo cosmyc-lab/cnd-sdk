@@ -1,18 +1,26 @@
 ---
-title: Manifest-level converters to complete document artifacts
+title: Outbound converters — a whole CND to a complete document artifact
 status: draft
 date: 2026-07-18
-tags: [converters, rendering, sdk]
-related: [0006, 0011]
+tags: [converters, rendering, sdk, outbound]
+related: [0006, 0011, 0014, 0019, 0020, 0021]
 superseded-by: null
 ---
 
-# Proposal — Manifest-level converters to complete document artifacts
+# Proposal — Outbound converters: a whole CND to a document artifact
 
 ## Status
 Draft. Future work — explicitly *not* part of the v0.2 format / v0.3 SDK
 release; recorded now because ADR 0011 defines the layer seam this module
 will sit on.
+
+Revised 2026-07-22 and **narrowed to the outbound direction only**. An earlier
+revision extended this proposal to cover `foreign → CND` as well; that
+direction has since been decided to be *production*, not consumption — it is
+governed by ADR 0019's two doors and specified separately. Converting a CND
+into some other artifact and producing a CND from some other format no longer
+share an architecture, a home, or a lifecycle, so they no longer share a
+document. Vocabulary follows ADR 0021: the built artifact is **the CND**.
 
 ## Motivation
 ADR 0011's renderers answer "give me text for this *node*" — a fragment,
@@ -43,13 +51,22 @@ Targets, in intended order:
    sections, footnotes and a bibliography section rendered from the
    pools. Built directly on `MarkdownRenderer`.
 2. **cnd → html** — a full standalone `.html` document (not fragments).
-3. **cnd → doclang** — DocLang, the AI-native document standard. Its spec
-   is TBD and needs sourcing; it is listed here as a target only and
-   deliberately not designed in this proposal.
+3. **cnd → doclang** — DocLang is now sourced and its positioning recorded in
+   ADR 0014, which unblocks this target; the element-by-element mapping is
+   still to be designed. Known permanent loss: the citation model
+   (`CiteRef.form`/`supplement`, the bibliography pool's structured fields)
+   has no typed target in DocLang.
 
 Converters are SDK facilities, non-normative for the format (ADR 0006 /
 ADR 0011): no converter output shape ever becomes a conformance
 requirement, and the module must not add hard dependencies.
+
+**Where these live.** An outbound converter reads a built CND and emits
+something else — that is *consumption*, and it is built on the renderer
+hierarchy, which is per-language and non-normative (ADR 0011, spec §7). Under
+ADR 0020 it therefore belongs with the per-language SDKs rather than with the
+conformance hub, and it travels with the Python stack when that stack leaves
+the hub. Nothing here is part of what the hub certifies.
 
 ## Alternatives considered
 **Grow renderers until they cover whole documents.** Rejected — a
