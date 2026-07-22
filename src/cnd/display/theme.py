@@ -12,7 +12,7 @@ from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 
-from cnd.core.manifest import CndManifest
+from cnd.core.cnd import Cnd
 
 # (color, badge) per node kind — a categorical palette of 10 hue-separated
 # truecolor flags for a dark terminal (OKLCH L 0.48-0.67, chroma >= 0.10,
@@ -147,14 +147,14 @@ def stat_cell(label: str, value: str) -> Text:
     return cell
 
 
-def document_panel(manifest: CndManifest) -> Panel:
-    doc = manifest.doc
+def document_panel(cnd: Cnd) -> Panel:
+    doc = cnd.doc
     doc_table = Table.grid(expand=True)
     doc_table.add_column(style="dim", ratio=1)
     doc_table.add_column(style="white", ratio=3)
     doc_table.add_row("title", doc.title)
-    doc_table.add_row("version", f"v{manifest.cnd_version}")
-    doc_table.add_row("doc_hash", manifest.doc_hash)
+    doc_table.add_row("version", f"v{cnd.cnd_version}")
+    doc_table.add_row("doc_hash", cnd.doc_hash)
     if doc.lang:
         doc_table.add_row("lang", doc.lang)
     if doc.authors:

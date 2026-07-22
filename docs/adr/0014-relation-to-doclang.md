@@ -99,7 +99,7 @@ to converge on. Concretely:
    serialisation.
 
 5. **Scope discipline is unchanged.** ADR 0006 still holds: this repository
-   defines the manifest representation. Interoperating with another
+   defines the CND representation. Interoperating with another
    standard is an SDK facility and creates no conformance obligation on
    CND producers.
 

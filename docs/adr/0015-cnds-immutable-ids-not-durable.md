@@ -1,5 +1,5 @@
 ---
-title: Manifests are immutable build artifacts; node ids are not durable
+title: CNDs are immutable build artifacts; node ids are not durable
 status: proposed
 date: 2026-07-22
 tags: [identity, ids, scope, versioning]
@@ -7,20 +7,20 @@ related: [0002, 0006, 0008, 0012]
 superseded-by: null
 ---
 
-# ADR 0015 — Manifests are immutable build artifacts; node ids are not durable
+# ADR 0015 — CNDs are immutable build artifacts; node ids are not durable
 
 ## Status
 Proposed.
 
 ## Context
-A CND manifest is the output of building a source document. Nothing in the
+A CND is the output of building a source document. Nothing in the
 format identifies a *document* across successive builds, and the node `id`
 field is described by the specification (§4) as a "Stable node identifier".
 That description does not hold and cannot be made to hold cheaply:
 
 - Producers assign node ids at build time. The reference Typst producer, the
   only one in service, mints a fresh random UUID for every node on every
-  build, so recompiling a byte-identical source yields a manifest whose node
+  build, so recompiling a byte-identical source yields a CND whose node
   ids match none of the previous run's. Ids are unique, not stable.
 - Making them reproducible (deriving an id from a node's structural path)
   buys little: such an id survives a content edit but not an insertion or a
@@ -44,9 +44,9 @@ its consumers can be designed against the truth rather than against the
 current wording.
 
 ## Decision
-**A CND manifest is an immutable build artifact.** CND does not model
+**A CND is an immutable build artifact.** CND does not model
 in-place editing, document identity across builds, or revisions. A consumer
-that needs version history keeps the manifests it considers to be versions;
+that needs version history keeps the CNDs it considers to be versions;
 the format carries no document-identity field and no revision field. This is
 ADR 0006 scope discipline applied to identity: the repository defines the
 representation of one built document, not the lifecycle of a document across
@@ -54,7 +54,7 @@ edits.
 
 Consequently:
 
-1. **Node ids are unique within a manifest, not durable across builds.** The
+1. **Node ids are unique within a CND, not durable across builds.** The
    specification's "Stable node identifier" wording (§4) is corrected to say
    so plainly. Uniqueness across nodes and pool entries (§2) is unchanged.
 
@@ -76,7 +76,7 @@ Consequently:
   change?"** is answered by derived content hashes (recorded separately), and
   **"is it the same node?"** is answered exactly by labels where the author
   supplied them, and best-effort by a reconciliation/diff facility elsewhere.
-  The SDK will provide that facility (a `diff` between two manifests and an
+  The SDK will provide that facility (a `diff` between two CNDs and an
   id-inheriting rebuild) so consumers can build their own versioning on top;
   it is specified on its own and is explicitly best-effort for unlabelled
   nodes — it cannot be otherwise, since matching across edits is the diff

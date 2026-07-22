@@ -1,16 +1,16 @@
 # cnd-sdk
 
 Reference Python implementation and specification of CND (Context Native
-Document): a manifest format for representing a compiled document as a tree
+Document): a format for representing a compiled document as a tree
 of typed nodes, with stable cross-references between nodes.
 
 ## Layout
 | Path | What |
 |---|---|
 | spec/cnd-spec.md | THE format specification (prose) |
-| spec/schema/cnd-manifest.schema.json | JSON Schema, generated from the Pydantic models |
-| src/cnd/ | the `cnd` package: manifest, node types, NodeRef, to_text, base visitor, optional Rich display |
-| fixtures/ | canonical example manifests used by the test suite |
+| schema/cnd.schema.json | JSON Schema, generated from the Pydantic models |
+| src/cnd/ | the `cnd` package: the CND model, node types, NodeRef, to_text, base visitor, optional Rich display |
+| fixtures/ | canonical example CNDs used by the test suite |
 | tests/ | pytest suite, includes a schema-regression test |
 
 ## Documentation — source of truth
@@ -25,7 +25,7 @@ of typed nodes, with stable cross-references between nodes.
   front-matter, and the immutability rule.
 
 ## Invariants
-- The JSON Schema is generated from `CndManifest.model_json_schema()` and
+- The JSON Schema is generated from `Cnd.model_json_schema()` and
   committed as source of truth; `tests/test_schema.py` fails the build if it
   diverges from the models — regenerate it, never hand-edit the schema file.
 - `NodeRef` has exactly one canonical shape: `{"id": <uuid>, "label": <string|null>}`.

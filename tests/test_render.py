@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from cnd.core.manifest import CndManifest
+from cnd.core.cnd import Cnd
 from cnd.core.node_text import (
     format_figure_placeholder,
     render_list_markdown,
@@ -29,7 +29,7 @@ from cnd.core.nodes import (
 from cnd.core.render import MarkdownRenderer, NodeRenderer
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
-ALL_FIXTURES = sorted(FIXTURES_DIR.glob("*.json"))
+ALL_FIXTURES = sorted(FIXTURES_DIR.glob("*.cnd"))
 
 
 def _location() -> NodeLocation:
@@ -330,10 +330,10 @@ class TestRenderFixtures:
     @pytest.mark.parametrize("path", ALL_FIXTURES, ids=lambda p: p.stem)
     @pytest.mark.parametrize("mode", ["placeholder", "inline", "auto"])
     def test_all_fixture_nodes_render(self, path: Path, mode: str) -> None:
-        manifest = CndManifest.model_validate_json(path.read_text())
+        cnd = Cnd.model_validate_json(path.read_text())
         renderer = MarkdownRenderer(tables=mode, figures=mode)
         count = 0
-        for visit in manifest.iter():
+        for visit in cnd.iter():
             rendered = renderer.render(visit.node)
             assert isinstance(rendered, str)
             assert rendered.strip(), f"{visit.node.type} {visit.node.id} rendered empty"
@@ -343,18 +343,18 @@ class TestRenderFixtures:
     def test_fixtures_cover_every_node_type(self) -> None:
         seen: set[str] = set()
         for path in ALL_FIXTURES:
-            manifest = CndManifest.model_validate_json(path.read_text())
-            for visit in manifest.iter():
+            cnd = Cnd.model_validate_json(path.read_text())
+            for visit in cnd.iter():
                 seen.add(visit.node.type)
         # Hard minimum: the types the v0.2 migration introduced or reshaped.
         assert {"heading", "paragraph", "table", "figure", "image", "code", "terms"} <= seen
 
     def test_real_fixture_table_auto_mode_inlines(
-        self, comprehensive_manifest_path: Path
+        self, comprehensive_cnd_path: Path
     ) -> None:
-        manifest = CndManifest.model_validate_json(comprehensive_manifest_path.read_text())
+        cnd = Cnd.model_validate_json(comprehensive_cnd_path.read_text())
         table = next(
-            visit.node for visit in manifest.iter() if isinstance(visit.node, TableNode)
+            visit.node for visit in cnd.iter() if isinstance(visit.node, TableNode)
         )
         assert table.content_kind == "content"
         rendered = MarkdownRenderer(tables="auto").render(table)

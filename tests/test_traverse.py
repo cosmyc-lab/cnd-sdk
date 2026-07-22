@@ -2,21 +2,21 @@ from pathlib import Path
 
 from ids import FIGURE001_ID, HEADING001_ID, HEADING002_ID, PARA001_ID, TABLE001_ID
 
-from cnd.core.manifest import CndManifest
+from cnd.core.cnd import Cnd
 from cnd.core.nodes import FigureNode, HeadingNode, ParagraphNode, TableNode, iter_nodes
 
 
-def _load(path: Path) -> CndManifest:
-    return CndManifest.model_validate_json(path.read_text())
+def _load(path: Path) -> Cnd:
+    return Cnd.model_validate_json(path.read_text())
 
 
 class TestIterNodes:
-    def test_manifest_is_directly_iterable(
-        self, structured_manifest_path: Path,
+    def test_cnd_is_directly_iterable(
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
 
-        ids = [visit.node.id for visit in manifest]
+        ids = [visit.node.id for visit in cnd]
 
         assert ids == [
             HEADING001_ID,
@@ -26,14 +26,14 @@ class TestIterNodes:
             TABLE001_ID,
         ]
 
-    def test_manifest_iter_accepts_traversal_options(
-        self, structured_manifest_path: Path,
+    def test_cnd_iter_accepts_traversal_options(
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
 
         ids = [
             visit.node.id
-            for visit in manifest.iter(
+            for visit in cnd.iter(
                 stop_predicate=lambda node, _ctx: (
                     isinstance(node, HeadingNode) and node.level >= 2
                 ),
@@ -43,13 +43,13 @@ class TestIterNodes:
         assert ids == [HEADING001_ID, HEADING002_ID]
 
     def test_context_heading_path_is_propagated_to_descendants(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
 
         paragraph_visit = next(
             visit
-            for visit in manifest
+            for visit in cnd
             if isinstance(visit.node, ParagraphNode)
         )
 
@@ -62,13 +62,13 @@ class TestIterNodes:
         assert paragraph_visit.ctx.parent.id == HEADING002_ID
 
     def test_stop_predicate_can_prune_descendants(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
 
         ids = [
             visit.node.id
-            for visit in manifest.iter(
+            for visit in cnd.iter(
                 stop_predicate=lambda node, _ctx: (
                     isinstance(node, HeadingNode) and node.level >= 2
                 ),
@@ -77,18 +77,18 @@ class TestIterNodes:
 
         assert ids == [HEADING001_ID, HEADING002_ID]
 
-    def test_max_depth_limits_descent(self, structured_manifest_path: Path) -> None:
-        manifest = _load(structured_manifest_path)
+    def test_max_depth_limits_descent(self, structured_cnd_path: Path) -> None:
+        cnd = _load(structured_cnd_path)
 
-        ids = [visit.node.id for visit in manifest.iter(max_depth=1)]
+        ids = [visit.node.id for visit in cnd.iter(max_depth=1)]
 
         assert ids == [HEADING001_ID, HEADING002_ID]
 
     def test_iter_nodes_accepts_a_node_subtree(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
-        section = manifest.nodes[0].children[0]
+        cnd = _load(structured_cnd_path)
+        section = cnd.nodes[0].children[0]
         assert isinstance(section, HeadingNode)
 
         ids = [visit.node.id for visit in iter_nodes([section])]
@@ -96,24 +96,24 @@ class TestIterNodes:
         assert ids == [HEADING002_ID, PARA001_ID, FIGURE001_ID, TABLE001_ID]
 
     def test_consumer_can_filter_by_node_type(
-        self, minimal_manifest_path: Path,
+        self, minimal_cnd_path: Path,
     ) -> None:
-        manifest = _load(minimal_manifest_path)
+        cnd = _load(minimal_cnd_path)
 
         texts = [
             visit.node.text
-            for visit in manifest
+            for visit in cnd
             if isinstance(visit.node, ParagraphNode)
         ]
 
         assert texts == ["Premier paragraphe du document."]
 
-    def test_table_nodes_are_included(self, structured_manifest_path: Path) -> None:
-        manifest = _load(structured_manifest_path)
+    def test_table_nodes_are_included(self, structured_cnd_path: Path) -> None:
+        cnd = _load(structured_cnd_path)
 
         tables = [
             visit.node
-            for visit in manifest
+            for visit in cnd
             if isinstance(visit.node, TableNode)
         ]
 
@@ -123,12 +123,12 @@ class TestIterNodes:
 
 class TestFigureDescent:
     def test_iter_descends_into_figure_children(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
 
         table_visit = next(
-            visit for visit in manifest if isinstance(visit.node, TableNode)
+            visit for visit in cnd if isinstance(visit.node, TableNode)
         )
 
         assert table_visit.node.id == TABLE001_ID
@@ -143,13 +143,13 @@ class TestFigureDescent:
         ]
 
     def test_stop_predicate_treats_figure_as_atomic(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
 
         ids = [
             visit.node.id
-            for visit in manifest.iter(
+            for visit in cnd.iter(
                 stop_predicate=lambda node, _ctx: node.type == "figure",
             )
         ]
@@ -162,12 +162,12 @@ class TestDerivedPositions:
     """Reading-order positions (1-based x/y pairs) derived by the traversal
     engine — NodeLocation carries only `page`; everything else is computed."""
 
-    def test_positions_on_structured_manifest(
-        self, structured_manifest_path: Path,
+    def test_positions_on_structured_cnd(
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
 
-        by_id = {v.node.id: v.ctx for v in manifest}
+        by_id = {v.node.id: v.ctx for v in cnd}
 
         # 5 nodes total, all beginning on page 1.
         para = by_id[PARA001_ID]
@@ -184,29 +184,29 @@ class TestDerivedPositions:
         assert (root.doc_index, root.sibling_index) == (1, 1)
 
     def test_page_positions_reset_per_page(
-        self, comprehensive_manifest_path: Path,
+        self, comprehensive_cnd_path: Path,
     ) -> None:
-        manifest = _load(comprehensive_manifest_path)
+        cnd = _load(comprehensive_cnd_path)
 
-        for visit in manifest:
+        for visit in cnd:
             assert 1 <= visit.ctx.page_index <= visit.ctx.page_count
             assert 1 <= visit.ctx.doc_index <= visit.ctx.doc_count
             assert 1 <= visit.ctx.sibling_index <= visit.ctx.sibling_count
 
         firsts = {}
-        for visit in manifest:
+        for visit in cnd:
             firsts.setdefault(visit.node.location.page, visit.ctx.page_index)
         assert all(index == 1 for index in firsts.values())
 
     def test_pruning_does_not_shift_positions(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
-        full = {v.node.id: v.ctx for v in manifest}
+        cnd = _load(structured_cnd_path)
+        full = {v.node.id: v.ctx for v in cnd}
 
         pruned = {
             v.node.id: v.ctx
-            for v in manifest.iter(
+            for v in cnd.iter(
                 stop_predicate=lambda node, _ctx: node.type == "heading"
                 and node.level >= 2,
             )
@@ -224,10 +224,10 @@ class TestDerivedPositions:
                 full[node_id].page_count,
             )
 
-    def test_position_totals_helper(self, structured_manifest_path: Path) -> None:
+    def test_position_totals_helper(self, structured_cnd_path: Path) -> None:
         from cnd.core.nodes import position_totals
 
-        manifest = _load(structured_manifest_path)
-        doc_count, page_counts = position_totals(manifest.nodes)
+        cnd = _load(structured_cnd_path)
+        doc_count, page_counts = position_totals(cnd.nodes)
         assert doc_count == 5
         assert page_counts == {1: 5}

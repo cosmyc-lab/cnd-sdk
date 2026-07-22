@@ -1,4 +1,7 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cnd.dev/schema/cnd.schema.json",
+  "title": "CND",
   "$defs": {
     "BibEntry": {
       "description": "Bibliography pool entry \u2014 target of ``cites`` edges.\n\n``rendered`` is the reference string as displayed in the compiled\ndocument (the faithful capture). A curated typed subset of common\nbibliographic fields is lifted alongside it; the full source entry\n(e.g. Hayagriva) is carried losslessly as structured JSON in ``raw``.",
@@ -110,7 +113,7 @@
       "type": "object"
     },
     "CiteRef": {
-      "description": "Forward citation edge; ``id`` resolves in the manifest ``bibliography`` pool.",
+      "description": "Forward citation edge; ``id`` resolves in the CND ``bibliography`` pool.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -269,7 +272,7 @@
       "type": "object"
     },
     "DocDate": {
-      "description": "Partial or full document date from manifest metadata.",
+      "description": "Partial or full document date from cnd metadata.",
       "properties": {
         "year": {
           "title": "Year",
@@ -560,7 +563,7 @@
       "type": "object"
     },
     "FootnoteRef": {
-      "description": "Forward footnote edge; ``id`` resolves in the manifest ``footnotes`` pool.",
+      "description": "Forward footnote edge; ``id`` resolves in the CND ``footnotes`` pool.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -1511,7 +1514,7 @@
       "type": "object"
     }
   },
-  "description": "Top-level CND manifest produced by the ``typst-cnd`` compiler.",
+  "description": "Top-level CND \u2014 a compiled document as a tree of typed nodes.",
   "properties": {
     "id": {
       "format": "uuid",
@@ -1609,8 +1612,5 @@
     "doc",
     "nodes"
   ],
-  "title": "CND Manifest",
-  "type": "object",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cnd.dev/schema/cnd-manifest.schema.json"
+  "type": "object"
 }

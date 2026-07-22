@@ -1,10 +1,10 @@
 # cnd-sdk
 
 Reference Python implementation of **CND** (Context Native Document) — a
-manifest format for representing compiled documents as a tree of typed,
+format for representing compiled documents as a tree of typed,
 cross-referenceable nodes, designed for retrieval and LLM-context pipelines.
 
-This package is the standard itself: the manifest schema, node types, and a
+This package is the standard itself: the CND schema, node types, and a
 base display/visitor layer. It does not include any indexing, chunking, or
 storage logic — those are consumer concerns built on top of this contract.
 
@@ -19,27 +19,28 @@ pip install cnd-sdk[display]
 ## Usage
 
 ```python
-from cnd import CndManifest
+from cnd import Cnd, MarkdownRenderer
 
-manifest = CndManifest.model_validate_json(open("manifest.json").read())
+cnd = Cnd.model_validate_json(open("doc.cnd").read())
+renderer = MarkdownRenderer()
 
-for traverse in manifest.iter():
-    print(traverse.ctx.depth, traverse.node.type, traverse.node.to_text())
+for traverse in cnd.iter():
+    print(traverse.ctx.depth, traverse.node.type, renderer.render(traverse.node))
 ```
 
-Pretty-printing a manifest tree (requires `cnd-sdk[display]`):
+Pretty-printing a CND tree (requires `cnd-sdk[display]`):
 
 ```python
 from cnd.visitors.node_display_visitor import NodeDisplayVisitor
 
-NodeDisplayVisitor().visit(manifest)
+NodeDisplayVisitor().visit(cnd)
 ```
 
 ## Spec
 
 The full CND specification lives in [`spec/cnd-spec.md`](spec/cnd-spec.md),
 with the JSON Schema at
-[`spec/schema/cnd-manifest.schema.json`](spec/schema/cnd-manifest.schema.json)
+[`schema/cnd.schema.json`](schema/cnd.schema.json)
 and shared test fixtures in [`fixtures/`](fixtures/).
 
 ## License
