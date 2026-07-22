@@ -25,6 +25,7 @@ conventions.
 | [0015](adr/0015-manifests-immutable-ids-not-durable.md) | Manifests are immutable build artifacts; node ids are not durable | proposed |
 | [0016](adr/0016-content-hashing.md) | Derived content hashing — canonical serialisation and excluded presentation state | proposed |
 | [0017](adr/0017-cross-references-resolve-by-label.md) | Cross-references resolve by target label; drop the id from link families | proposed |
+| [0018](adr/0018-reconciliation-reference-algorithm.md) | Reconciliation (diff, id inheritance) is a versioned reference algorithm, not a format guarantee | proposed |
 
 ## Proposals (docs/proposals/)
 
