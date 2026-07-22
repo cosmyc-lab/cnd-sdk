@@ -37,3 +37,4 @@ conventions.
 | [0005](proposals/0005-figure-wrapper-image-node.md) | Figure as a wrapper node; new `ImageNode`; `TableNode` loses its caption | implemented |
 | [0006](proposals/0006-multi-format-rendering.md) | Multi-format rendering via renderer classes; remove `to_text()` | implemented |
 | [0007](proposals/0007-manifest-converters.md) | Manifest-level converters to complete document artifacts | draft |
+| [0008](proposals/0008-cnd-0.3.0-format-changes.md) | CND 0.3.0 format changes — field audit, provenance, and label-keyed links | draft |
