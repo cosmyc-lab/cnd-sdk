@@ -1,6 +1,6 @@
 ---
 title: Production topology — two doors, two ABIs, and one boundary rule
-status: proposed
+status: accepted
 date: 2026-07-22
 tags: [architecture, builder, producers, validation, scope]
 related: [0006, 0011, 0015, 0016, 0017]
@@ -10,7 +10,7 @@ superseded-by: null
 # ADR 0019 — Production topology: two doors, two ABIs, one boundary rule
 
 ## Status
-Proposed. Revised 2026-07-22: the door classification was wrong for one
+Accepted. Revised 2026-07-22: the door classification was wrong for one
 producer class, the build component is renamed, and the boundary rule is
 stated.
 

@@ -1,6 +1,6 @@
 ---
 title: CND's relation to DocLang — coexistence and interoperability, not convergence
-status: proposed
+status: accepted
 date: 2026-07-21
 tags: [scope, positioning, interoperability, governance]
 related: [0006, 0011, 0012]
@@ -10,7 +10,7 @@ superseded-by: null
 # ADR 0014 — CND's relation to DocLang
 
 ## Status
-Proposed.
+Accepted.
 
 ## Context
 In June 2026 the LF AI & Data Foundation launched the **DocLang**

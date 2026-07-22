@@ -1,6 +1,6 @@
 ---
 title: Artifact naming and file identity — the CND and the declaration
-status: proposed
+status: accepted
 date: 2026-07-22
 tags: [naming, vocabulary, file-format, scope]
 related: [0002, 0004, 0006]
@@ -10,7 +10,7 @@ superseded-by: null
 # ADR 0021 — Artifact naming and file identity — the CND and the declaration
 
 ## Status
-Proposed.
+Accepted.
 
 ## Context
 The standard has, since its earliest drafts, called its terminal artifact

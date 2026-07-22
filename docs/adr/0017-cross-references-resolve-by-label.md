@@ -1,6 +1,6 @@
 ---
 title: Cross-references resolve by target label; drop the id from link families
-status: proposed
+status: accepted
 date: 2026-07-22
 tags: [schema, breaking-change, refs, labels, identity]
 related: [0002, 0008, 0013, 0015]
@@ -10,7 +10,7 @@ superseded-by: null
 # ADR 0017 — Cross-references resolve by target label
 
 ## Status
-Proposed. Supersedes ADR 0002.
+Accepted. Supersedes ADR 0002.
 
 ## Context
 A cross-reference edge is today the canonical shape `{id, label, text_span?}`

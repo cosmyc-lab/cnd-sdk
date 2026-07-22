@@ -1,6 +1,6 @@
 ---
 title: The repository is a conformance hub; the hub ships a conformance CLI
-status: proposed
+status: accepted
 date: 2026-07-22
 tags: [architecture, repository, conformance, governance, scope]
 related: [0004, 0006, 0016, 0018, 0019, 0022]
@@ -10,7 +10,7 @@ superseded-by: null
 # ADR 0020 — The repository is a conformance hub
 
 ## Status
-Proposed. Revised 2026-07-22: the hub ships a *conformance* CLI rather than a
+Accepted. Revised 2026-07-22: the hub ships a *conformance* CLI rather than a
 full one, and the satellite layout is stated as a target rather than a
 structure to materialise now.
 

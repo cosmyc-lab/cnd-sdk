@@ -1,6 +1,6 @@
 ---
 title: CNDs are immutable build artifacts; node ids are not durable
-status: proposed
+status: accepted
 date: 2026-07-22
 tags: [identity, ids, scope, versioning]
 related: [0002, 0006, 0008, 0012]
@@ -10,7 +10,7 @@ superseded-by: null
 # ADR 0015 — CNDs are immutable build artifacts; node ids are not durable
 
 ## Status
-Proposed.
+Accepted.
 
 ## Context
 A CND is the output of building a source document. Nothing in the

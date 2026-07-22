@@ -21,14 +21,14 @@ conventions.
 | [0011](adr/0011-rendering-as-sdk-renderer-hierarchy.md) | Rendering is an SDK renderer hierarchy; nodes are pure data | proposed |
 | [0012](adr/0012-location-is-page-only-positions-derived.md) | NodeLocation carries layout facts only (page); positions are SDK-derived | accepted |
 | [0013](adr/0013-rename-link-span-to-text-span.md) | Rename the link-family `span` field to `text_span` | accepted |
-| [0014](adr/0014-relation-to-doclang.md) | CND's relation to DocLang — coexistence and interoperability, not convergence | proposed |
-| [0015](adr/0015-cnds-immutable-ids-not-durable.md) | CNDs are immutable build artifacts; node ids are not durable | proposed |
-| [0016](adr/0016-content-hashing.md) | Derived content hashing — canonical serialisation and excluded presentation state | proposed |
-| [0017](adr/0017-cross-references-resolve-by-label.md) | Cross-references resolve by target label; drop the id from link families | proposed |
+| [0014](adr/0014-relation-to-doclang.md) | CND's relation to DocLang — coexistence and interoperability, not convergence | accepted |
+| [0015](adr/0015-cnds-immutable-ids-not-durable.md) | CNDs are immutable build artifacts; node ids are not durable | accepted |
+| [0016](adr/0016-content-hashing.md) | Derived content hashing — canonical serialisation and excluded presentation state | accepted |
+| [0017](adr/0017-cross-references-resolve-by-label.md) | Cross-references resolve by target label; drop the id from link families | accepted |
 | [0018](adr/0018-reconciliation-reference-algorithm.md) | Reconciliation (diff, id inheritance) is a versioned reference algorithm, not a format guarantee | proposed |
-| [0019](adr/0019-production-topology-two-doors.md) | Production topology — a declarative door and a direct door over one shared contract | proposed |
-| [0020](adr/0020-repository-as-conformance-hub.md) | The repository is a conformance hub; the hub ships a conformance CLI | proposed |
-| [0021](adr/0021-artifact-naming-and-file-identity.md) | Artifact naming and file identity — the CND and the declaration | proposed |
+| [0019](adr/0019-production-topology-two-doors.md) | Production topology — a declarative door and a direct door over one shared contract | accepted |
+| [0020](adr/0020-repository-as-conformance-hub.md) | The repository is a conformance hub; the hub ships a conformance CLI | accepted |
+| [0021](adr/0021-artifact-naming-and-file-identity.md) | Artifact naming and file identity — the CND and the declaration | accepted |
 | [0022](adr/0022-rust-succession-plan.md) | Rust succession plan — Python is the reference until the format freezes | proposed |
 
 ## Proposals (docs/proposals/)

@@ -1,6 +1,6 @@
 ---
 title: Derived content hashing — canonical serialisation and excluded presentation state
-status: proposed
+status: accepted
 date: 2026-07-22
 tags: [hashing, identity, derived, change-detection]
 related: [0008, 0012, 0015]
@@ -10,7 +10,7 @@ superseded-by: null
 # ADR 0016 — Derived content hashing
 
 ## Status
-Proposed.
+Accepted.
 
 ## Context
 ADR 0015 splits identity into two questions and assigns "did this node
