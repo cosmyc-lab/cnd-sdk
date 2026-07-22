@@ -1,0 +1,77 @@
+{
+  "cnd_version": "0.3.0",
+  "built_at": "2026-07-22T09:30:00Z",
+  "source": {
+    "type": "markdown",
+    "hash": "sha256:9f2c4e1a7b6d8305",
+    "uri": "notes/protocol.md"
+  },
+  "doc": {
+    "title": "Protocol notes",
+    "lang": "en"
+  },
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-f000-000000000001",
+      "type": "heading",
+      "level": 1,
+      "text": "Handshake",
+      "heading_path": [
+        "Handshake"
+      ],
+      "label": "sec-handshake",
+      "children": [
+        {
+          "id": "00000000-0000-4000-f000-000000000002",
+          "type": "paragraph",
+          "text": "The client opens with a version token, as shown in the listing below.",
+          "refs": [
+            {
+              "label": "lst-open",
+              "text_span": [50, 68]
+            }
+          ],
+          "footnotes": [
+            {
+              "label": "fn-token"
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-f000-000000000003",
+          "type": "figure",
+          "kind": "code",
+          "caption": "Opening frame",
+          "label": "lst-open",
+          "children": [
+            {
+              "id": "00000000-0000-4000-f000-000000000004",
+              "type": "code",
+              "text": "OPEN v1\n",
+              "lang": "text"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "bibliography": [
+    {
+      "id": "00000000-0000-4000-f000-000000000100",
+      "label": "rivest1978",
+      "type": "article",
+      "authors": [
+        "Rivest, R."
+      ],
+      "title": "On data banks and privacy homomorphisms",
+      "year": 1978
+    }
+  ],
+  "footnotes": [
+    {
+      "id": "00000000-0000-4000-f000-000000000200",
+      "label": "fn-token",
+      "text": "The version token is opaque to intermediaries."
+    }
+  ]
+}

@@ -58,7 +58,7 @@ class TestNodeDisplayVisitor:
 
         text = output.getvalue()
         assert "Test Document" in text
-        assert "v0.2.0" in text
+        assert "v0.3.0" in text
         assert "sha256:abc123def45678" in text
 
     def test_tree_mode_shows_hierarchy(
@@ -116,12 +116,15 @@ class TestNodeDisplayVisitor:
 
         text = output.getvalue()
         assert "depth=2" in text
-        assert "numbering=1.1" in text
+        assert "number=1.1" in text
         assert "children=2" in text
         assert "lang=fr" in text
         assert "cells=4" in text
         assert "Paramètres nominaux de fonctionnement." in text
-        assert "Table 1" in text
+        # The counter word ("Table") is not in the data — `number` is the
+        # resolved value alone and `kind` carries the selector.
+        assert "number=1" in text
+        assert "Table 1" not in text
         assert "page=1" in text
         assert "child=1/2" in text
         assert "on-page=3/5" in text
@@ -180,7 +183,7 @@ class TestNodeDisplayVisitor:
         assert str(HEADING002_ID) in text
         assert str(PARA001_ID) not in text
         assert "cells=4" not in text
-        assert "fig_number=Table 1" not in text
+        assert "number=Table 1" not in text
 
     def test_can_visit_a_node_subtree(
         self, structured_cnd_path: Path,

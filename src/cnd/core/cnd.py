@@ -1,6 +1,6 @@
 from collections.abc import Iterator
 from datetime import datetime
-from typing import Any
+from typing import Any, Union
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, PrivateAttr
@@ -23,28 +23,57 @@ class DocDate(BaseModel):
 
 
 class DocMetadata(BaseModel):
-    """Bibliographic metadata for the source document."""
+    """Bibliographic metadata for the work the CND represents.
+
+    This identifies the *work* — title, authors, date. The input artifact it
+    was built from is ``Cnd.source``, deliberately separate: the same work
+    can be built from a Typst source and later re-imported from another
+    format (docs/proposals/0008).
+    """
 
     title: str
-    authors: list[str]
+    authors: list[str] = Field(default_factory=list)
     date: DocDate | None = None
     keywords: list[str] = Field(default_factory=list)
     description: str | None = None
     lang: str | None = None
 
 
+class SourceInfo(BaseModel):
+    """The input artifact the CND was built from.
+
+    ``hash`` is self-describing (``"sha256:…"``). Its comparability is
+    narrow and normative: two hashes are comparable only between CNDs from
+    the **same producer over the same source**, where equal means unchanged
+    and different means changed. Comparing across producers is meaningless.
+
+    ``uri`` is an identifier in the producer's own space and is **never
+    promised resolvable** — a consumer must not dereference it.
+    """
+
+    type: str
+    hash: str
+    uri: str | None = None
+
+
 class BibEntry(BaseModel):
     """Bibliography pool entry — target of ``cites`` edges.
 
-    ``rendered`` is the reference string as displayed in the compiled
-    document (the faithful capture). A curated typed subset of common
+    ``formatted`` is the reference string as displayed in the built
+    document (the faithful capture). It is nullable because requiring it
+    presupposes a style engine ran, which a hand author or a markdown
+    producer has no reason to have. A curated typed subset of common
     bibliographic fields is lifted alongside it; the full source entry
-    (e.g. Hayagriva) is carried losslessly as structured JSON in ``raw``.
+    (e.g. Hayagriva) is carried losslessly as structured JSON in ``fields``.
+
+    An entry must carry ``formatted``, structured fields, or both — never an
+    empty, unconsumable entry. That floor is a validator rule, not a shape
+    the type system can express.
     """
 
     id: UUID
     label: str
-    rendered: str
+    formatted: str | None = None
     type: str | None = None
     authors: list[str] = Field(default_factory=list)
     title: str | None = None
@@ -52,7 +81,7 @@ class BibEntry(BaseModel):
     container: str | None = None
     doi: str | None = None
     url: str | None = None
-    raw: dict[str, Any] = Field(default_factory=dict)
+    fields: dict[str, Any] = Field(default_factory=dict)
 
 
 class Footnote(BaseModel):
@@ -63,20 +92,38 @@ class Footnote(BaseModel):
     text: str
 
 
+LinkTarget = Union[CndNode, BibEntry, Footnote]
+"""What a link family can resolve to: a node, or an out-of-tree pool entry."""
+
+
 class Cnd(BaseModel):
     """Top-level CND — a compiled document as a tree of typed nodes."""
 
     id: UUID = Field(default_factory=uuid4)
     cnd_version: str
-    doc_hash: str
-    compiled_at: datetime
+    built_at: datetime
+    source: SourceInfo | None = None
     doc: DocMetadata
     nodes: list[CndNode]
     bibliography: list[BibEntry] = Field(default_factory=list)
     footnotes: list[Footnote] = Field(default_factory=list)
 
-    _incoming_index: dict[UUID, list[CndNode]] | None = PrivateAttr(default=None)
+    _incoming_index: dict[str, list[CndNode]] | None = PrivateAttr(default=None)
+    _label_index: dict[str, LinkTarget] | None = PrivateAttr(default=None)
     _position_totals: tuple[int, dict[int, int]] | None = PrivateAttr(default=None)
+
+    @property
+    def paginated(self) -> bool:
+        """Whether this CND carries page locations.
+
+        Derived, never serialized: a boolean a consumer can compute is not a
+        field (docs/adr/0012, docs/proposals/0008). Pagination is
+        all-or-nothing — a partially located CND is a validation error — so
+        the first node settles it for the whole document.
+        """
+        for visit in self.iter():
+            return visit.node.location is not None
+        return False
 
     def iter(
         self,
@@ -102,25 +149,43 @@ class Cnd(BaseModel):
     def __iter__(self) -> Iterator[NodeTraverse]:
         return self.iter()
 
-    def incoming(self, node_id: UUID) -> list[CndNode]:
+    def resolve(self, label: str) -> LinkTarget | None:
+        """The node or pool entry carrying ``label``, or ``None``.
+
+        Labels are globally unique within a CND (docs/adr/0017), which is
+        what lets one index serve all three link families; the family an
+        edge sits in still fixes its resolution domain, so a caller that
+        needs domain enforcement checks the returned type.
+        """
+        if self._label_index is None:
+            index: dict[str, LinkTarget] = {}
+            for visit in self.iter():
+                if visit.node.label is not None:
+                    index.setdefault(visit.node.label, visit.node)
+            for entry in (*self.bibliography, *self.footnotes):
+                index.setdefault(entry.label, entry)
+            self._label_index = index
+        return self._label_index.get(label)
+
+    def incoming(self, label: str) -> list[CndNode]:
         """Distinct nodes whose forward edges (``refs``, ``cites``,
-        ``footnotes``) point at ``node_id``.
+        ``footnotes``) point at ``label``.
 
         A CND serializes forward edges only (docs/adr/0008); this
         reverse index is derived, built lazily on first call and cached on
         the instance. A node that references the same target more than once
-        appears once. ``node_id`` may be a node id or a pool-entry id.
+        appears once. ``label`` may name a node or a pool entry.
         """
         if self._incoming_index is None:
-            index: dict[UUID, list[CndNode]] = {}
-            seen: dict[UUID, set[UUID]] = {}
+            index: dict[str, list[CndNode]] = {}
+            seen: dict[str, set[UUID]] = {}
             for visit in self.iter():
                 node = visit.node
                 for link in (*node.refs, *node.cites, *node.footnotes):
-                    targets = seen.setdefault(link.id, set())
-                    if node.id in targets:
+                    sources = seen.setdefault(link.label, set())
+                    if node.id in sources:
                         continue
-                    targets.add(node.id)
-                    index.setdefault(link.id, []).append(node)
+                    sources.add(node.id)
+                    index.setdefault(link.label, []).append(node)
             self._incoming_index = index
-        return self._incoming_index.get(node_id, [])
+        return self._incoming_index.get(label, [])

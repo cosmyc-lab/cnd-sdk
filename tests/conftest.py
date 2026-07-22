@@ -28,3 +28,8 @@ def rich_content_cnd_path() -> Path:
 @pytest.fixture
 def full_coverage_cnd_path() -> Path:
     return FIXTURES_DIR / "full_coverage.cnd"
+
+
+@pytest.fixture
+def unpaginated_cnd_path() -> Path:
+    return FIXTURES_DIR / "unpaginated.cnd"

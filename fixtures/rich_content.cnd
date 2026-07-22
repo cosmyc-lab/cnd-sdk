@@ -1,7 +1,10 @@
 {
-  "cnd_version": "0.2.0",
-  "doc_hash": "sha256:rich-content-fixture-v1",
-  "compiled_at": "2026-07-01T09:00:00Z",
+  "cnd_version": "0.3.0",
+  "built_at": "2026-07-01T09:00:00Z",
+  "source": {
+    "type": "typst",
+    "hash": "sha256:rich-content-fixture-v1"
+  },
   "doc": {
     "title": "Guide d'intégration API — Fixture contenu riche",
     "authors": [
@@ -27,7 +30,6 @@
       "id": "00000000-0000-4000-d000-000000000001",
       "type": "heading",
       "level": 1,
-      "numbering": "1",
       "text": "Interfaces",
       "heading_path": [
         "1 Interfaces"
@@ -44,7 +46,6 @@
           "lang": "fr",
           "refs": [
             {
-              "id": "00000000-0000-4000-d000-000000000004",
               "label": "lst-api",
               "text_span": [
                 77,
@@ -54,7 +55,6 @@
           ],
           "cites": [
             {
-              "id": "00000000-0000-4000-d000-000000000100",
               "label": "smith2024",
               "text_span": [
                 6,
@@ -66,7 +66,6 @@
           ],
           "footnotes": [
             {
-              "id": "00000000-0000-4000-d000-000000000200",
               "label": "fn-rest",
               "text_span": [
                 57,
@@ -102,7 +101,6 @@
           "kind": "listing",
           "label": "lst-api",
           "caption": "Appel du point d'accès de santé.",
-          "fig_number": "Listing 1",
           "location": {
             "page": 2
           },
@@ -117,7 +115,8 @@
                 "page": 2
               }
             }
-          ]
+          ],
+          "number": "1"
         },
         {
           "id": "00000000-0000-4000-d000-000000000006",
@@ -134,7 +133,6 @@
           "kind": "image",
           "label": "fig-flux",
           "caption": "Flux d'authentification.",
-          "fig_number": "Figure 1",
           "location": {
             "page": 3
           },
@@ -148,16 +146,17 @@
                 "page": 3
               }
             }
-          ]
+          ],
+          "number": "1"
         }
-      ]
+      ],
+      "number": "1"
     }
   ],
   "bibliography": [
     {
       "id": "00000000-0000-4000-d000-000000000100",
       "label": "smith2024",
-      "rendered": "Smith, J., & Doe, A. (2024). Designing resilient REST interfaces. Journal of Systems Integration, 12(3), 45–58.",
       "type": "article",
       "authors": [
         "Smith, J.",
@@ -168,7 +167,8 @@
       "container": "Journal of Systems Integration",
       "doi": "10.1000/jsi.2024.12345",
       "url": "https://example.org/jsi/12345",
-      "raw": {
+      "formatted": "Smith, J., & Doe, A. (2024). Designing resilient REST interfaces. Journal of Systems Integration, 12(3), 45–58.",
+      "fields": {
         "type": "article",
         "title": "Designing resilient REST interfaces",
         "author": [

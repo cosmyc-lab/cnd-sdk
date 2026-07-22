@@ -4,13 +4,18 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cnd-sdk"
-version = "0.3.0"
-description = "CND — the Context Native Document standard: manifest schema, node types, and reference Python bindings."
+version = "0.4.0"
+description = "CND — the Context Native Document standard: schema, node types, and reference Python bindings."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.13.4",
+    # RFC 8785 (JCS) canonicalisation for the normative content hash
+    # (docs/adr/0016). External rather than hand-rolled: ECMAScript
+    # number formatting is where an independent implementation silently
+    # diverges, which is the failure the ADR exists to prevent.
+    "rfc8785>=0.1.2",
 ]
 
 [project.optional-dependencies]

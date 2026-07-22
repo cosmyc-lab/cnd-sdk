@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from ids import FIGURE001_ID, HEADING001_ID, HEADING002_ID, PARA001_ID, TABLE001_ID
@@ -231,3 +232,49 @@ class TestDerivedPositions:
         doc_count, page_counts = position_totals(cnd.nodes)
         assert doc_count == 5
         assert page_counts == {1: 5}
+
+
+class TestTraversalConformance:
+    """The walk-order vectors spec §8 makes normative.
+
+    Traversal is per-language by construction (docs/adr/0019), so two
+    implementations can disagree invisibly — nothing in the file records
+    the order they chose. These vectors are what make that detectable.
+    """
+
+    VECTORS = Path(__file__).parent.parent / "fixtures" / "traversal.json"
+
+    def _computed(self) -> dict:
+        fixtures_dir = Path(__file__).parent.parent / "fixtures"
+        return {
+            path.name: [
+                {"id": str(v.node.id), "type": v.node.type, "depth": v.ctx.depth}
+                for v in Cnd.model_validate_json(path.read_text()).iter()
+            ]
+            for path in sorted(fixtures_dir.glob("*.cnd"))
+        }
+
+    def test_vectors_match_the_committed_file(self) -> None:
+        assert self._computed() == json.loads(self.VECTORS.read_text()), (
+            "fixtures/traversal.json is out of sync — the walk order changed. "
+            "If that was deliberate it is a spec change (§8), not a "
+            "regeneration."
+        )
+
+    def test_pool_entries_never_enter_the_walk(self, rich_content_cnd_path) -> None:
+        """Spec §8: a traversal yields nodes only. Pool entries are
+        reached by resolving a link, never by iterating."""
+        cnd = Cnd.model_validate_json(rich_content_cnd_path.read_text())
+        pool_ids = {e.id for e in (*cnd.bibliography, *cnd.footnotes)}
+
+        assert pool_ids, "precondition: the fixture has pool entries"
+        assert pool_ids.isdisjoint({v.node.id for v in cnd.iter()})
+
+    def test_a_node_precedes_its_children(self, full_coverage_cnd_path) -> None:
+        cnd = Cnd.model_validate_json(full_coverage_cnd_path.read_text())
+        seen: set = set()
+
+        for visit in cnd.iter():
+            if visit.ctx.parent is not None:
+                assert visit.ctx.parent.id in seen
+            seen.add(visit.node.id)

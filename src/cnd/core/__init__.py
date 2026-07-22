@@ -1,4 +1,13 @@
-from cnd.core.cnd import BibEntry, Cnd, DocDate, DocMetadata, Footnote
+from cnd.core.cnd import (
+    BibEntry,
+    Cnd,
+    DocDate,
+    DocMetadata,
+    Footnote,
+    LinkTarget,
+    SourceInfo,
+)
+from cnd.core.hashing import content_hash, node_hash
 from cnd.core.node_text import NodeTextMode
 from cnd.core.nodes import (
     CiteRef,
@@ -18,6 +27,7 @@ from cnd.core.nodes import (
     NodeTraverseContext,
     ParagraphNode,
     QuoteNode,
+    RawSource,
     StopPredicate,
     TableCell,
     TableNode,
@@ -27,6 +37,7 @@ from cnd.core.nodes import (
     position_totals,
 )
 from cnd.core.render import MarkdownRenderer, NodeRenderer
+from cnd.core.validate import Violation, validate
 
 __all__ = [
     "BibEntry",
@@ -41,6 +52,7 @@ __all__ = [
     "FootnoteRef",
     "HeadingNode",
     "ImageNode",
+    "LinkTarget",
     "ListItem",
     "ListNode",
     "MarkdownRenderer",
@@ -54,11 +66,17 @@ __all__ = [
     "NodeTraverseContext",
     "ParagraphNode",
     "QuoteNode",
+    "RawSource",
+    "SourceInfo",
     "StopPredicate",
     "TableCell",
     "TableNode",
     "TermItem",
     "TermsNode",
+    "Violation",
+    "content_hash",
     "iter_nodes",
+    "node_hash",
     "position_totals",
+    "validate",
 ]

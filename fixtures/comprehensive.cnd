@@ -1,7 +1,10 @@
 {
-  "cnd_version": "0.2.0",
-  "doc_hash": "sha256:comprehensive-fixture-v1",
-  "compiled_at": "2026-06-06T12:00:00Z",
+  "cnd_version": "0.3.0",
+  "built_at": "2026-06-06T12:00:00Z",
+  "source": {
+    "type": "typst",
+    "hash": "sha256:comprehensive-fixture-v1"
+  },
   "doc": {
     "title": "Manuel d'exploitation DCS — Fixture intégration CND",
     "authors": [
@@ -37,7 +40,6 @@
       "id": "00000000-0000-4000-b000-000000000002",
       "type": "heading",
       "level": 1,
-      "numbering": "1",
       "text": "Architecture générale",
       "heading_path": [
         "1 Architecture générale"
@@ -64,7 +66,6 @@
           "id": "00000000-0000-4000-b000-000000000004",
           "type": "heading",
           "level": 2,
-          "numbering": "1.1",
           "text": "Couche d'acquisition",
           "heading_path": [
             "1 Architecture générale",
@@ -85,7 +86,6 @@
               },
               "refs": [
                 {
-                  "id": "00000000-0000-4000-b000-000000000007",
                   "label": "tab-plages-mesure"
                 }
               ]
@@ -104,7 +104,6 @@
               "type": "figure",
               "kind": "table",
               "caption": "Plages de mesure des capteurs de terrain.",
-              "fig_number": "Table 1",
               "location": {
                 "page": 2
               },
@@ -199,23 +198,26 @@
                       "text": "0–500 L/min"
                     }
                   ],
-                  "raw_typst": "table(columns: (auto, auto, auto), ..)"
+                  "raw": {
+                    "format": "typst",
+                    "value": "table(columns: (auto, auto, auto), ..)"
+                  }
                 }
-              ]
+              ],
+              "number": "1"
             }
           ],
           "refs": [
             {
-              "id": "00000000-0000-4000-b000-000000000007",
               "label": "tab-plages-mesure"
             }
-          ]
+          ],
+          "number": "1.1"
         },
         {
           "id": "00000000-0000-4000-b000-000000000008",
           "type": "heading",
           "level": 2,
-          "numbering": "1.2",
           "text": "Couche de traitement",
           "heading_path": [
             "1 Architecture générale",
@@ -236,11 +238,9 @@
               },
               "refs": [
                 {
-                  "id": "00000000-0000-4000-b000-000000000007",
                   "label": "tab-plages-mesure"
                 },
                 {
-                  "id": "00000000-0000-4000-b000-000000000020",
                   "label": "tab-recap-signaux"
                 }
               ]
@@ -250,7 +250,6 @@
               "type": "figure",
               "kind": "table",
               "caption": "Boucles de régulation PID actives.",
-              "fig_number": "Table 2",
               "location": {
                 "page": 3
               },
@@ -319,27 +318,27 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "number": "2"
             }
           ],
           "refs": [
             {
-              "id": "00000000-0000-4000-b000-000000000007",
               "label": "tab-plages-mesure"
             },
             {
-              "id": "00000000-0000-4000-b000-000000000020",
               "label": "tab-recap-signaux"
             }
-          ]
+          ],
+          "number": "1.2"
         }
-      ]
+      ],
+      "number": "1"
     },
     {
       "id": "00000000-0000-4000-b000-000000000011",
       "type": "heading",
       "level": 1,
-      "numbering": "2",
       "text": "Exploitation",
       "heading_path": [
         "2 Exploitation"
@@ -353,7 +352,6 @@
           "id": "00000000-0000-4000-b000-000000000012",
           "type": "heading",
           "level": 2,
-          "numbering": "2.1",
           "text": "Surveillance opérateur",
           "heading_path": [
             "2 Exploitation",
@@ -367,7 +365,6 @@
               "id": "00000000-0000-4000-b000-000000000013",
               "type": "heading",
               "level": 3,
-              "numbering": "2.1.1",
               "text": "Gestion des alarmes",
               "heading_path": [
                 "2 Exploitation",
@@ -398,7 +395,6 @@
                   },
                   "refs": [
                     {
-                      "id": "00000000-0000-4000-b000-000000000016",
                       "label": "tab-delais-alarmes"
                     }
                   ]
@@ -408,7 +404,6 @@
                   "type": "figure",
                   "kind": "table",
                   "caption": "Délais d'acquittement par niveau de criticité.",
-                  "fig_number": "Table 3",
                   "location": {
                     "page": 5
                   },
@@ -472,23 +467,24 @@
                         }
                       ]
                     }
-                  ]
+                  ],
+                  "number": "3"
                 }
               ],
               "refs": [
                 {
-                  "id": "00000000-0000-4000-b000-000000000016",
                   "label": "tab-delais-alarmes"
                 }
-              ]
+              ],
+              "number": "2.1.1"
             }
-          ]
+          ],
+          "number": "2.1"
         },
         {
           "id": "00000000-0000-4000-b000-000000000017",
           "type": "heading",
           "level": 2,
-          "numbering": "2.2",
           "text": "Maintenance préventive",
           "heading_path": [
             "2 Exploitation",
@@ -508,15 +504,16 @@
                 "page": 5
               }
             }
-          ]
+          ],
+          "number": "2.2"
         }
-      ]
+      ],
+      "number": "2"
     },
     {
       "id": "00000000-0000-4000-b000-000000000019",
       "type": "heading",
       "level": 1,
-      "numbering": "3",
       "text": "Annexes",
       "heading_path": [
         "3 Annexes"
@@ -531,7 +528,6 @@
           "type": "figure",
           "kind": "table",
           "caption": "Récapitulatif des signaux instrumentés.",
-          "fig_number": "Table 4",
           "location": {
             "page": 6
           },
@@ -600,9 +596,11 @@
                 }
               ]
             }
-          ]
+          ],
+          "number": "4"
         }
-      ]
+      ],
+      "number": "3"
     }
   ],
   "bibliography": [],

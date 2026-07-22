@@ -8,7 +8,13 @@ from pydantic import BaseModel, Field
 
 class NodeLocation(BaseModel):
     """Layout facts the SDK cannot derive from the tree: the page where the
-    node begins in the compiled document.
+    node begins in the built document.
+
+    Nullable, because a page only exists for a paginated source. Pagination
+    is all-or-nothing across a CND — either every node carries a location or
+    none does — so ``location`` never encodes "unknown page" (docs/adr/0012,
+    docs/proposals/0008). Whether a CND is paginated is itself derived, not
+    serialized: see ``Cnd.paginated``.
 
     Positions in reading order (document/sibling/page index and totals) are
     NOT serialized — the node tree is normatively in reading order, so the
@@ -19,35 +25,46 @@ class NodeLocation(BaseModel):
     page: int
 
 
+class RawSource(BaseModel):
+    """The producer's verbatim source for a node, with its language.
+
+    A bare string dropped the one thing a consumer needs to decide whether
+    to attempt a parse: which language the content is in. ``format`` is an
+    open string (``"typst"``, ``"latex"``, ``"mathml"``…), never a closed
+    enum — a new producer must not require a spec revision.
+    """
+
+    format: str
+    value: str
+
+
 class NodeRef(BaseModel):
     """Forward cross-reference edge to another node.
 
-    Canonical shape is ``{id, label}`` (docs/adr/0002); ``text_span`` is an
-    additive optional field marking where the reference marker sits in the
-    containing node's rendered text, as a ``[start, end)`` pair of Unicode
-    code-point offsets (docs/adr/0013).
+    An edge is ``{label, text_span?}``: it names its target by label and
+    resolves through the CND's label index (docs/adr/0017, superseding the
+    ``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the
+    reference marker sits in the containing node's rendered text, as a
+    ``[start, end)`` pair of Unicode code-point offsets (docs/adr/0013).
     """
 
-    id: UUID
-    label: str | None = None
+    label: str
     text_span: list[int] | None = None
 
 
 class CiteRef(BaseModel):
-    """Forward citation edge; ``id`` resolves in the CND ``bibliography`` pool."""
+    """Forward citation edge; ``label`` resolves in the CND ``bibliography`` pool."""
 
-    id: UUID
-    label: str | None = None
+    label: str
     text_span: list[int] | None = None
     form: Literal["normal", "prose", "full", "author", "year", "none"] | None = None
     supplement: str | None = None
 
 
 class FootnoteRef(BaseModel):
-    """Forward footnote edge; ``id`` resolves in the CND ``footnotes`` pool."""
+    """Forward footnote edge; ``label`` resolves in the CND ``footnotes`` pool."""
 
-    id: UUID
-    label: str | None = None
+    label: str
     text_span: list[int] | None = None
 
 
@@ -60,15 +77,23 @@ class NodeBase(BaseModel):
     cites: list[CiteRef] = Field(default_factory=list)
     footnotes: list[FootnoteRef] = Field(default_factory=list)
     state_metadata: dict[str, Any] = Field(default_factory=dict)
-    location: NodeLocation
+    location: NodeLocation | None = None
 
 
 class HeadingNode(NodeBase):
-    """Section heading with nested section content in ``children``."""
+    """Section heading with nested section content in ``children``.
+
+    ``number`` — shared in shape with ``MathNode`` and ``FigureNode`` — is
+    the counter value **as resolved and displayed** (``"2.1.1"``, ``"(1)"``,
+    ``"3"``), never the pattern that produced it: a consumer cannot replay a
+    counter engine, so only the resolved value is usable. The counter-label
+    word is excluded — ``"Figure 3"`` bakes a locale into data, and
+    composing that prefix is a rendering decision (docs/proposals/0008).
+    """
 
     type: Literal["heading"]
     level: int
-    numbering: str
+    number: str | None = None
     text: str
     heading_path: list[str]
     children: list["CndNode"] = Field(default_factory=list)
@@ -112,7 +137,7 @@ class TableNode(NodeBase):
     # Unset (the common case today) is treated as "data".
     content_kind: Literal["data", "content"] | None = None
     cells: list[TableCell] = Field(default_factory=list)
-    raw_typst: str | None = None
+    raw: RawSource | None = None
 
 
 class QuoteNode(NodeBase):
@@ -139,8 +164,8 @@ class MathNode(NodeBase):
 
     type: Literal["math"]
     text: str
-    raw_typst: str | None = None
-    numbering: str | None = None
+    raw: RawSource | None = None
+    number: str | None = None
     block: bool = True
 
 
@@ -162,15 +187,15 @@ class FigureNode(NodeBase):
     selector of the figure ("image", "table", or an author-custom kind like
     "atom") — an open string, never a content discriminator. Nested figures
     (subfigures) are allowed. An unconvertible body yields ``children=[]``
-    with ``raw_typst`` filled.
+    with ``raw`` filled.
     """
 
     type: Literal["figure"]
     kind: str | None = None
     caption: str | None = None
-    fig_number: str | None = None
+    number: str | None = None
     children: list["CndNode"] = Field(default_factory=list)
-    raw_typst: str | None = None
+    raw: RawSource | None = None
 
 
 class ListItem(BaseModel):
@@ -239,7 +264,10 @@ class NodeTraverseContext:
     - ``sibling_index``/``sibling_count`` — position among the parent's
       children.
     - ``page_index``/``page_count`` — position among the nodes that begin
-      on the same page (``location.page``).
+      on the same page (``location.page``). Both are ``None`` on an
+      unpaginated CND, where no page exists to be positioned within — the
+      page-derived positions are undefined, not zero
+      (docs/proposals/0008).
 
     They are document facts, not walk artifacts: pruning a branch with
     ``max_depth``/``stop_predicate`` does not shift the positions of the
@@ -253,8 +281,8 @@ class NodeTraverseContext:
     doc_count: int = 0
     sibling_index: int = 0
     sibling_count: int = 0
-    page_index: int = 0
-    page_count: int = 0
+    page_index: int | None = None
+    page_count: int | None = None
 
 
 @dataclass(frozen=True)
@@ -278,15 +306,20 @@ def _children_of(node: CndNode) -> list["CndNode"]:
 def position_totals(nodes: list[CndNode]) -> tuple[int, dict[int, int]]:
     """One cheap pre-pass over the tree: total node count and per-page
     node counts (keyed on ``location.page``). Feeds the ``*_count``
-    attributes of ``NodeTraverseContext``."""
+    attributes of ``NodeTraverseContext``.
+
+    On an unpaginated CND no node carries a location, so ``page_counts``
+    comes back empty and the page-derived positions stay undefined.
+    """
     doc_count = 0
     page_counts: dict[int, int] = {}
     stack = list(reversed(nodes))
     while stack:
         node = stack.pop()
         doc_count += 1
-        page = node.location.page
-        page_counts[page] = page_counts.get(page, 0) + 1
+        if node.location is not None:
+            page = node.location.page
+            page_counts[page] = page_counts.get(page, 0) + 1
         stack.extend(reversed(_children_of(node)))
     return doc_count, page_counts
 
@@ -298,9 +331,12 @@ class _WalkCounters:
     doc_index: int = 0
     page_indices: dict[int, int] = field(default_factory=dict)
 
-    def advance(self, node: CndNode) -> tuple[int, int]:
-        """Count ``node`` and return its (doc_index, page_index)."""
+    def advance(self, node: CndNode) -> tuple[int, int | None]:
+        """Count ``node`` and return its (doc_index, page_index); the page
+        index is ``None`` for a node with no location."""
         self.doc_index += 1
+        if node.location is None:
+            return self.doc_index, None
         page = node.location.page
         self.page_indices[page] = self.page_indices.get(page, 0) + 1
         return self.doc_index, self.page_indices[page]
@@ -354,7 +390,9 @@ def _iter_nodes(
             sibling_index=sibling_index,
             sibling_count=len(nodes),
             page_index=page_index,
-            page_count=page_counts[node.location.page],
+            page_count=(
+                page_counts[node.location.page] if node.location is not None else None
+            ),
         )
         yield NodeTraverse(node=node, ctx=visit_ctx)
 
