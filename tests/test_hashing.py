@@ -14,8 +14,10 @@ from uuid import uuid4
 import pytest
 
 from cnd import (
+    BibEntry,
     Cnd,
     DocMetadata,
+    Footnote,
     HeadingNode,
     NodeLocation,
     ParagraphNode,
@@ -161,6 +163,36 @@ class TestContentHash:
         assert content_hash(_cnd([_para("a", location=page1)])) == content_hash(
             _cnd([_para("a", location=page2)])
         )
+
+    def test_the_format_version_is_excluded(self) -> None:
+        """The same content expressed under two format versions is the
+        same content."""
+        a = _cnd([_para("x")])
+        b = _cnd([_para("x")])
+        b.cnd_version = "9.9.9"
+
+        assert content_hash(a) == content_hash(b)
+
+    def test_a_rewritten_footnote_changes_the_document_hash(self) -> None:
+        """The pools sit out of the tree for referencing reasons, not
+        because they are metadata — their text is authored content."""
+        a = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", text="one")])
+        b = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", text="two")])
+
+        assert content_hash(a) != content_hash(b)
+
+    def test_an_edited_bibliography_entry_changes_the_document_hash(self) -> None:
+        a = _cnd([_para("x")], bibliography=[BibEntry(id=uuid4(), label="s", title="A")])
+        b = _cnd([_para("x")], bibliography=[BibEntry(id=uuid4(), label="s", title="B")])
+
+        assert content_hash(a) != content_hash(b)
+
+    def test_a_pool_entry_id_is_excluded(self) -> None:
+        """Pool ids are as non-durable as node ids (docs/adr/0015)."""
+        a = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", text="n")])
+        b = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", text="n")])
+
+        assert content_hash(a) == content_hash(b)
 
     def test_reparenting_changes_the_document_hash(self) -> None:
         """Reading order and every node-local hash are identical here;
