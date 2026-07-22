@@ -1,16 +1,17 @@
 ---
 title: Canonical NodeRef {id, label} form only; no legacy shims
-status: accepted
+status: superseded
 date: 2026-07-07
 tags: [schema, breaking-change, refs]
 related: []
-superseded-by: null
+superseded-by: 0017
 ---
 
 # ADR 0002 — Canonical NodeRef `{id, label}` form only
 
 ## Status
-Accepted (shipped in v0.1.0).
+Superseded by ADR 0017 (edges resolve by label; the `id` is dropped from the
+link families). Was: accepted (shipped in v0.1.0).
 
 ## Context
 Early manifest producers emitted cross-references in three different
