@@ -41,7 +41,9 @@ from cnd.core import (
     TermItem,
     TermsNode,
     Violation,
+    content_hash,
     iter_nodes,
+    node_hash,
     position_totals,
     validate,
 )
@@ -84,7 +86,9 @@ __all__ = [
     "TermsNode",
     "VisitTarget",
     "Violation",
+    "content_hash",
     "iter_nodes",
+    "node_hash",
     "position_totals",
     "validate",
 ]
