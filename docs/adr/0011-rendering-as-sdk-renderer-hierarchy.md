@@ -18,7 +18,7 @@ form into the data classes, with verbosity configuration bolted on beside
 it (`render_node_text(mode=...)`, proposal 0001). Supporting a second
 output format would mean another method on every node, and the spec (§7)
 currently reads as if the format itself mandates a rendering contract —
-which oversteps ADR 0006's manifest-only scope.
+which oversteps ADR 0006's CND-only scope.
 
 ## Decision
 Nodes become pure data: `to_text()` and `render_node_text` are removed.
