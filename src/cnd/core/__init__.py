@@ -36,6 +36,7 @@ from cnd.core.nodes import (
     position_totals,
 )
 from cnd.core.render import MarkdownRenderer, NodeRenderer
+from cnd.core.validate import Violation, validate
 
 __all__ = [
     "BibEntry",
@@ -71,6 +72,8 @@ __all__ = [
     "TableNode",
     "TermItem",
     "TermsNode",
+    "Violation",
     "iter_nodes",
     "position_totals",
+    "validate",
 ]
