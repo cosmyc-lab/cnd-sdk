@@ -121,7 +121,10 @@ class TestNodeDisplayVisitor:
         assert "lang=fr" in text
         assert "cells=4" in text
         assert "Paramètres nominaux de fonctionnement." in text
-        assert "Table 1" in text
+        # The counter word ("Table") is not in the data — `number` is the
+        # resolved value alone and `kind` carries the selector.
+        assert "number=1" in text
+        assert "Table 1" not in text
         assert "page=1" in text
         assert "child=1/2" in text
         assert "on-page=3/5" in text
