@@ -1,4 +1,4 @@
-from cnd.core.manifest import BibEntry, CndManifest, DocDate, DocMetadata, Footnote
+from cnd.core.cnd import BibEntry, Cnd, DocDate, DocMetadata, Footnote
 from cnd.core.node_text import NodeTextMode
 from cnd.core.nodes import (
     CiteRef,
@@ -31,7 +31,7 @@ from cnd.core.render import MarkdownRenderer, NodeRenderer
 __all__ = [
     "BibEntry",
     "CiteRef",
-    "CndManifest",
+    "Cnd",
     "CndNode",
     "CodeNode",
     "DocDate",

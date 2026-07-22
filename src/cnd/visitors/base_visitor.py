@@ -1,4 +1,4 @@
-from cnd.core.manifest import CndManifest
+from cnd.core.cnd import Cnd
 from cnd.core.nodes import (
     CndNode,
     CodeNode,
@@ -15,11 +15,11 @@ from cnd.core.nodes import (
     iter_nodes,
 )
 
-VisitTarget = CndManifest | list[CndNode]
+VisitTarget = Cnd | list[CndNode]
 
 
 class BaseVisitor:
-    """Visit a manifest node tree with overridable per-type hooks.
+    """Visit a CND node tree with overridable per-type hooks.
 
     Override ``visit_*`` for node logic and ``should_stop_descent`` to prune
     branches. All hooks are no-ops by default.
@@ -40,7 +40,7 @@ class BaseVisitor:
         """Traverse ``target`` and dispatch to per-type hooks."""
         self.current_node = None
         self.current_ctx = None
-        nodes = target.nodes if isinstance(target, CndManifest) else target
+        nodes = target.nodes if isinstance(target, Cnd) else target
         for step in iter_nodes(
             nodes,
             max_depth=max_depth,

@@ -18,12 +18,12 @@ not content that occupies a position in its reading flow. Modeling them as
 nodes (the direction of the first draft of proposal 0004) forces a fake
 tree position on each one and anchors it through the generic ref graph,
 which cannot carry citation-specific metadata (form, supplement) without
-bloating `NodeRef` for every other use. The manifest needs a place for
+bloating `NodeRef` for every other use. The CND needs a place for
 referenceable entities that are not blocks, and links to them need to say
 which domain their target lives in.
 
 ## Decision
-The manifest becomes two-tier. `CndManifest` gains two top-level pools,
+The CND becomes two-tier. `Cnd` gains two top-level pools,
 siblings of `nodes`, always present (default empty): `bibliography` and
 `footnotes`. Nodes carry three typed, forward-only (ADR 0008) link
 families as separate fields — never one unified list: `refs` resolves in

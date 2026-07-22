@@ -19,7 +19,7 @@ lost, not a commitment to implement in any particular release.
 
 ## Motivation
 `content_kind` (0001, spec §6.3) is producer-supplied. Nothing in the
-compilation pipeline sets it today, so on a manifest where no producer has
+compilation pipeline sets it today, so on a CND where no producer has
 opted in, `mode="auto"` behaves identically to `mode="placeholder"` for
 every table — the mode gains no value until either a producer starts
 setting the hint, or the SDK can derive a reasonable default from the

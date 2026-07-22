@@ -37,10 +37,10 @@ should own the assembly once.
 A new `converters/` module in the SDK. The layer split, per ADR 0011:
 
 - A **renderer** (`NodeRenderer`) maps one node to a text fragment.
-- A **converter** maps a whole `CndManifest` to one complete, standalone
+- A **converter** maps a whole `Cnd` to one complete, standalone
   document artifact, and is *built on top of* a renderer: it walks the
   tree in order, delegates each node's body text to the renderer, and
-  itself owns everything that only exists at manifest scope — title/
+  itself owns everything that only exists at CND scope — title/
   metadata front-matter, section assembly, resolving `cites`/`footnotes`
   markers against the pools, and emitting the bibliography and footnote
   sections from the pools.
@@ -70,8 +70,8 @@ the hub. Nothing here is part of what the hub certifies.
 
 ## Alternatives considered
 **Grow renderers until they cover whole documents.** Rejected — a
-renderer is dispatch-per-node and has no manifest in hand; pool
-resolution and document assembly would force manifest context into every
+renderer is dispatch-per-node and has no CND in hand; pool
+resolution and document assembly would force CND context into every
 render method signature. The two layers have different inputs by design.
 
 **Leave assembly to consumers.** The status quo; workable but every
@@ -80,13 +80,13 @@ the SDK is the point of this proposal — rejected as the end state, fine
 as the interim.
 
 ## Impact
-Additive, SDK-only — no change to the manifest format, schema, or spec
+Additive, SDK-only — no change to the CND format, schema, or spec
 conformance sections. The concrete converter API (streaming vs. string,
 asset handling for `ImageNode` paths) is undecided and part of the work.
 
 ## Implementation checklist
 - [ ] Source and pin the DocLang specification (blocking for target 3)
-- [ ] Design the converter API (input manifest, renderer injection,
+- [ ] Design the converter API (input CND, renderer injection,
       output type)
 - [ ] `converters/` module with cnd→markdown built on `MarkdownRenderer`
 - [ ] cnd→html standalone document converter

@@ -15,7 +15,7 @@ from cnd.core.nodes import (
 
 
 class DocDate(BaseModel):
-    """Partial or full document date from manifest metadata."""
+    """Partial or full document date from cnd metadata."""
 
     year: int
     month: int | None = None
@@ -63,8 +63,8 @@ class Footnote(BaseModel):
     text: str
 
 
-class CndManifest(BaseModel):
-    """Top-level CND manifest produced by the ``typst-cnd`` compiler."""
+class Cnd(BaseModel):
+    """Top-level CND — a compiled document as a tree of typed nodes."""
 
     id: UUID = Field(default_factory=uuid4)
     cnd_version: str
@@ -84,11 +84,11 @@ class CndManifest(BaseModel):
         max_depth: int | None = None,
         stop_predicate: StopPredicate | None = None,
     ) -> Iterator[NodeTraverse]:
-        """Iterate manifest nodes depth-first with traversal context.
+        """Iterate cnd nodes depth-first with traversal context.
 
         Derived reading-order positions (doc/sibling/page index and totals)
         ride on each yielded context; the totals pre-pass is computed once
-        per manifest and cached, mirroring ``incoming()``.
+        per cnd and cached, mirroring ``incoming()``.
         """
         if self._position_totals is None:
             self._position_totals = position_totals(self.nodes)
@@ -106,7 +106,7 @@ class CndManifest(BaseModel):
         """Distinct nodes whose forward edges (``refs``, ``cites``,
         ``footnotes``) point at ``node_id``.
 
-        The manifest serializes forward edges only (docs/adr/0008); this
+        A CND serializes forward edges only (docs/adr/0008); this
         reverse index is derived, built lazily on first call and cached on
         the instance. A node that references the same target more than once
         appears once. ``node_id`` may be a node id or a pool-entry id.

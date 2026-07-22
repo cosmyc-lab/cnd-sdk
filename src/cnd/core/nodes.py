@@ -34,7 +34,7 @@ class NodeRef(BaseModel):
 
 
 class CiteRef(BaseModel):
-    """Forward citation edge; ``id`` resolves in the manifest ``bibliography`` pool."""
+    """Forward citation edge; ``id`` resolves in the CND ``bibliography`` pool."""
 
     id: UUID
     label: str | None = None
@@ -44,7 +44,7 @@ class CiteRef(BaseModel):
 
 
 class FootnoteRef(BaseModel):
-    """Forward footnote edge; ``id`` resolves in the manifest ``footnotes`` pool."""
+    """Forward footnote edge; ``id`` resolves in the CND ``footnotes`` pool."""
 
     id: UUID
     label: str | None = None
@@ -52,7 +52,7 @@ class FootnoteRef(BaseModel):
 
 
 class NodeBase(BaseModel):
-    """Shared fields for every manifest node."""
+    """Shared fields for every cnd node."""
 
     id: UUID
     label: str | None = None
@@ -326,7 +326,7 @@ def iter_nodes(
 
     The tree is normatively in document reading order, so the walk order is
     reading order and the derived position attributes on the context are
-    document positions. ``_totals`` lets a caller (``CndManifest.iter``)
+    document positions. ``_totals`` lets a caller (``Cnd.iter``)
     reuse a cached ``position_totals`` result.
     """
     totals = _totals if _totals is not None else position_totals(nodes)

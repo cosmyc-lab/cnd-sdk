@@ -3,13 +3,13 @@ from uuid import UUID
 
 from ids import HEADING001_ID, HEADING002_ID, PARA001_ID, TABLE001_ID
 
-from cnd.core.manifest import CndManifest
+from cnd.core.cnd import Cnd
 from cnd.core.nodes import CndNode, HeadingNode, NodeTraverseContext, ParagraphNode, TableNode
 from cnd.visitors.base_visitor import BaseVisitor
 
 
-def _load(path: Path) -> CndManifest:
-    return CndManifest.model_validate_json(path.read_text())
+def _load(path: Path) -> Cnd:
+    return Cnd.model_validate_json(path.read_text())
 
 
 class CollectIdsVisitor(BaseVisitor):
@@ -51,19 +51,19 @@ class StopAtLevelTwoVisitor(BaseVisitor):
 
 class TestNodeVisitor:
     def test_default_visitor_visits_without_error(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
 
-        BaseVisitor().visit(manifest)
+        BaseVisitor().visit(cnd)
 
     def test_visit_dispatches_to_overridden_hooks(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         visitor = CollectIdsVisitor()
 
-        visitor.visit(manifest)
+        visitor.visit(cnd)
 
         assert visitor.ids == [
             HEADING001_ID,
@@ -73,30 +73,30 @@ class TestNodeVisitor:
         ]
 
     def test_subclass_can_override_a_single_node_type(
-        self, minimal_manifest_path: Path,
+        self, minimal_cnd_path: Path,
     ) -> None:
-        manifest = _load(minimal_manifest_path)
+        cnd = _load(minimal_cnd_path)
         visitor = CollectParagraphTextVisitor()
 
-        visitor.visit(manifest)
+        visitor.visit(cnd)
 
         assert visitor.texts == ["Premier paragraphe du document."]
 
     def test_should_stop_descent_prunes_branches(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         visitor = StopAtLevelTwoVisitor()
 
-        visitor.visit(manifest)
+        visitor.visit(cnd)
 
         assert visitor.ids == [HEADING001_ID, HEADING002_ID]
 
     def test_visitor_can_visit_a_node_subtree(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
-        section = manifest.nodes[0].children[0]
+        cnd = _load(structured_cnd_path)
+        section = cnd.nodes[0].children[0]
         assert isinstance(section, HeadingNode)
         visitor = CollectIdsVisitor()
 
@@ -106,9 +106,9 @@ class TestNodeVisitor:
 
     def test_current_node_and_ctx_are_tracked_during_visit(
         self,
-        structured_manifest_path: Path,
+        structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         recorded: list[tuple[UUID, list[str], int]] = []
 
         class CurrentStateCollector(BaseVisitor):
@@ -131,7 +131,7 @@ class TestNodeVisitor:
                     self.current_ctx.depth,
                 ))
 
-        CurrentStateCollector().visit(manifest)
+        CurrentStateCollector().visit(cnd)
 
         assert recorded == [
             (HEADING001_ID, [], 0),
@@ -147,9 +147,9 @@ class TestNodeVisitor:
         ]
 
     def test_context_is_passed_to_visit_hooks(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         contexts: list[NodeTraverseContext] = []
 
         class ContextCollector(BaseVisitor):
@@ -160,7 +160,7 @@ class TestNodeVisitor:
             ) -> None:
                 contexts.append(ctx)
 
-        ContextCollector().visit(manifest)
+        ContextCollector().visit(cnd)
 
         assert len(contexts) == 1
         assert contexts[0].depth == 2

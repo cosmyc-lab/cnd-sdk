@@ -15,13 +15,13 @@ from ids import (
     TABLE001_ID,
 )
 
-from cnd.core.manifest import CndManifest
+from cnd.core.cnd import Cnd
 from cnd.core.nodes import HeadingNode
 from cnd.visitors.node_display_visitor import NodeDisplayVisitor
 
 
-def _load(path: Path) -> CndManifest:
-    return CndManifest.model_validate_json(path.read_text())
+def _load(path: Path) -> Cnd:
+    return Cnd.model_validate_json(path.read_text())
 
 
 def _capture_output(**visitor_kwargs) -> str:
@@ -32,12 +32,12 @@ def _capture_output(**visitor_kwargs) -> str:
 
 class TestNodeDisplayVisitor:
     def test_prints_node_trace_with_summary(
-        self, minimal_manifest_path: Path,
+        self, minimal_cnd_path: Path,
     ) -> None:
-        manifest = _load(minimal_manifest_path)
+        cnd = _load(minimal_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console).visit(manifest)
+        NodeDisplayVisitor(console=console).visit(cnd)
 
         text = output.getvalue()
         assert str(MINIMAL_HEADING_ID) in text
@@ -48,13 +48,13 @@ class TestNodeDisplayVisitor:
         assert "heading" in text
         assert "paragraph" in text
 
-    def test_renders_manifest_header(
-        self, minimal_manifest_path: Path,
+    def test_renders_cnd_header(
+        self, minimal_cnd_path: Path,
     ) -> None:
-        manifest = _load(minimal_manifest_path)
+        cnd = _load(minimal_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console).visit(manifest)
+        NodeDisplayVisitor(console=console).visit(cnd)
 
         text = output.getvalue()
         assert "Test Document" in text
@@ -62,27 +62,27 @@ class TestNodeDisplayVisitor:
         assert "sha256:abc123def45678" in text
 
     def test_tree_mode_shows_hierarchy(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console, show_tree=True).visit(manifest)
+        NodeDisplayVisitor(console=console, show_tree=True).visit(cnd)
 
         text = output.getvalue()
-        assert "CND Manifest" in text
+        assert "CND tree" in text
         assert str(HEADING002_ID) in text
         assert str(PARA001_ID) in text
         assert str(TABLE001_ID) in text
         assert "H1 Description du système" in text
 
     def test_panel_mode_without_tree(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console, show_tree=False).visit(manifest)
+        NodeDisplayVisitor(console=console, show_tree=False).visit(cnd)
 
         text = output.getvalue()
         assert "HEADING" in text
@@ -90,12 +90,12 @@ class TestNodeDisplayVisitor:
         assert "TABLE" in text
 
     def test_shows_heading_path_parent_and_refs(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console).visit(manifest)
+        NodeDisplayVisitor(console=console).visit(cnd)
 
         text = output.getvalue()
         assert "1 Description du système > 1.1 Paramètres nominaux" in text
@@ -107,12 +107,12 @@ class TestNodeDisplayVisitor:
         assert "tab-params-nominaux" in text
 
     def test_shows_type_specific_details(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console).visit(manifest)
+        NodeDisplayVisitor(console=console).visit(cnd)
 
         text = output.getvalue()
         assert "depth=2" in text
@@ -129,16 +129,16 @@ class TestNodeDisplayVisitor:
         assert "doc=5/5" in text
 
     def test_can_hide_refs_and_location(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         output, console = _capture_output()
 
         NodeDisplayVisitor(
             console=console,
             show_refs=False,
             show_location=False,
-        ).visit(manifest)
+        ).visit(cnd)
 
         text = output.getvalue()
         assert "@tab-params-nominaux" not in text
@@ -146,34 +146,34 @@ class TestNodeDisplayVisitor:
         assert str(TABLE001_ID) in text
 
     def test_truncates_long_text(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console, max_text_len=20).visit(manifest)
+        NodeDisplayVisitor(console=console, max_text_len=20).visit(cnd)
 
         text = output.getvalue()
         assert "Le système est co..." in text
         assert "Paramètres nomina..." in text
 
     def test_can_disable_summary(
-        self, minimal_manifest_path: Path,
+        self, minimal_cnd_path: Path,
     ) -> None:
-        manifest = _load(minimal_manifest_path)
+        cnd = _load(minimal_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console, show_summary=False).visit(manifest)
+        NodeDisplayVisitor(console=console, show_summary=False).visit(cnd)
 
         assert "Node summary" not in output.getvalue()
 
     def test_max_depth_limits_output(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console).visit(manifest, max_depth=1)
+        NodeDisplayVisitor(console=console).visit(cnd, max_depth=1)
 
         text = output.getvalue()
         assert str(HEADING001_ID) in text
@@ -183,10 +183,10 @@ class TestNodeDisplayVisitor:
         assert "fig_number=Table 1" not in text
 
     def test_can_visit_a_node_subtree(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
-        section = manifest.nodes[0].children[0]
+        cnd = _load(structured_cnd_path)
+        section = cnd.nodes[0].children[0]
         assert isinstance(section, HeadingNode)
         output, console = _capture_output()
 
@@ -199,26 +199,26 @@ class TestNodeDisplayVisitor:
         assert str(HEADING001_ID) not in text
 
     def test_resets_counts_between_visits(
-        self, minimal_manifest_path: Path,
+        self, minimal_cnd_path: Path,
     ) -> None:
-        manifest = _load(minimal_manifest_path)
+        cnd = _load(minimal_cnd_path)
         output, console = _capture_output()
         visitor = NodeDisplayVisitor(console=console)
 
-        visitor.visit(manifest)
-        visitor.visit(manifest)
+        visitor.visit(cnd)
+        visitor.visit(cnd)
 
         assert visitor._counts == {"heading": 1, "paragraph": 1}
 
 
 class TestNodeDisplayVisitorRichContent:
     def test_shows_new_node_types_and_descends_figures(
-        self, rich_content_manifest_path: Path,
+        self, rich_content_cnd_path: Path,
     ) -> None:
-        manifest = _load(rich_content_manifest_path)
+        cnd = _load(rich_content_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console).visit(manifest)
+        NodeDisplayVisitor(console=console).visit(cnd)
 
         text = output.getvalue()
         assert "TERMS" in text
@@ -229,12 +229,12 @@ class TestNodeDisplayVisitorRichContent:
         assert str(RICH_CODE_ID) in text
 
     def test_shows_link_families_with_spans(
-        self, rich_content_manifest_path: Path,
+        self, rich_content_cnd_path: Path,
     ) -> None:
-        manifest = _load(rich_content_manifest_path)
+        cnd = _load(rich_content_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console, truncate_text=False).visit(manifest)
+        NodeDisplayVisitor(console=console, truncate_text=False).visit(cnd)
 
         text = output.getvalue()
         assert "refs" in text
@@ -246,12 +246,12 @@ class TestNodeDisplayVisitorRichContent:
 
 class TestTableContentPreview:
     def test_table_preview_shows_cells_not_just_label(
-        self, structured_manifest_path: Path,
+        self, structured_cnd_path: Path,
     ) -> None:
-        manifest = _load(structured_manifest_path)
+        cnd = _load(structured_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console).visit(manifest)
+        NodeDisplayVisitor(console=console).visit(cnd)
 
         text = output.getvalue()
         assert "| Paramètre | Valeur |" in text
@@ -262,12 +262,12 @@ class TestTableContentPreview:
 
 class TestPoolPanels:
     def test_pool_panels_list_entries_with_incoming_counts(
-        self, rich_content_manifest_path: Path,
+        self, rich_content_cnd_path: Path,
     ) -> None:
-        manifest = _load(rich_content_manifest_path)
+        cnd = _load(rich_content_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console).visit(manifest)
+        NodeDisplayVisitor(console=console).visit(cnd)
 
         text = output.getvalue()
         assert "Bibliography" in text
@@ -280,24 +280,24 @@ class TestPoolPanels:
         assert "referenced by 1" in text
 
     def test_show_pools_false_hides_pool_panels(
-        self, rich_content_manifest_path: Path,
+        self, rich_content_cnd_path: Path,
     ) -> None:
-        manifest = _load(rich_content_manifest_path)
+        cnd = _load(rich_content_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console, show_pools=False).visit(manifest)
+        NodeDisplayVisitor(console=console, show_pools=False).visit(cnd)
 
         text = output.getvalue()
         assert "Bibliography" not in text
         assert "referenced by" not in text
 
     def test_empty_pools_render_no_panels(
-        self, minimal_manifest_path: Path,
+        self, minimal_cnd_path: Path,
     ) -> None:
-        manifest = _load(minimal_manifest_path)
+        cnd = _load(minimal_cnd_path)
         output, console = _capture_output()
 
-        NodeDisplayVisitor(console=console).visit(manifest)
+        NodeDisplayVisitor(console=console).visit(cnd)
 
         text = output.getvalue()
         assert "Bibliography" not in text

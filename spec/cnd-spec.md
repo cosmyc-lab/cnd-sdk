@@ -1,9 +1,9 @@
 # CND Specification
 
 Status: **draft v0.2** (`cnd_version: "0.2.0"`). This document is the
-reference specification for the CND (Context Native Document) manifest
+reference specification for the CND (Context Native Document)
 format. The JSON Schema at
-[`schema/cnd-manifest.schema.json`](schema/cnd-manifest.schema.json) is
+[`schema/cnd.schema.json`](schema/cnd.schema.json) is
 generated from — and must stay in sync with — the Pydantic models in
 [`src/cnd/core/`](../src/cnd/core/); that generated schema is the
 machine-readable source of truth. This document is the human-readable prose
@@ -11,7 +11,7 @@ companion.
 
 ## Scope
 
-This specification covers the **manifest format**: the JSON structure a
+This specification covers the **CND format**: the JSON structure a
 compiler (such as `typst-cnd`) emits to describe a compiled document as a
 tree of typed nodes, plus the out-of-tree referenceable pools
 (bibliography, footnotes) and the forward-only link families connecting
@@ -23,7 +23,7 @@ rendering is an SDK feature, not part of the format (§7).
 
 ## 1. Introduction
 
-A CND manifest is the interchange format between a document compiler and any
+A CND is the interchange format between a document compiler and any
 downstream consumer (search index, RAG pipeline, editor, etc.). It captures:
 
 - Document-level metadata (title, authors, date, language).
@@ -35,14 +35,14 @@ downstream consumer (search index, RAG pipeline, editor, etc.). It captures:
   entries (`cites`), and to footnotes (`footnotes`), independent of the
   tree structure.
 
-## 2. The CND Manifest
+## 2. The CND
 
-Top-level JSON structure (see `CndManifest` in `src/cnd/core/manifest.py`):
+Top-level JSON structure (see `Cnd` in `src/cnd/core/cnd.py`):
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | UUID | Manifest identifier, generated if absent. |
-| `cnd_version` | string | Version of the CND format the manifest conforms to (`"0.2.0"` for this revision). |
+| `id` | UUID | CND identifier, generated if absent. |
+| `cnd_version` | string | Version of the CND format the CND conforms to (`"0.2.0"` for this revision). |
 | `doc_hash` | string | Content hash of the source document. |
 | `compiled_at` | datetime | Compilation timestamp. |
 | `doc` | [`DocMetadata`](#3-document-metadata) | Bibliographic metadata. |
@@ -50,8 +50,8 @@ Top-level JSON structure (see `CndManifest` in `src/cnd/core/manifest.py`):
 | `bibliography` | array of [`BibEntry`](#51-bibliography-pool) | Bibliography pool. Always a list, defaults to empty — never null. |
 | `footnotes` | array of [`Footnote`](#52-footnotes-pool) | Footnotes pool. Always a list, defaults to empty — never null. |
 
-**Global id uniqueness**: every `id` in a manifest — node ids and pool-entry
-ids alike — is unique across the whole manifest. A link's resolution domain
+**Global id uniqueness**: every `id` in a CND — node ids and pool-entry
+ids alike — is unique across the whole CND. A link's resolution domain
 is carried by the field it appears in (`refs` → nodes, `cites` →
 `bibliography`, `footnotes` → `footnotes`), never by the shape of the id.
 
@@ -97,10 +97,10 @@ serialized incoming-edge field of any kind.
 
 ## 5. Cross-references and link families
 
-The cross-reference graph is **forward-only**: a manifest serializes only
+The cross-reference graph is **forward-only**: a CND serializes only
 the edges from a referencing node to its target. There is no bidirectional
 invariant and no `refs_from` field — the reverse index is derived by
-consumers (the reference SDK provides `CndManifest.incoming(node_id)`,
+consumers (the reference SDK provides `Cnd.incoming(node_id)`,
 built lazily from the forward edges).
 
 All three link families share the same skeleton `{id, label, text_span?}`:
@@ -162,7 +162,7 @@ not a node, has no `location`, and never appears in `nodes`.
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | UUID, required | Entry identifier (unique manifest-wide). |
+| `id` | UUID, required | Entry identifier (unique document-wide). |
 | `label` | string, required | The citation key (e.g. the Typst/Hayagriva `@key`). |
 | `rendered` | string, required | The reference string as displayed in the compiled document — the faithful capture. |
 | `type` | string \| null | Entry type (e.g. `"article"`). |
@@ -182,7 +182,7 @@ block/subtree content inside footnotes is not modeled.
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | UUID, required | Entry identifier (unique manifest-wide). |
+| `id` | UUID, required | Entry identifier (unique document-wide). |
 | `label` | string, required | Footnote label/marker key. |
 | `text` | string, required | The footnote's text. |
 
@@ -342,7 +342,7 @@ is its JSON serialization itself (`model_dump_json()`), not a renderer.
 
 ## 8. Traversal and visitors
 
-- `CndManifest.iter()` / `iter_nodes()` walk the node tree depth-first,
+- `Cnd.iter()` / `iter_nodes()` walk the node tree depth-first,
   yielding each node paired with a `NodeTraverseContext` (`depth`,
   `heading_path`, `parent`). Traversal descends into every children-bearing
   node — `heading` and `figure` alike; a consumer that wants to treat
@@ -355,7 +355,7 @@ is its JSON serialization itself (`model_dump_json()`), not a renderer.
   nodes beginning on the same `location.page`). The totals come from a
   cheap cached pre-pass; pruning a branch does not shift the positions of
   the nodes still visited.
-- `CndManifest.incoming(id)` returns the nodes whose forward edges
+- `Cnd.incoming(id)` returns the nodes whose forward edges
   (`refs`, `cites`, `footnotes`) target `id` — the derived reverse index
   (§5), built lazily and cached.
 - `BaseVisitor` dispatches to a `visit_<type>` hook per node type, with
@@ -366,7 +366,7 @@ is its JSON serialization itself (`model_dump_json()`), not a renderer.
 
 ## 9. Versioning
 
-Manifests declare the format version they conform to via `cnd_version`;
+CNDs declare the format version they conform to via `cnd_version`;
 this revision of the specification is `"0.2.0"`. Every change to the node
 schema is a PR against this repository (`cnd-sdk`), tagged as a new
 release; consumers pin to a tag.
@@ -374,5 +374,5 @@ release; consumers pin to a tag.
 ## Out of scope
 
 Chunking strategies, embedding generation, vector storage backends,
-and any indexing pipeline built on top of CND manifests are consumer
+and any indexing pipeline built on top of CNDs are consumer
 concerns and are **not** part of this standard.

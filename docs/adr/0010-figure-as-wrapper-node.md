@@ -20,7 +20,7 @@ table could not nest inside a figure. Captioning therefore has two homes,
 a figure wrapping code or several images is unrepresentable, and
 `FigureNode.kind` keeps drifting toward a content discriminator — the
 catch-all failure mode proposal 0004 already rejected. Source formats
-treat "figure" as exactly a float that can wrap any body; the manifest
+treat "figure" as exactly a float that can wrap any body; the CND
 should too.
 
 ## Decision

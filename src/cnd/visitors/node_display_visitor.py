@@ -9,7 +9,7 @@ from rich.tree import Tree
 
 from typing_extensions import override
 
-from cnd.core.manifest import CndManifest
+from cnd.core.cnd import Cnd
 from cnd.core.nodes import (
     CiteRef,
     CndNode,
@@ -58,7 +58,7 @@ def _format_links(links: Sequence[NodeRef | CiteRef | FootnoteRef]) -> str:
 
 
 class NodeDisplayVisitor(BaseVisitor):
-    """Render a readable, colorized trace of each node while visiting a manifest.
+    """Render a readable, colorized trace of each node while visiting a cnd.
 
     Text previews are produced by a ``NodeRenderer`` (composition — the
     default is a plain ``MarkdownRenderer``; pass ``renderer=`` to change
@@ -66,8 +66,8 @@ class NodeDisplayVisitor(BaseVisitor):
 
     Example::
 
-        NodeDisplayVisitor().visit(cnd.manifest)
-        NodeDisplayVisitor(show_refs=False, truncate_text=False).visit(cnd.manifest)
+        NodeDisplayVisitor().visit(cnd)
+        NodeDisplayVisitor(show_refs=False, truncate_text=False).visit(cnd)
     """
 
     def __init__(
@@ -231,13 +231,13 @@ class NodeDisplayVisitor(BaseVisitor):
         self._counts.clear()
         self._max_depth = 0
         self._refs_total = 0
-        self._tree = Tree("[bold]CND Manifest[/]", guide_style="dim") if self._show_tree else None
+        self._tree = Tree("[bold]CND[/]", guide_style="dim") if self._show_tree else None
         self._tree_stack = [self._tree] if self._tree else []
 
-        if isinstance(target, CndManifest):
-            self._print_manifest_header(target)
+        if isinstance(target, Cnd):
+            self._print_cnd_header(target)
 
-        self._console.print(Rule("[bold]Manifest tree[/]", style="bright_black"))
+        self._console.print(Rule("[bold]CND tree[/]", style="bright_black"))
 
         super().visit(target, max_depth=max_depth)
 
@@ -249,44 +249,44 @@ class NodeDisplayVisitor(BaseVisitor):
         if self._show_summary and self._counts:
             self._console.print(self._build_summary())
 
-        if self._show_pools and isinstance(target, CndManifest):
+        if self._show_pools and isinstance(target, Cnd):
             self._print_pools(target)
 
-    def _print_pools(self, manifest: CndManifest) -> None:
+    def _print_pools(self, cnd: Cnd) -> None:
         def sources(entry_id) -> int:
             # incoming() already returns distinct citing nodes.
-            return len(manifest.incoming(entry_id))
+            return len(cnd.incoming(entry_id))
 
-        if manifest.bibliography:
+        if cnd.bibliography:
             rows = [
                 (
                     f"@{entry.label}",
                     self._preview(entry.rendered),
                     f"id={str(entry.id)[:8]}   cited by {sources(entry.id)}",
                 )
-                for entry in manifest.bibliography
+                for entry in cnd.bibliography
             ]
             self._console.print(pool_panel("Bibliography", rows))
-        if manifest.footnotes:
+        if cnd.footnotes:
             rows = [
                 (
                     f"@{note.label}",
                     self._preview(note.text),
                     f"id={str(note.id)[:8]}   referenced by {sources(note.id)}",
                 )
-                for note in manifest.footnotes
+                for note in cnd.footnotes
             ]
             self._console.print(pool_panel("Footnotes", rows))
 
-    def _print_manifest_header(self, manifest: CndManifest) -> None:
+    def _print_cnd_header(self, cnd: Cnd) -> None:
         panels = [
-            document_panel(manifest),
+            document_panel(cnd),
             options_panel(
                 "Render options",
                 [
-                    ("root nodes", str(len(manifest.nodes))),
-                    ("bibliography", str(len(manifest.bibliography))),
-                    ("footnotes", str(len(manifest.footnotes))),
+                    ("root nodes", str(len(cnd.nodes))),
+                    ("bibliography", str(len(cnd.bibliography))),
+                    ("footnotes", str(len(cnd.footnotes))),
                     ("truncate", "on" if self._truncate_text else "off"),
                     ("fields", "on" if self._show_fields else "off"),
                     ("tree mode", "on" if self._show_tree else "off"),

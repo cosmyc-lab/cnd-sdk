@@ -34,7 +34,7 @@ The rich display visitor consumes a renderer by composition and stays in
 the optional extra.
 
 This also fixes the layer seam: a **renderer** maps one *node* to a text
-fragment; a **converter** maps a whole *manifest* to a complete
+fragment; a **converter** maps a whole *CND* to a complete
 standalone document artifact (front-matter, assembled sections, pools
 rendered) and is built on top of renderers. Converters are future work
 (proposal 0007). Both are SDK facilities: spec §7 becomes a non-normative

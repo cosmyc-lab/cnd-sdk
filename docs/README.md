@@ -22,7 +22,7 @@ conventions.
 | [0012](adr/0012-location-is-page-only-positions-derived.md) | NodeLocation carries layout facts only (page); positions are SDK-derived | accepted |
 | [0013](adr/0013-rename-link-span-to-text-span.md) | Rename the link-family `span` field to `text_span` | accepted |
 | [0014](adr/0014-relation-to-doclang.md) | CND's relation to DocLang — coexistence and interoperability, not convergence | proposed |
-| [0015](adr/0015-manifests-immutable-ids-not-durable.md) | Manifests are immutable build artifacts; node ids are not durable | proposed |
+| [0015](adr/0015-cnds-immutable-ids-not-durable.md) | CNDs are immutable build artifacts; node ids are not durable | proposed |
 | [0016](adr/0016-content-hashing.md) | Derived content hashing — canonical serialisation and excluded presentation state | proposed |
 | [0017](adr/0017-cross-references-resolve-by-label.md) | Cross-references resolve by target label; drop the id from link families | proposed |
 | [0018](adr/0018-reconciliation-reference-algorithm.md) | Reconciliation (diff, id inheritance) is a versioned reference algorithm, not a format guarantee | proposed |

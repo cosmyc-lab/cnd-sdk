@@ -21,8 +21,8 @@ mirror of the target's own label, kept in sync by the invariant
 ADR 0015 established that node ids are **not durable** across builds. An edge
 keyed by id therefore points at a handle that the next build regenerates: with
 the reference producer minting fresh ids every build, the id in a link is only
-meaningful within the single manifest that produced it. That is acceptable for
-a consumer reading one manifest, but it makes two things needlessly hard:
+meaningful within the single CND that produced it. That is acceptable for
+a consumer reading one CND, but it makes two things needlessly hard:
 
 - **Id remapping has to rewrite every edge.** The reconciliation facility
   (ADR 0015) inherits a previous build's ids; because edges carry ids, every
@@ -54,7 +54,7 @@ id.** The `id` field is removed from all three link families. An edge becomes
    `footnotes` → `footnotes` — never by the shape of the label, exactly as
    spec §2 already states for ids.
 
-2. **Labels are globally unique within a manifest**, across nodes and pool
+2. **Labels are globally unique within a CND**, across nodes and pool
    entries alike, mirroring the id-uniqueness rule (§2). A label therefore
    resolves to exactly one target. Comparison is over the whole string, so a
    node label `sec:x` and a bibliography label `x` never collide; the common
