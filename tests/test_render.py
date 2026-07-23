@@ -223,9 +223,12 @@ class TestFigureRendering:
 
     def test_inline_renders_children_with_caption_line(self) -> None:
         image = ImageNode(type="image", path="a.png", alt="Alt", **_base())
-        node = self._figure(kind="image", caption="Diagram", number="1", children=[image])
+        node = self._figure(
+            kind="image", caption="Diagram", number="1",
+            counter_label="Figure", children=[image]
+        )
         rendered = MarkdownRenderer(figures="inline").render(node)
-        assert rendered == "![Alt](a.png)\n\n*1: Diagram*"
+        assert rendered == "![Alt](a.png)\n\n*Figure 1: Diagram*"
 
     def test_inline_with_no_children_falls_back_to_placeholder(self) -> None:
         node = self._figure(kind="atom", children=[], raw={"format": "typst", "value": "#figure(..)"})

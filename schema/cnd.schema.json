@@ -468,6 +468,18 @@
           "default": null,
           "title": "Number"
         },
+        "counter_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Counter Label"
+        },
         "children": {
           "items": {
             "discriminator": {
@@ -595,7 +607,7 @@
       "type": "object"
     },
     "HeadingNode": {
-      "description": "Section heading with nested section content in ``children``.\n\n``number`` \u2014 shared in shape with ``MathNode`` and ``FigureNode`` \u2014 is\nthe counter value **as resolved and displayed** (``\"2.1.1\"``, ``\"(1)\"``,\n``\"3\"``), never the pattern that produced it: a consumer cannot replay a\ncounter engine, so only the resolved value is usable. The counter-label\nword is excluded \u2014 ``\"Figure 3\"`` bakes a locale into data, and\ncomposing that prefix is a rendering decision (docs/proposals/0008).",
+      "description": "Section heading with nested section content in ``children``.\n\n``number`` \u2014 shared in shape with ``MathNode`` and ``FigureNode`` \u2014 is\nthe counter value **as resolved and displayed** (``\"2.1.1\"``, ``\"(1)\"``,\n``\"3\"``), never the pattern that produced it: a consumer cannot replay a\ncounter engine, so only the resolved value is usable.\n\n``counter_label`` is the word displayed in front of it (``\"Figure\"``,\n``\"Tabelle\"``), kept in its own field rather than fused into ``number``\n(docs/proposals/0008, 0010). Fusing them was the defect; carrying the\nword is not. It is not always derivable \u2014 for a custom ``kind`` the\nauthor supplies it and nothing else in the CND encodes it.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -671,6 +683,18 @@
           ],
           "default": null,
           "title": "Number"
+        },
+        "counter_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Counter Label"
         },
         "text": {
           "title": "Text",
@@ -1049,6 +1073,18 @@
           ],
           "default": null,
           "title": "Number"
+        },
+        "counter_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Counter Label"
         },
         "block": {
           "default": true,

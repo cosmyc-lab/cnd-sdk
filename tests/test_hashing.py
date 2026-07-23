@@ -78,6 +78,16 @@ class TestExcludedFromNodeHash:
             _heading("H", number="3.1")
         )
 
+    def test_the_counter_label_is_excluded(self) -> None:
+        """Same resolved presentation state as `number` — it changes with
+        the document language, not with the authored content."""
+        assert node_hash(_heading("H", number="1", counter_label="Section")) == (
+            node_hash(_heading("H", number="1", counter_label="Abschnitt"))
+        )
+        assert node_hash(_heading("H", number="1")) == node_hash(
+            _heading("H", number="1", counter_label="Section")
+        )
+
     def test_children_are_excluded(self) -> None:
         """A heading whose subsection changed has not itself changed."""
         assert node_hash(_heading("H", children=[_para("a")])) == node_hash(

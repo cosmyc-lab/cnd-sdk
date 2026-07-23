@@ -176,6 +176,8 @@ class NodeDisplayVisitor(BaseVisitor):
             details["kind"] = node.kind
         if node.number:
             details["number"] = node.number
+        if node.counter_label:
+            details["counter_label"] = node.counter_label
         if node.caption and node.caption != title:
             details["caption"] = self._preview(node.caption)
         self._render_node("figure", node, ctx, self._preview(title), details)

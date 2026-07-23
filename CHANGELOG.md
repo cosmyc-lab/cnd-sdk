@@ -65,6 +65,14 @@ The wave is docs/proposals/0008, carrying ADRs 0015-0017 and 0021.
 - **`fixtures/unpaginated.cnd`** — the case this wave makes possible: no
   locations, a bibliography entry with structured fields and no
   `formatted`, omitted metadata defaults.
+- **`counter_label`** on `heading`/`math`/`figure` (proposal 0010) — the
+  word displayed in front of `number` ("Figure", "Tabelle"), as resolved
+  in the document's language. Splitting it out of `number` was right;
+  dropping it was not. A producer resolves it from the element kind and
+  the language using a table no consumer has, and for an author-defined
+  `kind` there is no table at all — the author supplies the word and
+  nothing else in the CND encodes it. Excluded from the content hash for
+  the same reason `number` is.
 
 ## [0.3.0] - 2026-07-18
 

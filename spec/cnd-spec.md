@@ -280,10 +280,28 @@ Two fields recur across node types and are defined once here.
 nullable. It is the counter value **as resolved and displayed**:
 `"2.1.1"`, `"(1)"`, `"3"`. Never the pattern that produced it, because a
 consumer cannot replay a counter engine and so could do nothing with
-one. Never the counter-label word either: `"Figure 3"` bakes a locale
-into data (Figure / Abbildung / Figura), and composing that prefix is a
-rendering decision — a `figure` already carries the selector in `kind`.
-A document with unnumbered headings leaves it null.
+one. Never the counter-label word either: `"Figure 3"` fuses a locale
+into the value, and composing that prefix is a rendering decision. A
+document with unnumbered headings leaves it null.
+
+**`counter_label`** — the companion of `number` on the same three node
+types, also nullable. It is the word displayed in front of the number
+(`"Figure"`, `"Tabelle"`, `"Listing"`), **as resolved in the document's
+language**. Kept in its own field rather than fused into `number`: a
+consumer wanting locale-free structure reads `kind`, one reproducing the
+document composes `counter_label` + `number`.
+
+It is a field rather than something derived because it is not always
+derivable. A producer resolves it from the element kind and the document
+language, using a localization table no consumer has; and for an
+author-defined `kind` there is no such table at all, so the author
+supplies the word and nothing else in the CND encodes it
+(docs/proposals/0010).
+
+```json
+{ "type": "figure", "kind": "atom", "number": "1",
+  "counter_label": "Atom", "caption": "A curious atom." }
+```
 
 **`raw`** — carried by `table`, `math` and `figure`, always nullable.
 The producer's verbatim source for the node, as an object:
@@ -548,7 +566,8 @@ JCS is load-bearing beyond key ordering: its ECMAScript number
 serialization is where a hand-rolled implementation silently diverges.
 
 **Node hash.** Over a node's own fields, **excluding** `id`, `location`,
-`number` and `children`. The first three are resolved presentation state
+`number`, `counter_label` and `children`. The first four are resolved
+presentation state
 — computed for display, and changing without the authored content
 changing. `children` is excluded for a different reason: a heading whose
 subsection changed has not itself changed, and treating it as changed
