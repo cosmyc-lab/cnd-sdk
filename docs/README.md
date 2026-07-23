@@ -25,7 +25,7 @@ conventions.
 | [0015](adr/0015-cnds-immutable-ids-not-durable.md) | CNDs are immutable build artifacts; node ids are not durable | accepted |
 | [0016](adr/0016-content-hashing.md) | Derived content hashing — canonical serialisation and excluded presentation state | accepted |
 | [0017](adr/0017-cross-references-resolve-by-label.md) | Cross-references resolve by target label; drop the id from link families | accepted |
-| [0018](adr/0018-reconciliation-reference-algorithm.md) | Reconciliation (diff, id inheritance) is a versioned reference algorithm, not a format guarantee | proposed |
+| [0018](adr/0018-reconciliation-reference-algorithm.md) | Reconciliation (diff, id inheritance) is a versioned reference algorithm, not a format guarantee | accepted |
 | [0019](adr/0019-production-topology-two-doors.md) | Production topology — a declarative door and a direct door over one shared contract | accepted |
 | [0020](adr/0020-repository-as-conformance-hub.md) | The repository is a conformance hub; the hub ships a conformance CLI | accepted |
 | [0021](adr/0021-artifact-naming-and-file-identity.md) | Artifact naming and file identity — the CND and the declaration | accepted |

@@ -7,7 +7,7 @@ from cnd.core.cnd import (
     LinkTarget,
     SourceInfo,
 )
-from cnd.core.hashing import content_hash, node_hash
+from cnd.core.hashing import content_hash, node_hash, pool_entry_hash
 from cnd.core.node_text import NodeTextMode
 from cnd.core.nodes import (
     CiteRef,
@@ -77,6 +77,7 @@ __all__ = [
     "content_hash",
     "iter_nodes",
     "node_hash",
+    "pool_entry_hash",
     "position_totals",
     "validate",
 ]

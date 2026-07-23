@@ -93,14 +93,14 @@ def content_hash(cnd: Cnd) -> str:
     payload = {
         "doc": cnd.doc.model_dump(mode="json"),
         "nodes": [[visit.ctx.depth, node_hash(visit.node)] for visit in cnd.iter()],
-        "bibliography": [_pool_entry_hash(entry) for entry in cnd.bibliography],
-        "footnotes": [_pool_entry_hash(note) for note in cnd.footnotes],
+        "bibliography": [pool_entry_hash(entry) for entry in cnd.bibliography],
+        "footnotes": [pool_entry_hash(note) for note in cnd.footnotes],
     }
     return _digest(payload)
 
 
-def _pool_entry_hash(entry: BibEntry | Footnote) -> str:
-    """The content hash of one pool entry.
+def pool_entry_hash(entry: BibEntry | Footnote) -> str:
+    """The content hash of one pool entry, as ``"sha256:<hex>"``.
 
     Only ``id`` is excluded — non-durable, like a node's (docs/adr/0015).
     A pool entry carries no resolved presentation state of its own: it

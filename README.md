@@ -55,10 +55,30 @@ comparing two implementations is a diff rather than a read.
 **This is three of the five conformance verbs**
 [`docs/adr/0020`](docs/adr/0020-repository-as-conformance-hub.md) specifies.
 `build` (from a declaration) and `reconcile`/`diff` are conformance verbs
-too, and are missing only because the declaration and the reconciliation
-algorithm do not exist yet. Agreeing with the three above is necessary for
-conformance, not yet sufficient — and the corpus matches, carrying two of
-the four vector kinds the same ADR requires.
+too, and are still missing from the CLI: `build` because the declaration
+does not exist yet, `diff` because the algorithm
+([`docs/adr/0018`](docs/adr/0018-reconciliation-reference-algorithm.md))
+only just landed as a library — see `cnd.reconcile` below — and id
+inheritance is not implemented at all. Agreeing with the three above is
+necessary for conformance, not yet sufficient — and the corpus matches,
+carrying two of the four vector kinds the same ADR requires.
+
+## Reconciliation
+
+A CND is an immutable build artifact and its node ids are not durable, so
+"is this the same node as last build?" is answered after the fact, by
+matching two CNDs
+([`docs/adr/0018`](docs/adr/0018-reconciliation-reference-algorithm.md)):
+
+```python
+from cnd.reconcile import diff
+
+report = diff(previous, current)
+[change.new.node.text for change in report.changed]
+```
+
+The matching is a **versioned reference algorithm, not part of the
+format** — exact for labelled nodes, best-effort for the rest.
 
 Turning a foreign format into a CND (`cnd declare`) is a different kind of
 absence: it belongs with the producers permanently, since bundling it would

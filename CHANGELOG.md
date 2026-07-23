@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 (semver-zero discipline: while on `0.y.z`, breaking changes and additions bump
 the minor version, fixes bump the patch version).
 
+## [Unreleased]
+
+### Added
+
+- **`cnd.reconcile` — matching v1 and `diff(old, new)`** (docs/adr/0018,
+  now accepted). A CND carries no history and its node ids are not
+  durable (docs/adr/0015); a consumer that keeps the CNDs it calls
+  versions gets versioning back from `diff`, which classifies every node
+  as `added`, `removed`, `changed`, `moved` or `unchanged` and diffs both
+  out-of-tree pools. The matcher runs the ADR's four passes — label,
+  `node_hash` + structural path, `node_hash` alone, structural path +
+  type — with ties broken by reading order, and reports which pass paired
+  each node so a caller knows whether the pairing was exact (a label) or
+  best-effort. It is a **versioned reference algorithm, not part of the
+  format**: `MATCHER_VERSION` names the version, and no conformance
+  obligation follows for a producer. The combined edit-plus-insertion
+  case the ADR documents as a failure is asserted as such in the test
+  suite rather than papered over.
+- **`pool_entry_hash()`** — the per-pool-entry hash `content_hash`
+  already folded, now public because the pool diff keys on it.
+
+### Not yet
+
+- **Id inheritance** (`reconcile(new, previous) -> Cnd`, the other half
+  of docs/adr/0018) is not implemented. The matching it consumes is the
+  part that landed here.
+
 ## [0.4.0] - 2026-07-23
 
 SDK release 0.4.0 implements CND **format 0.3.0** (`cnd_version: "0.3.0"`).

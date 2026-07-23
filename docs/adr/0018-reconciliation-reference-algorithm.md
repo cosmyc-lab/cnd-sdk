@@ -1,6 +1,6 @@
 ---
 title: Reconciliation (diff and id inheritance) is a versioned reference algorithm, not a format guarantee
-status: proposed
+status: accepted
 date: 2026-07-22
 tags: [identity, reconciliation, diff, sdk, non-normative]
 related: [0006, 0015, 0016, 0017]
@@ -10,7 +10,7 @@ superseded-by: null
 # ADR 0018 — Reconciliation is a versioned reference algorithm
 
 ## Status
-Proposed.
+Accepted.
 
 ## Context
 ADR 0015 decided that durable node identity is not a property of the format:
