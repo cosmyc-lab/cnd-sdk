@@ -1,16 +1,26 @@
 """The conformance CLI — the executable oracle of the fixture corpus.
 
-This is deliberately *not* a general CND tool. It carries the verbs that
-**are** conformance (docs/adr/0020): does this file satisfy the invariants
-the schema cannot express, and what hashes does the reference stack compute
-for it. Someone writing an SDK in another language has one question — "does
-my implementation agree with the oracle?" — and these verbs answer it.
+This is deliberately *not* a general CND tool. ADR 0020 names the
+conformance verb set as ``validate``, ``hash``, ``reconcile``/``diff``,
+``build`` from a declaration, and terminal inspection. **Three of those
+five are implemented here**; the other two are absent for reasons worth
+keeping distinct:
 
-What is deliberately absent is as decided as what is here. `cnd declare`
-(foreign format to declaration) belongs with the producers: bundling it
-would make the hub depend on a satellite and let inference-heuristic churn
-in through the window, which ADR 0019 keeps out of the builder and
-ADR 0020 keeps out of the hub.
+- ``build`` and ``reconcile``/``diff`` are conformance verbs by the ADR's
+  own words, and they are missing only because the declaration
+  (docs/adr/0019) and the reconciliation algorithm (docs/adr/0018) do not
+  exist yet. They belong in this CLI when they do.
+- ``cnd declare`` — foreign format to declaration — is a different case:
+  it belongs with the producers *permanently*. Bundling it would make the
+  hub depend on a satellite and let inference-heuristic churn in through
+  the window, which ADR 0019 keeps out of the builder and ADR 0020 keeps
+  out of the hub.
+
+So an implementer reading this should know: agreeing with these three
+verbs is necessary for conformance, not yet sufficient. The corpus is in
+the same state — it carries two of the four vector kinds ADR 0020 §4
+requires (``hashes.json``, ``traversal.json``); ``declaration → CND`` and
+``(old, new) → matching`` await the same two features.
 
 Output is human-readable by default and machine-readable under ``--json``,
 because comparing two implementations is a diff, not a read.
@@ -52,6 +62,13 @@ def _build_parser() -> argparse.ArgumentParser:
             "corpus. Checks a CND against the invariants JSON Schema cannot "
             "express, and computes the reference content hashes."
         ),
+        epilog=(
+            "Partial: ADR 0020 also specifies `build` (from a declaration) "
+            "and `reconcile`/`diff` as conformance verbs. Both await the "
+            "features they act on. Agreeing with the three verbs above is "
+            "necessary for conformance, not yet sufficient."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
