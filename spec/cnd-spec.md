@@ -508,7 +508,8 @@ zero.
 
 **Conformance.** The fixture corpus carries `CND → expected id sequence`
 vectors (`fixtures/traversal.json`). An implementation proves its walk
-order by reproducing them.
+order by reproducing them; `cnd inspect` shows the order a CND actually
+walks in.
 
 The reference SDK implements this as `Cnd.iter()` / `iter_nodes()`, with
 `BaseVisitor` dispatching a `visit_<type>` hook per node type and
@@ -536,7 +537,7 @@ produced (docs/adr/0019). A producer going through a declaration cannot
 bypass the builder that checks them. A producer emitting a CND directly
 from its own compiler calls a validator itself — the reference SDK
 exposes `validate(cnd)`, which returns every violation rather than the
-first.
+first, and the same check as `cnd validate` on the command line.
 
 The asymmetry is real and worth naming rather than papering over: a
 build cannot be skipped, a validation call can be forgotten. It is the
@@ -595,7 +596,9 @@ field set evolves rather than frozen: *exclude resolved presentation
 state, hash everything else.*
 
 **Conformance.** The fixture corpus carries `CND → expected hash`
-vectors (`fixtures/hashes.json`).
+vectors (`fixtures/hashes.json`), and `cnd hash` recomputes them, so an
+implementation in another language can diff against the oracle rather
+than eyeball it.
 
 A hash is change-detection, not identity: two identical paragraphs in one
 document share a hash, and this specification makes no identity claim for
