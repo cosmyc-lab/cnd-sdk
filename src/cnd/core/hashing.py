@@ -12,8 +12,8 @@ from the same producer over the same source.
 
 **What is hashed.** Content, and nothing a producer resolved for
 display. Excluded under the current field set: the node ``id``, its
-``location``, the resolved ``number``, and the CND's ``built_at``,
-``source`` and ``cnd_version``. The exclusion is a principle plus a
+``location``, the resolved ``number``, its ``counter_label``, and the
+CND's ``built_at``, ``source`` and ``cnd_version``. The exclusion is a principle plus a
 list, so the list is maintained as the field set evolves. The ``number``
 case is the one that would otherwise break silently: inserting a heading
 renumbers everything after it, so a hash covering ``number`` would
@@ -44,11 +44,17 @@ ALGORITHM = "sha256"
 # Resolved presentation state — computed for display, changes without the
 # authored content changing. `children` is excluded for a different
 # reason: see `node_hash`.
-_EXCLUDED_NODE_FIELDS = frozenset({"id", "location", "number", "children"})
+_EXCLUDED_NODE_FIELDS = frozenset(
+    {"id", "location", "number", "counter_label", "children"}
+)
 
 
 def node_hash(node: CndNode) -> str:
     """The content hash of a single node, as ``"sha256:<hex>"``.
+
+    ``counter_label`` is excluded alongside ``number``: it is the same
+    resolved presentation state, and it changes when the document language
+    changes without the authored content changing.
 
     **Node-local**: a node's children are not hashed into it. A heading
     whose subsection changed has not itself changed, and treating it as

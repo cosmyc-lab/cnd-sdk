@@ -86,14 +86,19 @@ class HeadingNode(NodeBase):
     ``number`` — shared in shape with ``MathNode`` and ``FigureNode`` — is
     the counter value **as resolved and displayed** (``"2.1.1"``, ``"(1)"``,
     ``"3"``), never the pattern that produced it: a consumer cannot replay a
-    counter engine, so only the resolved value is usable. The counter-label
-    word is excluded — ``"Figure 3"`` bakes a locale into data, and
-    composing that prefix is a rendering decision (docs/proposals/0008).
+    counter engine, so only the resolved value is usable.
+
+    ``counter_label`` is the word displayed in front of it (``"Figure"``,
+    ``"Tabelle"``), kept in its own field rather than fused into ``number``
+    (docs/proposals/0008, 0010). Fusing them was the defect; carrying the
+    word is not. It is not always derivable — for a custom ``kind`` the
+    author supplies it and nothing else in the CND encodes it.
     """
 
     type: Literal["heading"]
     level: int
     number: str | None = None
+    counter_label: str | None = None
     text: str
     heading_path: list[str]
     children: list["CndNode"] = Field(default_factory=list)
@@ -166,6 +171,7 @@ class MathNode(NodeBase):
     text: str
     raw: RawSource | None = None
     number: str | None = None
+    counter_label: str | None = None
     block: bool = True
 
 
@@ -194,6 +200,7 @@ class FigureNode(NodeBase):
     kind: str | None = None
     caption: str | None = None
     number: str | None = None
+    counter_label: str | None = None
     children: list["CndNode"] = Field(default_factory=list)
     raw: RawSource | None = None
 

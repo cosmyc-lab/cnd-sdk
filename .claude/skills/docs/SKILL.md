@@ -39,7 +39,7 @@ A proposal is an RFC for a change to the CND format itself (schema, node
 types, semantics). `status` ∈ `draft | approved | implemented`. When a
 proposal is implemented, the same PR must:
 - update `spec/cnd-spec.md`,
-- regenerate `spec/schema/cnd-manifest.schema.json` from the models,
+- regenerate `schema/cnd.schema.json` from the models,
 - flip the proposal's `status` to `implemented`,
 so that `tests/test_schema.py` keeps passing and the spec, schema, and code
 never drift apart.

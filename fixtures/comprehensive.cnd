@@ -204,7 +204,8 @@
                   }
                 }
               ],
-              "number": "1"
+              "number": "1",
+              "counter_label": "Table"
             }
           ],
           "refs": [
@@ -319,7 +320,8 @@
                   ]
                 }
               ],
-              "number": "2"
+              "number": "2",
+              "counter_label": "Table"
             }
           ],
           "refs": [
@@ -468,7 +470,8 @@
                       ]
                     }
                   ],
-                  "number": "3"
+                  "number": "3",
+                  "counter_label": "Table"
                 }
               ],
               "refs": [
@@ -597,7 +600,8 @@
               ]
             }
           ],
-          "number": "4"
+          "number": "4",
+          "counter_label": "Table"
         }
       ],
       "number": "3"

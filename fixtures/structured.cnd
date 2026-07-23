@@ -125,7 +125,8 @@
                   }
                 }
               ],
-              "number": "1"
+              "number": "1",
+              "counter_label": "Table"
             }
           ],
           "number": "1.1"

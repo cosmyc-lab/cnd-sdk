@@ -197,7 +197,7 @@ class TestRendering:
 
         inline = MarkdownRenderer(figures="inline").render(figure)
         assert inline.startswith("```json\n")
-        assert inline.endswith("*1: Configuration de l'acquisition.*")
+        assert inline.endswith("*Listing 1: Configuration de l'acquisition.*")
 
     def test_nested_figures_render_inline_recursively(self) -> None:
         cnd = _load()
@@ -214,7 +214,7 @@ class TestRendering:
         assert "*(a) Avant étalonnage.*" in rendered
         assert "![Courbe après étalonnage](figures/apres.png)" in rendered
         assert "*(b) Après étalonnage.*" in rendered
-        assert rendered.endswith("*2: Comparaison avant/après étalonnage.*")
+        assert rendered.endswith("*Figure 2: Comparaison avant/après étalonnage.*")
 
     def test_unconvertible_figure_renders_placeholder_even_inline(self) -> None:
         cnd = _load()

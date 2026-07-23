@@ -201,7 +201,12 @@ class MarkdownRenderer(NodeRenderer):
 
     @staticmethod
     def _figure_caption_line(node: FigureNode) -> str | None:
-        title = ": ".join(part for part in (node.number, node.caption) if part)
+        # Composing "Figure 3" from its parts is the renderer's job, which is
+        # why the format keeps them apart (docs/proposals/0010).
+        counter = " ".join(
+            part for part in (node.counter_label, node.number) if part
+        )
+        title = ": ".join(part for part in (counter, node.caption) if part)
         return f"*{title}*" if title else None
 
     @staticmethod
