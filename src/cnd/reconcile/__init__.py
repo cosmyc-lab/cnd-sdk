@@ -10,10 +10,14 @@ producer. ``MATCHER_VERSION`` names the version implemented here.
     for change in report.changed:
         ...
 
-Id inheritance — rewriting a new CND's ids with a previous build's where
-nodes correspond — is the other half of ADR 0018 and is not implemented
-yet. When it lands it consumes this matching; nothing about it is
-implied by what is here.
+Id inheritance is the other half, and consumes the same matching:
+
+    from cnd.reconcile import reconcile
+
+    result = reconcile(current, previous)   # current, with previous' ids
+
+Both are standalone passes over two *built* CNDs rather than build
+parameters, which is what makes them door-agnostic (docs/adr/0018).
 """
 
 from cnd.reconcile.diff import (
@@ -25,6 +29,7 @@ from cnd.reconcile.diff import (
     PoolStatus,
     diff,
 )
+from cnd.reconcile.inherit import ReconcileError, Reconciliation, reconcile
 from cnd.reconcile.match import (
     MATCHER_VERSION,
     PASS_HASH,
@@ -63,6 +68,8 @@ __all__ = [
     "PoolEntry",
     "PoolMatching",
     "PoolStatus",
+    "ReconcileError",
+    "Reconciliation",
     "StructuralPath",
     "diff",
     "entries",
@@ -70,4 +77,5 @@ __all__ = [
     "match_nodes",
     "match_pool",
     "pool_entries",
+    "reconcile",
 ]

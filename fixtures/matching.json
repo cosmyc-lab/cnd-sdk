@@ -1,0 +1,156 @@
+{
+  "matcher_version": "v1",
+  "cases": {
+    "01-label-survives-edit-and-move": {
+      "why": "A labelled node is paired even when both its content and its slot changed.",
+      "nodes": [
+        {
+          "status": "changed",
+          "matched_by": "label",
+          "old_id": "00000000-0000-4000-c001-000000000002",
+          "new_id": "00000000-0000-4000-c001-000000000003"
+        },
+        {
+          "status": "moved",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c001-000000000001",
+          "new_id": "00000000-0000-4000-c001-000000000004"
+        }
+      ],
+      "footnotes": []
+    },
+    "02-unchanged-in-place": {
+      "why": "Same content in the same slots: every node is unchanged.",
+      "nodes": [
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c002-000000000001",
+          "new_id": "00000000-0000-4000-c002-000000000003"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c002-000000000002",
+          "new_id": "00000000-0000-4000-c002-000000000004"
+        }
+      ],
+      "footnotes": []
+    },
+    "03-moved-but-unchanged": {
+      "why": "An insertion shifts every following node; the hash pass recovers them.",
+      "nodes": [
+        {
+          "status": "added",
+          "matched_by": null,
+          "old_id": null,
+          "new_id": "00000000-0000-4000-c003-000000000003"
+        },
+        {
+          "status": "moved",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c003-000000000001",
+          "new_id": "00000000-0000-4000-c003-000000000004"
+        },
+        {
+          "status": "moved",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c003-000000000002",
+          "new_id": "00000000-0000-4000-c003-000000000005"
+        }
+      ],
+      "footnotes": []
+    },
+    "04-same-slot-edited": {
+      "why": "An edit in place falls through to the path+type pass.",
+      "nodes": [
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c004-000000000001",
+          "new_id": "00000000-0000-4000-c004-000000000003"
+        },
+        {
+          "status": "changed",
+          "matched_by": "path+type",
+          "old_id": "00000000-0000-4000-c004-000000000002",
+          "new_id": "00000000-0000-4000-c004-000000000004"
+        }
+      ],
+      "footnotes": []
+    },
+    "05-added-and-removed": {
+      "why": "No pass applies \u2014 different content, different type \u2014 so the old node is removed and the new one added.",
+      "nodes": [
+        {
+          "status": "added",
+          "matched_by": null,
+          "old_id": null,
+          "new_id": "00000000-0000-4000-c005-000000000002"
+        },
+        {
+          "status": "removed",
+          "matched_by": null,
+          "old_id": "00000000-0000-4000-c005-000000000001",
+          "new_id": null
+        }
+      ],
+      "footnotes": []
+    },
+    "06-combined-case-fails": {
+      "why": "Edited AND shifted: misses the hash passes and the path pass, so it is reported added/removed. Pinned as a failure, not papered over.",
+      "nodes": [
+        {
+          "status": "added",
+          "matched_by": null,
+          "old_id": null,
+          "new_id": "00000000-0000-4000-c006-000000000003"
+        },
+        {
+          "status": "moved",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c006-000000000001",
+          "new_id": "00000000-0000-4000-c006-000000000004"
+        },
+        {
+          "status": "added",
+          "matched_by": null,
+          "old_id": null,
+          "new_id": "00000000-0000-4000-c006-000000000005"
+        },
+        {
+          "status": "removed",
+          "matched_by": null,
+          "old_id": "00000000-0000-4000-c006-000000000002",
+          "new_id": null
+        }
+      ],
+      "footnotes": []
+    },
+    "07-pools-key-on-label": {
+      "why": "Pool entries carry a required label, so the pool diff is exact and order-independent.",
+      "nodes": [
+        {
+          "status": "unchanged",
+          "matched_by": "label",
+          "old_id": "00000000-0000-4000-c007-000000000001",
+          "new_id": "00000000-0000-4000-c007-000000000002"
+        }
+      ],
+      "footnotes": [
+        {
+          "status": "changed",
+          "label": "fn-b"
+        },
+        {
+          "status": "added",
+          "label": "fn-c"
+        },
+        {
+          "status": "removed",
+          "label": "fn-a"
+        }
+      ]
+    }
+  }
+}
