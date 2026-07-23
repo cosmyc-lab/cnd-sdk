@@ -18,6 +18,11 @@ dependencies = [
     "rfc8785>=0.1.2",
 ]
 
+[project.scripts]
+# The conformance CLI (docs/adr/0020) — the executable oracle of the
+# fixture corpus. `inspect` additionally needs the `display` extra.
+cnd = "cnd.cli:main"
+
 [project.optional-dependencies]
 display = [
     "rich>=15.0.0",
