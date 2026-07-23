@@ -9,7 +9,7 @@ of typed nodes, with stable cross-references between nodes.
 |---|---|
 | spec/cnd-spec.md | THE format specification (prose) |
 | schema/cnd.schema.json | JSON Schema, generated from the Pydantic models |
-| src/cnd/ | the `cnd` package: the CND model, node types, NodeRef, to_text, base visitor, optional Rich display |
+| src/cnd/ | the `cnd` package: the CND model, node types, NodeRef, renderers, outbound converters, base visitor, optional Rich display |
 | fixtures/ | canonical example CNDs used by the test suite |
 | tests/ | pytest suite, includes a schema-regression test |
 

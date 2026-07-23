@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr" data-cnd-version="0.3.0" data-built-at="2026-07-15T08:30:00+00:00">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rapport d&#x27;essais du banc de mesure — Fixture couverture totale</title>
+<meta name="author" content="Équipe CND">
+<meta name="author" content="M. Durand">
+<meta name="description" content="Manifest de référence exerçant chaque type de nœud et chaque variante du format CND 0.2.0 : familles de liens, pools, figures imbriquées, tables fusionnées.">
+<meta name="keywords" content="banc de mesure, couverture, fixture, citations, figures">
+<meta name="date" content="2026-07-15">
+<style>
+:root { color-scheme: light dark; }
+body { margin: 0 auto; max-width: 46rem; padding: 2rem 1rem;
+       font-family: system-ui, sans-serif; line-height: 1.6; }
+figure { margin: 1.5rem 0; }
+figcaption { font-size: .9em; opacity: .8; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid currentColor; padding: .25rem .5rem; }
+pre { overflow-x: auto; padding: .75rem; }
+.cnd-markers { font-size: .85em; opacity: .75; }
+.cnd-unresolved { text-decoration: underline wavy; }
+.cnd-missing-image { font-style: italic; opacity: .7; }
+</style>
+</head>
+<body>
+<article>
+<h1 id="ch-overview">1 Vue d&#x27;ensemble</h1>
+<p id="para-intro" lang="fr">Les mesures nominales sont récapitulées dans la table des mesures ; la structure atomique est illustrée plus bas.</p>
+<span class="cnd-markers"><a class="cnd-cite" href="#durand2025">[durand2025, p. 42]</a> <sup class="cnd-footnote"><a href="#fn-unit">fn-unit</a></sup> <a class="cnd-ref" href="#tab-mesures">[tab-mesures]</a> <a class="cnd-cite" href="#durand2025">[durand2025]</a> <a class="cnd-ref" href="#fig-atom">[fig-atom]</a></span>
+<ol><li>Étalonner les capteurs<ul><li>Vérifier le zéro</li><li>Vérifier la pleine échelle</li></ul></li><li>Lancer l&#x27;acquisition</li></ol>
+<ul><li>Alimentation 24 V redondée</li><li>Bus de terrain isolé galvaniquement</li></ul>
+<dl><dt>Banc</dt><dd>Ensemble mécanique portant les capteurs sous test.</dd><dt>Cycle</dt><dd>Séquence complète de montée et descente en charge.</dd><dt>Dérive</dt><dd>Écart de mesure observé entre deux étalonnages.</dd></dl>
+<blockquote lang="fr"><p>Mesurer, c&#x27;est comparer à une référence.</p><footer>Manuel de métrologie interne</footer></blockquote>
+<pre><code class="language-python">def moyenne(valeurs):
+    return sum(valeurs) / len(valeurs)</code></pre>
+<div id="eq-erreur" class="cnd-math-block"><code class="cnd-math">e(t) = m(t) - r(t)</code><span class="cnd-number">(1)</span></div>
+<h2 id="sec-figures">1.1 Résultats et figures</h2>
+<span class="cnd-markers"><a class="cnd-ref" href="#fig-schema">[fig-schema]</a></span>
+<figure id="tab-mesures" data-kind="table"><table><tr><th>Capteur</th><th>Nominal</th></tr><tr><td>PT-01</td><td>10 bar</td></tr><tr><td>FT-02</td><td>250 L/min</td></tr></table><figcaption>Table 1: Mesures nominales par capteur.</figcaption></figure>
+<table id="grid-layout" role="presentation"><tr><th rowspan="2">Zone</th><th colspan="2">Relevés bruts</th></tr><tr><td>12.4</td><td>12.6</td></tr></table>
+<figure id="fig-schema" data-kind="image"><img src="figures/banc.png" alt="Vue d&#x27;ensemble du banc de mesure"><figcaption>Figure 1: Schéma du banc de mesure.</figcaption></figure>
+<figure id="lst-config" data-kind="listing"><pre><code class="language-json">{
+  &quot;frequence_hz&quot;: 10,
+  &quot;duree_s&quot;: 300
+}</code></pre><figcaption>Listing 1: Configuration de l&#x27;acquisition.</figcaption></figure>
+<figure id="fig-compare" data-kind="image"><figure data-kind="image"><img src="figures/avant.png" alt="Courbe avant étalonnage"><figcaption>(a) Avant étalonnage.</figcaption></figure><figure data-kind="image"><img src="figures/apres.png" alt="Courbe après étalonnage"><figcaption>(b) Après étalonnage.</figcaption></figure><figcaption>Figure 2: Comparaison avant/après étalonnage.</figcaption></figure>
+<figure id="fig-atom" data-kind="atom"><img src="figures/reseau.svg" alt="Maille cristalline"><figcaption>Atome 1: Structure atomique du réseau mesuré.</figcaption></figure>
+<figure id="fig-canvas" data-kind="canvas"><pre class="cnd-raw" data-format="typst"><code>#figure(canvas(length: 1cm, { plot(..) }))</code></pre><figcaption>Figure 3: Tracé vectoriel non convertible.</figcaption></figure>
+<img src="figures/logo-banc.png" alt="Logo du banc, image nue hors figure">
+<span class="cnd-missing-image">Image incorporée sans chemin extrait</span>
+<h1 id="ch-references">2 Références</h1>
+<p lang="fr">Grille brute en annexe. Les travaux antérieurs couvrent la méthode, l&#x27;auteur, l&#x27;année et une citation muette.</p>
+<span class="cnd-markers"><a class="cnd-ref" href="#grid-layout">[grid-layout]</a> <sup class="cnd-footnote"><a href="#fn-proto">fn-proto</a></sup> <a class="cnd-cite" href="#nguyen2023">[nguyen2023]</a> <a class="cnd-cite" href="#durand2025">[durand2025]</a> <a class="cnd-cite" href="#nguyen2023">[nguyen2023]</a></span>
+</article>
+<section class="cnd-footnotes">
+<h2>Footnotes</h2>
+<ol>
+<li id="fn-unit">Toutes les valeurs sont exprimées en unités SI.</li>
+<li id="fn-proto">Le prototype de la grille figure au dossier d&#x27;essais 2026-041.</li>
+</ol>
+</section>
+<section class="cnd-bibliography">
+<h2>Bibliography</h2>
+<ul>
+<li id="durand2025">Durand, M., &amp; Petit, C. (2025). Étalonnage automatique des chaînes de mesure. Revue de Métrologie Appliquée, 8(2), 101–118.</li>
+<li id="nguyen2023">Nguyen, T. (2023). Field bus diagnostics in practice. Munich: Feldbus Verlag.</li>
+</ul>
+</section>
+</body>
+</html>

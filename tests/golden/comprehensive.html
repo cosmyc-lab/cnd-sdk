@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr" data-cnd-version="0.3.0" data-built-at="2026-06-06T12:00:00+00:00">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manuel d&#x27;exploitation DCS — Fixture intégration CND</title>
+<meta name="author" content="Équipe CND">
+<meta name="author" content="L. Faure">
+<meta name="description" content="Manifest de référence couvrant les cas limites du chunker : contenu pré-heading, imbrication profonde, refs intra/inter-chunks, tables complexes.">
+<meta name="keywords" content="DCS, chunking, cross-refs, tables, fixture">
+<meta name="date" content="2026-06-06">
+<style>
+:root { color-scheme: light dark; }
+body { margin: 0 auto; max-width: 46rem; padding: 2rem 1rem;
+       font-family: system-ui, sans-serif; line-height: 1.6; }
+figure { margin: 1.5rem 0; }
+figcaption { font-size: .9em; opacity: .8; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid currentColor; padding: .25rem .5rem; }
+pre { overflow-x: auto; padding: .75rem; }
+.cnd-markers { font-size: .85em; opacity: .75; }
+.cnd-unresolved { text-decoration: underline wavy; }
+.cnd-missing-image { font-style: italic; opacity: .7; }
+</style>
+</head>
+<body>
+<article>
+<p lang="fr">Résumé exécutif placé avant le premier titre. Ce paragraphe doit produire un chunk isolé avec un heading_path vide.</p>
+<h1 id="ch-architecture">1 Architecture générale</h1>
+<p lang="fr">Le système DCS repose sur trois couches fonctionnelles : acquisition, traitement et supervision.</p>
+<h2 id="sec-acquisition">1.1 Couche d&#x27;acquisition</h2>
+<span class="cnd-markers"><a class="cnd-ref" href="#tab-plages-mesure">[tab-plages-mesure]</a></span>
+<p lang="fr">Les capteurs analogiques et numériques sont regroupés par bus de terrain. Voir le tableau des plages de mesure.</p>
+<span class="cnd-markers"><a class="cnd-ref" href="#tab-plages-mesure">[tab-plages-mesure]</a></span>
+<p lang="fr">La fréquence d&#x27;échantillonnage nominale est de 10 Hz pour les boucles rapides.</p>
+<figure data-kind="table"><table id="tab-plages-mesure"><tr><th colspan="2">Capteur</th><th>Plage</th></tr><tr><td rowspan="2">Pression</td><td>PT-101</td><td>0–16 bar</td></tr><tr><td>PT-102</td><td>0–25 bar</td></tr><tr><td>Débit</td><td>FT-201</td><td>0–500 L/min</td></tr></table><figcaption>Table 1: Plages de mesure des capteurs de terrain.</figcaption></figure>
+<h2 id="sec-traitement">1.2 Couche de traitement</h2>
+<span class="cnd-markers"><a class="cnd-ref" href="#tab-plages-mesure">[tab-plages-mesure]</a> <a class="cnd-ref" href="#tab-recap-signaux">[tab-recap-signaux]</a></span>
+<p lang="fr">Les algorithmes de régulation s&#x27;exécutent sur le contrôleur redondant. Les plages capteurs (Table 1) et le récapitulatif annexe (Table 4) doivent rester cohérents.</p>
+<span class="cnd-markers"><a class="cnd-ref" href="#tab-plages-mesure">[tab-plages-mesure]</a> <a class="cnd-ref" href="#tab-recap-signaux">[tab-recap-signaux]</a></span>
+<figure data-kind="table"><table id="tab-boucles-regulation"><tr><th>Boucle</th><th>Mode</th><th>Kp</th></tr><tr><td>LC-101</td><td>AUTO</td><td>1.25</td></tr><tr><td>FC-202</td><td>CASCADE</td><td>0.80</td></tr></table><figcaption>Table 2: Boucles de régulation PID actives.</figcaption></figure>
+<h1 id="ch-exploitation">2 Exploitation</h1>
+<h2>2.1 Surveillance opérateur</h2>
+<h3 id="sec-alarmes">2.1.1 Gestion des alarmes</h3>
+<span class="cnd-markers"><a class="cnd-ref" href="#tab-delais-alarmes">[tab-delais-alarmes]</a></span>
+<p lang="fr">Les alarmes sont classées en quatre niveaux de criticité : info, avertissement, alarme, critique.</p>
+<p lang="fr">Le délai d&#x27;acquittement maximal est défini par la politique site. Consulter la matrice des délais.</p>
+<span class="cnd-markers"><a class="cnd-ref" href="#tab-delais-alarmes">[tab-delais-alarmes]</a></span>
+<figure data-kind="table"><table id="tab-delais-alarmes"><tr><th colspan="2">Niveau</th><th>Délai max</th></tr><tr><td>Info</td><td>—</td><td>24 h</td></tr><tr><td>Critique</td><td>P1</td><td>5 min</td></tr></table><figcaption>Table 3: Délais d&#x27;acquittement par niveau de criticité.</figcaption></figure>
+<h2 id="sec-maintenance">2.2 Maintenance préventive</h2>
+<p lang="fr">Les interventions planifiées suivent le calendrier OEM. Aucune table n&#x27;est associée à cette section.</p>
+<h1 id="ch-annexes">3 Annexes</h1>
+<figure data-kind="table"><table id="tab-recap-signaux"><tr><th>Tag</th><th>Unité</th><th>Bus</th></tr><tr><td>PT-101</td><td>bar</td><td>Profibus</td></tr><tr><td>FT-201</td><td>L/min</td><td>Modbus</td></tr></table><figcaption>Table 4: Récapitulatif des signaux instrumentés.</figcaption></figure>
+</article>
+</body>
+</html>

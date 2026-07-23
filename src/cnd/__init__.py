@@ -1,7 +1,8 @@
 """CND — the Context Native Document standard.
 
 Core parsing (``Cnd`` and node types) and rendering
-(``MarkdownRenderer``) have no optional dependencies. Display helpers
+(``MarkdownRenderer``) and outbound converters (``cnd.converters``)
+have no optional dependencies. Display helpers
 (``cnd.display``, ``cnd.visitors.node_display_visitor``) require the
 ``display`` extra: ``pip install cnd-sdk[display]``.
 """
@@ -47,6 +48,12 @@ from cnd.core import (
     position_totals,
     validate,
 )
+from cnd.converters import (
+    CndConverter,
+    ConversionResult,
+    HtmlConverter,
+    MarkdownConverter,
+)
 from cnd.visitors import BaseVisitor, VisitTarget
 
 __all__ = [
@@ -54,18 +61,22 @@ __all__ = [
     "BibEntry",
     "CiteRef",
     "Cnd",
+    "CndConverter",
     "CndNode",
     "CodeNode",
+    "ConversionResult",
     "DocDate",
     "DocMetadata",
     "FigureNode",
     "Footnote",
     "FootnoteRef",
     "HeadingNode",
+    "HtmlConverter",
     "ImageNode",
     "LinkTarget",
     "ListItem",
     "ListNode",
+    "MarkdownConverter",
     "MarkdownRenderer",
     "MathNode",
     "NodeBase",
