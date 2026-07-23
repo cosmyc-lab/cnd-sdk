@@ -52,9 +52,17 @@ Exit code `0` means conformant, `1` means it is not (or the file did not
 parse). `--json` on `validate`/`hash` gives machine-readable output, since
 comparing two implementations is a diff rather than a read.
 
-It carries only the verbs that *are* conformance. Turning a foreign format
-into a CND belongs with the producers, not here — see
-[`docs/adr/0020`](docs/adr/0020-repository-as-conformance-hub.md).
+**This is three of the five conformance verbs**
+[`docs/adr/0020`](docs/adr/0020-repository-as-conformance-hub.md) specifies.
+`build` (from a declaration) and `reconcile`/`diff` are conformance verbs
+too, and are missing only because the declaration and the reconciliation
+algorithm do not exist yet. Agreeing with the three above is necessary for
+conformance, not yet sufficient — and the corpus matches, carrying two of
+the four vector kinds the same ADR requires.
+
+Turning a foreign format into a CND (`cnd declare`) is a different kind of
+absence: it belongs with the producers permanently, since bundling it would
+make the hub depend on a satellite.
 
 ## Spec
 
