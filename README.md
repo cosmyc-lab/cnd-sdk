@@ -36,6 +36,26 @@ from cnd.visitors.node_display_visitor import NodeDisplayVisitor
 NodeDisplayVisitor().visit(cnd)
 ```
 
+## Conformance CLI
+
+The `cnd` command is the executable oracle of the fixture corpus — the tool
+to reach for when implementing CND in another language and asking "does my
+implementation agree?".
+
+```bash
+cnd validate doc.cnd          # the invariants JSON Schema cannot express
+cnd hash doc.cnd --nodes      # the reference content hashes
+cnd inspect doc.cnd           # readable tree trace (needs [display])
+```
+
+Exit code `0` means conformant, `1` means it is not (or the file did not
+parse). `--json` on `validate`/`hash` gives machine-readable output, since
+comparing two implementations is a diff rather than a read.
+
+It carries only the verbs that *are* conformance. Turning a foreign format
+into a CND belongs with the producers, not here — see
+[`docs/adr/0020`](docs/adr/0020-repository-as-conformance-hub.md).
+
 ## Spec
 
 The full CND specification lives in [`spec/cnd-spec.md`](spec/cnd-spec.md),
