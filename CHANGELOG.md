@@ -105,8 +105,15 @@ The wave is docs/proposals/0008, carrying ADRs 0015-0017 and 0021.
   injective, and no inherited id collides with a freshly minted one — are
   checked before anything is applied, since both are properties of the
   *matcher* and a future matcher version that broke one must fail loudly
-  rather than corrupt a document. `only_exact=True` restricts inheritance
-  to label matches.
+  rather than corrupt a document.
+
+  Two deliberate deviations from ADR 0018's text, recorded here because
+  the ADR is `accepted` and cannot be edited to match: it returns a
+  `Reconciliation` wrapping the CND alongside inherited/minted counts
+  rather than a bare `Cnd`, and it takes `only_exact=True` to restrict
+  inheritance to label matches. Both are SDK affordances beyond the
+  decision, not changes to it — ADR 0018 is explicitly non-normative and
+  SDK-only (ADR 0006), so no implementation is bound to this signature.
 - **`cnd diff`** joins the conformance CLI, bringing it to four of the
   five verbs ADR 0020 names; only `build` still awaits the declaration.
 - **`fixtures/reconcile/` + `matching.json`** — the third of the four
