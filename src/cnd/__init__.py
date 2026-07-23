@@ -44,6 +44,7 @@ from cnd.core import (
     content_hash,
     iter_nodes,
     node_hash,
+    pool_entry_hash,
     position_totals,
     validate,
 )
@@ -89,6 +90,7 @@ __all__ = [
     "content_hash",
     "iter_nodes",
     "node_hash",
+    "pool_entry_hash",
     "position_totals",
     "validate",
 ]
