@@ -115,3 +115,55 @@ class TestUsage:
             main([])
 
         assert exit_info.value.code == 2
+
+
+class TestDiff:
+    CASES = FIXTURES / "reconcile"
+
+    def _pair(self, name: str) -> tuple[Path, Path]:
+        return self.CASES / name / "old.cnd", self.CASES / name / "new.cnd"
+
+    def test_it_reproduces_the_committed_matching_vectors(self, capsys) -> None:
+        """The oracle must agree with the corpus it is the oracle of —
+        the same bar `cnd hash` is held to."""
+        vectors = json.loads((FIXTURES / "matching.json").read_text())
+
+        for name, case in vectors["cases"].items():
+            code, out, _ = _run(capsys, "diff", "--json", *self._pair(name))
+
+            payload = json.loads(out)
+            assert code == 0
+            assert payload["matcher_version"] == vectors["matcher_version"]
+            assert [
+                {
+                    "status": n["status"],
+                    "matched_by": n["matched_by"],
+                    "old_id": n["old_id"],
+                    "new_id": n["new_id"],
+                }
+                for n in payload["nodes"]
+            ] == case["nodes"], name
+
+    def test_plain_output_names_the_pass_that_matched(self, capsys) -> None:
+        """`via label` is a fact, `via hash` is a guess — a reader has to
+        be able to tell them apart."""
+        _, out, _ = _run(capsys, "diff", *self._pair("01-label-survives-edit-and-move"))
+
+        assert "via label" in out
+        assert "matching v1" in out
+
+    def test_an_identical_pair_reports_nothing_changed(self, capsys) -> None:
+        code, out, _ = _run(
+            capsys, "diff", FIXTURES / "minimal.cnd", FIXTURES / "minimal.cnd"
+        )
+
+        assert code == 0
+        assert "changed=0" in out and "added=0" in out and "removed=0" in out
+
+    def test_an_unreadable_side_fails_without_crashing(self, capsys) -> None:
+        code, _, err = _run(
+            capsys, "diff", FIXTURES / "minimal.cnd", FIXTURES / "absent.cnd"
+        )
+
+        assert code == 1
+        assert "cannot read" in err

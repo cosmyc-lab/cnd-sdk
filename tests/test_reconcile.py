@@ -8,7 +8,9 @@ scenario tests pin the classification a consumer sees, including the
 failure the ADR documents rather than hides.
 """
 
+import json
 from datetime import datetime
+from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
@@ -19,10 +21,14 @@ from cnd import (
     DocMetadata,
     Footnote,
     HeadingNode,
+    NodeRef,
     ParagraphNode,
+    validate,
 )
 from cnd.reconcile import (
     MATCHER_VERSION,
+    ReconcileError,
+    reconcile,
     CndDiff,
     diff,
     entries,
@@ -365,3 +371,230 @@ def test_diffing_against_an_empty_document(empty_side: str):
     report = diff(old, new)
     expected = "added" if empty_side == "old" else "removed"
     assert [change.status for change in report.nodes] == [expected, expected]
+
+
+class TestConformanceVectors:
+    """`(old, new) -> expected matching` vectors (docs/adr/0018, 0020 §4).
+
+    Matching v1 is a versioned reference algorithm rather than a normative
+    rule, and that is precisely why it needs vectors: a normative rule can
+    be read off the spec, a heuristic can only be reproduced by pinning its
+    output. A second implementation claiming "matching v1" reproduces these
+    or it is running a different algorithm.
+    """
+
+    VECTORS = Path(__file__).parent.parent / "fixtures" / "matching.json"
+    CASES = Path(__file__).parent.parent / "fixtures" / "reconcile"
+
+    def _expected(self) -> dict:
+        return json.loads(self.VECTORS.read_text())
+
+    def _case(self, name: str) -> tuple[Cnd, Cnd]:
+        directory = self.CASES / name
+        return (
+            Cnd.model_validate_json((directory / "old.cnd").read_text()),
+            Cnd.model_validate_json((directory / "new.cnd").read_text()),
+        )
+
+    def test_every_case_reproduces_its_vector(self) -> None:
+        expected = self._expected()
+        assert expected["cases"], "precondition: the corpus has cases"
+
+        for name, case in expected["cases"].items():
+            old, new = self._case(name)
+            report = diff(old, new)
+            actual = [
+                {
+                    "status": change.status,
+                    "matched_by": change.matched_by,
+                    "old_id": str(change.old.node.id) if change.old else None,
+                    "new_id": str(change.new.node.id) if change.new else None,
+                }
+                for change in report.nodes
+            ]
+            assert actual == case["nodes"], (
+                f"{name}: matching drifted. If that was deliberate it is a "
+                "new matcher version (ADR 0018), not a regeneration."
+            )
+
+    def test_the_vectors_declare_the_matcher_version(self) -> None:
+        """A vector set without its version is unusable: matching v2 would
+        legitimately produce different output."""
+        assert self._expected()["matcher_version"] == MATCHER_VERSION
+
+    def test_every_case_directory_has_a_vector(self) -> None:
+        directories = {p.name for p in self.CASES.iterdir() if p.is_dir()}
+
+        assert directories == set(self._expected()["cases"])
+
+    def test_each_case_pair_is_itself_a_valid_cnd(self) -> None:
+        """A vector built on a non-conformant CND would pin nonsense."""
+        for name in self._expected()["cases"]:
+            for cnd in self._case(name):
+                assert validate(cnd) == [], name
+
+    def test_the_documented_failure_is_pinned_as_a_failure(self) -> None:
+        """ADR 0018's combined case: edited *and* shifted. The vector must
+        record it missing, so nobody 'fixes' the corpus to hide it."""
+        case = self._expected()["cases"]["06-combined-case-fails"]
+        statuses = [node["status"] for node in case["nodes"]]
+
+        assert "added" in statuses and "removed" in statuses
+
+    def test_a_label_survives_edit_and_move_together(self) -> None:
+        """The one exact claim the matcher makes."""
+        case = self._expected()["cases"]["01-label-survives-edit-and-move"]
+        labelled = [n for n in case["nodes"] if n["matched_by"] == "label"]
+
+        assert len(labelled) == 1
+        assert labelled[0]["status"] == "changed"
+
+
+def _doc(nodes, **kwargs) -> Cnd:
+    return Cnd(
+        cnd_version="0.3.0",
+        built_at=datetime(2026, 7, 23),
+        doc=DocMetadata(title="T"),
+        nodes=nodes,
+        **kwargs,
+    )
+
+
+def _p(node_id: UUID, text: str, label: str | None = None) -> ParagraphNode:
+    return ParagraphNode(id=node_id, type="paragraph", text=text, label=label)
+
+
+class TestReconcile:
+    """Id inheritance (docs/adr/0018)."""
+
+    def test_a_matched_node_takes_the_previous_id(self) -> None:
+        previous = _doc([_p(UUID(int=1), "alpha")])
+        new = _doc([_p(UUID(int=99), "alpha")])
+
+        result = reconcile(new, previous)
+
+        assert [n.node.id for n in result.cnd.iter()] == [UUID(int=1)]
+        assert result.inherited == 1 and result.minted == 0
+
+    def test_an_unmatched_node_keeps_its_fresh_id(self) -> None:
+        previous = _doc([_p(UUID(int=1), "alpha")])
+        new = _doc([_p(UUID(int=1), "alpha"), _p(UUID(int=99), "brand new")])
+
+        result = reconcile(new, previous)
+
+        assert UUID(int=99) in {n.node.id for n in result.cnd.iter()}
+        assert result.inherited == 1 and result.minted == 1
+
+    def test_the_input_is_not_mutated(self) -> None:
+        """A CND is an immutable build artifact; a pass that rewrote its
+        argument in place would make the caller's own copy lie."""
+        previous = _doc([_p(UUID(int=1), "alpha")])
+        new = _doc([_p(UUID(int=99), "alpha")])
+
+        reconcile(new, previous)
+
+        assert [n.node.id for n in new.iter()] == [UUID(int=99)]
+
+    def test_pool_entries_inherit_too(self) -> None:
+        previous = _doc(
+            [_p(UUID(int=1), "a")],
+            footnotes=[Footnote(id=UUID(int=10), label="fn", text="note")],
+        )
+        new = _doc(
+            [_p(UUID(int=1), "a")],
+            footnotes=[Footnote(id=UUID(int=90), label="fn", text="edited")],
+        )
+
+        result = reconcile(new, previous)
+
+        assert result.cnd.footnotes[0].id == UUID(int=10)
+
+    def test_edges_need_no_rewriting(self) -> None:
+        """Edges name their target by label (ADR 0017), so the remap never
+        chases an id through a link family — the reason this is one final
+        pass rather than a graph rewrite."""
+        previous = _doc(
+            [_p(UUID(int=1), "target", label="t"), _p(UUID(int=2), "source")]
+        )
+        new = _doc(
+            [
+                _p(UUID(int=91), "target", label="t"),
+                ParagraphNode(
+                    id=UUID(int=92),
+                    type="paragraph",
+                    text="source",
+                    refs=[NodeRef(label="t")],
+                ),
+            ]
+        )
+
+        result = reconcile(new, previous)
+
+        source = [n.node for n in result.cnd.iter() if n.node.refs][0]
+        assert source.refs[0].label == "t"
+        assert result.cnd.resolve("t").id == UUID(int=1)
+
+    def test_only_exact_refuses_heuristic_pairings(self) -> None:
+        """A caller who would rather mint a fresh id than inherit one on a
+        heuristic's word."""
+        previous = _doc([_p(UUID(int=1), "alpha"), _p(UUID(int=2), "beta", label="b")])
+        new = _doc([_p(UUID(int=91), "alpha"), _p(UUID(int=92), "beta", label="b")])
+
+        full = reconcile(new, previous)
+        exact = reconcile(new, previous, only_exact=True)
+
+        assert full.inherited == 2
+        assert exact.inherited == 1
+        assert exact.cnd.resolve("b").id == UUID(int=2)
+
+
+class TestReconcileGuards:
+    """The two assertions ADR 0018 requires before any remap is applied.
+
+    Both are properties of the *matcher*. They are checked in `reconcile`
+    rather than assumed precisely so a future matcher version that broke
+    one fails loudly instead of corrupting a document.
+    """
+
+    def test_an_inherited_id_may_not_collide_with_a_kept_one(self) -> None:
+        """Constructible: the node that inherits `previous`' id sits beside
+        one whose fresh id already *is* that id. Applying the remap would
+        give two nodes the same id and break global uniqueness (spec §2)."""
+        previous = _doc([_p(UUID(int=1), "alpha")])
+        new = _doc([_p(UUID(int=91), "alpha"), _p(UUID(int=1), "unmatched")])
+
+        with pytest.raises(ReconcileError, match="collides"):
+            reconcile(new, previous)
+
+    def test_a_non_injective_remap_is_refused(self) -> None:
+        """The matcher cannot produce this today — each old entry is
+        consumed once — so the guard is exercised directly. A guard that
+        can only be reached by a future bug still has to be known to
+        work."""
+        from cnd.reconcile.inherit import _check
+
+        cnd = _doc([_p(UUID(int=91), "a"), _p(UUID(int=92), "b")])
+        remap = {UUID(int=91): UUID(int=1), UUID(int=92): UUID(int=1)}
+
+        with pytest.raises(ReconcileError, match="not injective"):
+            _check(cnd, remap)
+
+    def test_a_clean_remap_passes_both_guards(self) -> None:
+        previous = _doc([_p(UUID(int=1), "alpha"), _p(UUID(int=2), "beta")])
+        new = _doc([_p(UUID(int=91), "alpha"), _p(UUID(int=92), "beta")])
+
+        assert reconcile(new, previous).inherited == 2
+
+
+class TestReconcileAgainstTheCorpus:
+    def test_every_vector_pair_reconciles_without_tripping_a_guard(self) -> None:
+        cases = Path(__file__).parent.parent / "fixtures" / "reconcile"
+        for directory in sorted(p for p in cases.iterdir() if p.is_dir()):
+            previous = Cnd.model_validate_json((directory / "old.cnd").read_text())
+            new = Cnd.model_validate_json((directory / "new.cnd").read_text())
+
+            result = reconcile(new, previous)
+
+            assert validate(result.cnd) == [], directory.name
+            ids = [v.node.id for v in result.cnd.iter()]
+            assert len(set(ids)) == len(ids), f"{directory.name}: duplicate ids"

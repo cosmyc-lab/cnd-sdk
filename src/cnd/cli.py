@@ -6,21 +6,26 @@ conformance verb set as ``validate``, ``hash``, ``reconcile``/``diff``,
 five are implemented here**; the other two are absent for reasons worth
 keeping distinct:
 
-- ``build`` and ``reconcile``/``diff`` are conformance verbs by the ADR's
-  own words, and they are missing only because the declaration
-  (docs/adr/0019) and the reconciliation algorithm (docs/adr/0018) do not
-  exist yet. They belong in this CLI when they do.
+- ``build`` is a conformance verb by the ADR's own words, and is missing
+  only because the declaration (docs/adr/0019) does not exist yet. It
+  belongs in this CLI when it does.
 - ``cnd declare`` — foreign format to declaration — is a different case:
   it belongs with the producers *permanently*. Bundling it would make the
   hub depend on a satellite and let inference-heuristic churn in through
   the window, which ADR 0019 keeps out of the builder and ADR 0020 keeps
   out of the hub.
 
-So an implementer reading this should know: agreeing with these three
-verbs is necessary for conformance, not yet sufficient. The corpus is in
-the same state — it carries two of the four vector kinds ADR 0020 §4
-requires (``hashes.json``, ``traversal.json``); ``declaration → CND`` and
-``(old, new) → matching`` await the same two features.
+So an implementer reading this should know: agreeing with these verbs is
+necessary for conformance, not yet sufficient. The corpus is in the same
+state — three of the four vector kinds ADR 0020 §4 requires
+(``hashes.json``, ``traversal.json``, ``matching.json``); only
+``declaration → CND`` awaits the declaration.
+
+``diff`` is the odd one out and worth flagging to anyone comparing
+implementations: matching v1 is a *versioned reference algorithm*, not a
+normative rule (docs/adr/0018). Reproducing ``matching.json`` proves an
+implementation runs v1; it is not a conformance requirement on the
+format, and a later version may legitimately differ.
 
 Output is human-readable by default and machine-readable under ``--json``,
 because comparing two implementations is a diff, not a read.
@@ -43,6 +48,7 @@ from pydantic import ValidationError
 from cnd.core.cnd import Cnd
 from cnd.core.hashing import content_hash, node_hash
 from cnd.core.validate import validate
+from cnd.reconcile import diff
 
 EXIT_OK = 0
 EXIT_NONCONFORMANT = 1
@@ -64,9 +70,9 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
         epilog=(
             "Partial: ADR 0020 also specifies `build` (from a declaration) "
-            "and `reconcile`/`diff` as conformance verbs. Both await the "
-            "features they act on. Agreeing with the three verbs above is "
-            "necessary for conformance, not yet sufficient."
+            "as a conformance verb; the declaration does not exist yet. "
+            "Agreeing with the verbs above is necessary for conformance, "
+            "not yet sufficient."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -101,6 +107,27 @@ def _build_parser() -> argparse.ArgumentParser:
         help="also print each node hash, in reading order",
     )
     digest.set_defaults(run=_run_hash)
+
+    delta = sub.add_parser(
+        "diff",
+        help="what moved between two builds of a document",
+        description=(
+            "Matching v1 (docs/adr/0018) over two CNDs: each node is added, "
+            "removed, changed, moved or unchanged, plus a label-keyed diff "
+            "of both pools. A versioned reference algorithm, NOT part of "
+            "the format — exact for labelled nodes, best-effort for the "
+            "rest, and it reports which pass paired each node so a caller "
+            "can tell the two apart."
+        ),
+    )
+    delta.add_argument("old", type=Path, metavar="OLD")
+    delta.add_argument("new", type=Path, metavar="NEW")
+    delta.add_argument(
+        "--json",
+        action="store_true",
+        help="machine-readable output, for diffing against another implementation",
+    )
+    delta.set_defaults(run=_run_diff)
 
     show = sub.add_parser(
         "inspect",
@@ -202,6 +229,75 @@ def _run_hash(args: argparse.Namespace) -> int:
             for index, digest in enumerate(result.get("node_hashes", []), start=1):
                 print(f"  {index:>4}  {digest}")
     return EXIT_NONCONFORMANT if failed else EXIT_OK
+
+
+# Statuses in report order: what a reader acts on first.
+_DIFF_ORDER = ("changed", "added", "removed", "moved", "unchanged")
+
+
+def _run_diff(args: argparse.Namespace) -> int:
+    old, old_error = _load(args.old)
+    new, new_error = _load(args.new)
+    for path, error in ((args.old, old_error), (args.new, new_error)):
+        if error:
+            print(f"{path}: {error}", file=sys.stderr)
+    if old is None or new is None:
+        return EXIT_NONCONFORMANT
+
+    report = diff(old, new)
+    payload = {
+        "matcher_version": report.matcher_version,
+        "old": str(args.old),
+        "new": str(args.new),
+        "nodes": [
+            {
+                "status": change.status,
+                "matched_by": change.matched_by,
+                "type": (change.new or change.old).node.type,
+                "label": (change.new or change.old).node.label,
+                "old_id": str(change.old.node.id) if change.old else None,
+                "new_id": str(change.new.node.id) if change.new else None,
+            }
+            for change in report.nodes
+        ],
+        "bibliography": _pool_payload(report.bibliography),
+        "footnotes": _pool_payload(report.footnotes),
+    }
+
+    if args.json:
+        print(json.dumps(payload, indent=2))
+        return EXIT_OK
+
+    counts = {
+        status: sum(1 for c in report.nodes if c.status == status)
+        for status in _DIFF_ORDER
+    }
+    summary = "  ".join(f"{status}={counts[status]}" for status in _DIFF_ORDER)
+    print(f"matching {report.matcher_version}   {summary}")
+    for change in report.nodes:
+        if change.status == "unchanged":
+            continue
+        entry = change.new or change.old
+        name = f"@{entry.node.label}" if entry.node.label else entry.node.type
+        # A pairing is only exact when a label made it so; saying which
+        # pass matched is the difference between a fact and a guess.
+        via = f" via {change.matched_by}" if change.matched_by else ""
+        print(f"  {change.status:<9} {name}{via}")
+    for pool_name, pool in (
+        ("bibliography", report.bibliography),
+        ("footnotes", report.footnotes),
+    ):
+        for change in pool.changes:
+            if change.status != "unchanged":
+                print(f"  {change.status:<9} @{change.label} ({pool_name})")
+    return EXIT_OK
+
+
+def _pool_payload(pool) -> list[dict]:
+    return [
+        {"status": change.status, "label": change.label}
+        for change in pool.changes
+    ]
 
 
 def _run_inspect(args: argparse.Namespace) -> int:

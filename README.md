@@ -45,6 +45,7 @@ implementation agree?".
 ```bash
 cnd validate doc.cnd          # the invariants JSON Schema cannot express
 cnd hash doc.cnd --nodes      # the reference content hashes
+cnd diff old.cnd new.cnd      # what moved between two builds
 cnd inspect doc.cnd           # readable tree trace (needs [display])
 ```
 
@@ -52,16 +53,19 @@ Exit code `0` means conformant, `1` means it is not (or the file did not
 parse). `--json` on `validate`/`hash` gives machine-readable output, since
 comparing two implementations is a diff rather than a read.
 
-**This is three of the five conformance verbs**
+**This is four of the five conformance verbs**
 [`docs/adr/0020`](docs/adr/0020-repository-as-conformance-hub.md) specifies.
-`build` (from a declaration) and `reconcile`/`diff` are conformance verbs
-too, and are still missing from the CLI: `build` because the declaration
-does not exist yet, `diff` because the algorithm
-([`docs/adr/0018`](docs/adr/0018-reconciliation-reference-algorithm.md))
-only just landed as a library — see `cnd.reconcile` below — and id
-inheritance is not implemented at all. Agreeing with the three above is
-necessary for conformance, not yet sufficient — and the corpus matches,
-carrying two of the four vector kinds the same ADR requires.
+Only `build` (from a declaration) is missing, because the declaration does
+not exist yet. Agreeing with these is necessary for conformance, not yet
+sufficient — and the corpus matches, carrying three of the four vector
+kinds the same ADR requires (`hashes.json`, `traversal.json`,
+`matching.json`).
+
+`diff` sits apart from the other three: matching v1 is a **versioned
+reference algorithm, not a normative rule**
+([`docs/adr/0018`](docs/adr/0018-reconciliation-reference-algorithm.md)).
+Reproducing `matching.json` proves an implementation runs v1 — it is not
+something the format requires of anyone.
 
 ## Reconciliation
 
@@ -77,8 +81,19 @@ report = diff(previous, current)
 [change.new.node.text for change in report.changed]
 ```
 
+Id inheritance is the other half — the same matching, consumed instead of
+reported:
+
+```python
+from cnd.reconcile import reconcile
+
+result = reconcile(current, previous)   # current, with previous' ids
+```
+
 The matching is a **versioned reference algorithm, not part of the
-format** — exact for labelled nodes, best-effort for the rest.
+format** — exact for labelled nodes, best-effort for the rest, and every
+pairing reports which pass made it so a caller can tell the two apart.
+Pass `only_exact=True` to inherit ids on labels alone.
 
 Turning a foreign format into a CND (`cnd declare`) is a different kind of
 absence: it belongs with the producers permanently, since bundling it would

@@ -1,0 +1,21 @@
+{
+  "cnd_version": "0.3.0",
+  "built_at": "2026-07-23T00:00:00Z",
+  "doc": {
+    "title": "Reconcile fixture"
+  },
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-c004-000000000003",
+      "type": "paragraph",
+      "text": "alpha"
+    },
+    {
+      "id": "00000000-0000-4000-c004-000000000004",
+      "type": "paragraph",
+      "text": "beta edited"
+    }
+  ],
+  "bibliography": [],
+  "footnotes": []
+}
