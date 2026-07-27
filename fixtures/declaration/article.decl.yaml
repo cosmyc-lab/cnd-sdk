@@ -1,7 +1,9 @@
 # A declaration — the source form the builder compiles into a CND
 # (docs/adr/0019). Note what is absent by construction: no node has an
-# `id`, a `location`, a `number`, a `counter_label`, or a `heading_path`.
-# The builder supplies all of those. What is here is authored content only.
+# `id`, a `location`, a `number`, or a `heading_path`. The builder
+# supplies all of those. What is here is authored content only —
+# including `counter_label`, whose word is authored, not derived
+# (docs/proposals/0010).
 declaration_version: "0.1.0"
 
 source:

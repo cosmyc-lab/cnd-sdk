@@ -1,0 +1,54 @@
+# A declaration exercising the counter engine (`cnd build --numbering`):
+# a skipped heading level (1 -> 3, shown as "1.0.1" — the house style
+# shows the gap rather than papering over it), per-kind figure counters
+# (the kind-less figure wrapping a table draws from the "table" counter,
+# not "image"), and block-vs-inline math (only block math is numbered).
+declaration_version: "0.1.0"
+
+doc:
+  title: Numbered, declared
+  lang: en
+
+nodes:
+  - type: heading
+    level: 1
+    text: Measurements
+    children:
+      - type: figure
+        kind: image
+        caption: The bench
+        children:
+          - type: image
+            path: bench.png
+            alt: The measurement bench
+
+      - type: figure
+        caption: Raw readings
+        children:
+          - type: table
+            cells:
+              - { row: 0, col: 0, is_header: true, text: run }
+              - { row: 0, col: 1, is_header: true, text: value }
+              - { row: 1, col: 0, text: "1" }
+              - { row: 1, col: 1, text: "3.14" }
+
+      - type: heading
+        level: 3
+        text: Deep dive
+        children:
+          - type: math
+            text: E = mc^2
+            block: true
+          - type: paragraph
+            text: An inline aside follows.
+          - type: math
+            text: a^2 + b^2
+            block: false
+
+      - type: figure
+        kind: image
+        caption: The second image
+        children:
+          - type: image
+            path: detail.png
+            alt: Detail view

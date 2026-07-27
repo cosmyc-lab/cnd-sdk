@@ -11,6 +11,21 @@ the minor version, fixes bump the patch version).
 
 ### Added
 
+- **The builder** (`cnd.builder`, docs/adr/0019) — `build(decl,
+  numbering=False)` compiles a declaration into a validated CND: mints
+  ids, derives `heading_path` and ordered-list ordinals (the
+  `DeclListItem` rebase rule), passes authored text through
+  byte-for-byte, and never sets `location`. Enforcement is
+  build-then-validate — the referential invariants stay implemented
+  once, and failures raise `BuildError` with the full violation list
+  rewritten label-first. The opt-in counter engine applies one fixed
+  house style (dotted headings with skipped levels as `0`, per-kind
+  figure ordinals, `"(n)"` on block math) and never invents
+  `counter_label` words. Ships as the `cnd build` conformance verb
+  (ADR 0020, YAML input behind the new `[yaml]` extra) and the
+  `declaration → expected CND` fixture pairs under
+  `fixtures/declaration/` (comparison rule: equal after erasing every
+  `id` and `built_at`).
 - **Outbound converters** (`cnd.converters`, docs/proposals/0007) — a
   converter turns a whole `Cnd` into one complete standalone document,
   built on top of a `NodeRenderer`: it walks the tree in reading order,

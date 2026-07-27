@@ -1,0 +1,221 @@
+{
+  "id": "155c6a69-a874-4aed-8279-486942fe5079",
+  "cnd_version": "0.3.0",
+  "built_at": "2026-07-27T11:04:54.221905Z",
+  "source": null,
+  "doc": {
+    "title": "Numbered, declared",
+    "authors": [],
+    "date": null,
+    "keywords": [],
+    "description": null,
+    "lang": "en"
+  },
+  "nodes": [
+    {
+      "id": "75eb32d1-63f1-4c35-9aca-99e19f9da8ca",
+      "label": null,
+      "refs": [],
+      "cites": [],
+      "footnotes": [],
+      "state_metadata": {},
+      "location": null,
+      "type": "heading",
+      "level": 1,
+      "number": "1",
+      "counter_label": null,
+      "text": "Measurements",
+      "heading_path": [
+        "1 Measurements"
+      ],
+      "children": [
+        {
+          "id": "baf1199f-54d0-46d6-bebc-aa231cae42c7",
+          "label": null,
+          "refs": [],
+          "cites": [],
+          "footnotes": [],
+          "state_metadata": {},
+          "location": null,
+          "type": "figure",
+          "kind": "image",
+          "caption": "The bench",
+          "number": "1",
+          "counter_label": null,
+          "children": [
+            {
+              "id": "1719c3cb-67e1-4a6a-84e5-bd8b4ac7dcb3",
+              "label": null,
+              "refs": [],
+              "cites": [],
+              "footnotes": [],
+              "state_metadata": {},
+              "location": null,
+              "type": "image",
+              "path": "bench.png",
+              "alt": "The measurement bench"
+            }
+          ],
+          "raw": null
+        },
+        {
+          "id": "ba9a95ad-0625-498a-99de-5cefb2ce6075",
+          "label": null,
+          "refs": [],
+          "cites": [],
+          "footnotes": [],
+          "state_metadata": {},
+          "location": null,
+          "type": "figure",
+          "kind": null,
+          "caption": "Raw readings",
+          "number": "1",
+          "counter_label": null,
+          "children": [
+            {
+              "id": "2f3a7c6c-4785-427d-9f0f-9b68ea26638e",
+              "label": null,
+              "refs": [],
+              "cites": [],
+              "footnotes": [],
+              "state_metadata": {},
+              "location": null,
+              "type": "table",
+              "kind": "table",
+              "content_kind": null,
+              "cells": [
+                {
+                  "row": 0,
+                  "col": 0,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": true,
+                  "text": "run"
+                },
+                {
+                  "row": 0,
+                  "col": 1,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": true,
+                  "text": "value"
+                },
+                {
+                  "row": 1,
+                  "col": 0,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": false,
+                  "text": "1"
+                },
+                {
+                  "row": 1,
+                  "col": 1,
+                  "rowspan": 1,
+                  "colspan": 1,
+                  "is_header": false,
+                  "text": "3.14"
+                }
+              ],
+              "raw": null
+            }
+          ],
+          "raw": null
+        },
+        {
+          "id": "e101761b-9521-4cbc-86aa-185552669198",
+          "label": null,
+          "refs": [],
+          "cites": [],
+          "footnotes": [],
+          "state_metadata": {},
+          "location": null,
+          "type": "heading",
+          "level": 3,
+          "number": "1.0.1",
+          "counter_label": null,
+          "text": "Deep dive",
+          "heading_path": [
+            "1 Measurements",
+            "1.0.1 Deep dive"
+          ],
+          "children": [
+            {
+              "id": "8762216f-5cab-45f4-aa85-08ff9e26be23",
+              "label": null,
+              "refs": [],
+              "cites": [],
+              "footnotes": [],
+              "state_metadata": {},
+              "location": null,
+              "type": "math",
+              "text": "E = mc^2",
+              "raw": null,
+              "number": "(1)",
+              "counter_label": null,
+              "block": true
+            },
+            {
+              "id": "2a95c391-e39f-4f55-90f2-21d62248c777",
+              "label": null,
+              "refs": [],
+              "cites": [],
+              "footnotes": [],
+              "state_metadata": {},
+              "location": null,
+              "type": "paragraph",
+              "text": "An inline aside follows.",
+              "lang": null
+            },
+            {
+              "id": "935f8626-afb6-49e8-a89b-5d816c27e4a5",
+              "label": null,
+              "refs": [],
+              "cites": [],
+              "footnotes": [],
+              "state_metadata": {},
+              "location": null,
+              "type": "math",
+              "text": "a^2 + b^2",
+              "raw": null,
+              "number": null,
+              "counter_label": null,
+              "block": false
+            }
+          ]
+        },
+        {
+          "id": "fa20bb76-c9f3-4408-9ec4-befce57f6300",
+          "label": null,
+          "refs": [],
+          "cites": [],
+          "footnotes": [],
+          "state_metadata": {},
+          "location": null,
+          "type": "figure",
+          "kind": "image",
+          "caption": "The second image",
+          "number": "2",
+          "counter_label": null,
+          "children": [
+            {
+              "id": "968e8498-87d4-4260-ae3f-b697e313f69c",
+              "label": null,
+              "refs": [],
+              "cites": [],
+              "footnotes": [],
+              "state_metadata": {},
+              "location": null,
+              "type": "image",
+              "path": "detail.png",
+              "alt": "Detail view"
+            }
+          ],
+          "raw": null
+        }
+      ]
+    }
+  ],
+  "bibliography": [],
+  "footnotes": []
+}

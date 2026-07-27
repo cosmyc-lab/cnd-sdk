@@ -1,0 +1,160 @@
+{
+  "id": "fbecfce0-c6fd-4652-b87e-2d9fbcca1907",
+  "cnd_version": "0.3.0",
+  "built_at": "2026-07-27T11:04:53.980135Z",
+  "source": {
+    "type": "markdown",
+    "hash": "sha256:1f0a9c7e5b2d84e6",
+    "uri": "articles/handshake.md"
+  },
+  "doc": {
+    "title": "The handshake, declared",
+    "authors": [
+      "Ada Rivest"
+    ],
+    "date": null,
+    "keywords": [
+      "protocol",
+      "declaration"
+    ],
+    "description": null,
+    "lang": "en"
+  },
+  "nodes": [
+    {
+      "id": "5220801d-5055-49e7-ace5-2ee94504d8fc",
+      "label": "sec-handshake",
+      "refs": [],
+      "cites": [],
+      "footnotes": [],
+      "state_metadata": {},
+      "location": null,
+      "type": "heading",
+      "level": 1,
+      "number": null,
+      "counter_label": null,
+      "text": "Handshake",
+      "heading_path": [
+        "Handshake"
+      ],
+      "children": [
+        {
+          "id": "2c6f123e-909a-434b-9329-9e219f159174",
+          "label": null,
+          "refs": [
+            {
+              "label": "lst-open",
+              "text_span": [
+                39,
+                57
+              ]
+            }
+          ],
+          "cites": [
+            {
+              "label": "rivest1978",
+              "text_span": null,
+              "form": "prose",
+              "supplement": null
+            }
+          ],
+          "footnotes": [
+            {
+              "label": "fn-token",
+              "text_span": null
+            }
+          ],
+          "state_metadata": {},
+          "location": null,
+          "type": "paragraph",
+          "text": "The client opens with a version token, as the listing shows, following Rivest. See the note on opacity.",
+          "lang": null
+        },
+        {
+          "id": "c3f685e5-d2d2-42e4-8186-368449f0e456",
+          "label": "lst-open",
+          "refs": [],
+          "cites": [],
+          "footnotes": [],
+          "state_metadata": {},
+          "location": null,
+          "type": "figure",
+          "kind": "code",
+          "caption": "Opening frame",
+          "number": null,
+          "counter_label": "Listing",
+          "children": [
+            {
+              "id": "53bd8700-3441-4c90-9199-951c430bbace",
+              "label": null,
+              "refs": [],
+              "cites": [],
+              "footnotes": [],
+              "state_metadata": {},
+              "location": null,
+              "type": "code",
+              "text": "OPEN v1\n",
+              "lang": "text",
+              "block": true
+            }
+          ],
+          "raw": null
+        },
+        {
+          "id": "6416229c-bdda-41e2-a8e2-a1c56efb637f",
+          "label": null,
+          "refs": [],
+          "cites": [],
+          "footnotes": [],
+          "state_metadata": {},
+          "location": null,
+          "type": "list",
+          "ordered": true,
+          "tight": true,
+          "items": [
+            {
+              "text": "Negotiate the version.",
+              "number": 1,
+              "children": []
+            },
+            {
+              "text": "Exchange capabilities.",
+              "number": 2,
+              "children": []
+            },
+            {
+              "text": "Confirm.",
+              "number": 3,
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "bibliography": [
+    {
+      "id": "dd8fafd6-1b2c-4642-b1b0-e16a11844de3",
+      "label": "rivest1978",
+      "formatted": null,
+      "type": "article",
+      "authors": [
+        "Rivest",
+        "R."
+      ],
+      "title": "On data banks and privacy homomorphisms",
+      "year": 1978,
+      "container": null,
+      "doi": null,
+      "url": null,
+      "fields": {}
+    }
+  ],
+  "footnotes": [
+    {
+      "id": "ef8fc1da-3905-4a2c-a311-c826bcb2a689",
+      "label": "fn-token",
+      "text": "The version token is opaque to intermediaries."
+    }
+  ]
+}

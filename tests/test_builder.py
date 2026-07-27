@@ -7,13 +7,18 @@ through untouched.
 """
 
 from datetime import timezone
+import json
 import re
+from pathlib import Path
 
 import pytest
+import yaml
 
 from cnd.builder import BuildError, build
 from cnd.core.cnd import CND_VERSION
 from cnd.declaration import DECLARATION_VERSION, Declaration
+
+FIXTURES = Path(__file__).parent.parent / "fixtures" / "declaration"
 
 
 def _decl(nodes: list[dict], **top) -> Declaration:
@@ -339,3 +344,37 @@ class TestCounterEngine:
         figure = build(decl, numbering=True).nodes[0]
         assert figure.number == "1"
         assert figure.counter_label is None
+
+
+def _scrub(obj):
+    """The fixture comparison rule (ADR 0020 §4, declaration → CND):
+    equal after erasing every ``id`` and ``built_at``. Byte-equality is
+    impossible (ids are minted fresh, ADR 0015) and the content hash
+    deliberately excludes ``number`` (ADR 0016), so neither can verify
+    the builder — structural comparison over the scrubbed dump does."""
+    if isinstance(obj, dict):
+        return {k: _scrub(v) for k, v in obj.items() if k not in {"id", "built_at"}}
+    if isinstance(obj, list):
+        return [_scrub(item) for item in obj]
+    return obj
+
+
+class TestGoldenFixtures:
+    @pytest.mark.parametrize(
+        ("decl_name", "cnd_name", "numbering"),
+        [
+            ("article.decl.yaml", "article.cnd", False),
+            ("numbered.decl.yaml", "numbered.cnd", True),
+        ],
+    )
+    def test_declaration_builds_to_the_committed_cnd(
+        self, decl_name: str, cnd_name: str, numbering: bool,
+    ) -> None:
+        decl = Declaration.model_validate(
+            yaml.safe_load((FIXTURES / decl_name).read_text())
+        )
+        expected = json.loads((FIXTURES / cnd_name).read_text())
+
+        built = build(decl, numbering=numbering)
+
+        assert _scrub(json.loads(built.model_dump_json())) == _scrub(expected)
