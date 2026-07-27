@@ -2,9 +2,9 @@
 
 This is deliberately *not* a general CND tool. ADR 0020 names the
 conformance verb set as ``validate``, ``hash``, ``reconcile``/``diff``,
-``build`` from a declaration, and terminal inspection. **Four of those
-five are implemented here** — ``build`` landed with the declaration
-(docs/adr/0019) — and the absent one is absent permanently:
+``build`` from a declaration, and terminal inspection. **All five are
+implemented here** — ``build`` landed with the declaration
+(docs/adr/0019). One thing this CLI deliberately does *not* carry:
 
 - ``cnd declare`` — foreign format to declaration — is a different case:
   it belongs with the producers *permanently*. Bundling it would make the
