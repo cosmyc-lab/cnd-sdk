@@ -1,0 +1,66 @@
+# A declaration — the source form the builder compiles into a CND
+# (docs/adr/0019). Note what is absent by construction: no node has an
+# `id`, a `location`, a `number`, a `counter_label`, or a `heading_path`.
+# The builder supplies all of those. What is here is authored content only.
+declaration_version: "0.1.0"
+
+source:
+  type: markdown
+  hash: "sha256:1f0a9c7e5b2d84e6"
+  uri: articles/handshake.md
+
+doc:
+  title: The handshake, declared
+  authors:
+    - Ada Rivest
+  keywords: [protocol, declaration]
+  lang: en
+
+nodes:
+  - type: heading
+    label: sec-handshake
+    level: 1
+    text: Handshake
+    children:
+      - type: paragraph
+        text: >-
+          The client opens with a version token, as the listing shows,
+          following Rivest. See the note on opacity.
+        refs:
+          - label: lst-open
+            text_span: [39, 57]
+        cites:
+          - label: rivest1978
+            form: prose
+        footnotes:
+          - label: fn-token
+
+      - type: figure
+        label: lst-open
+        kind: code
+        caption: Opening frame
+        children:
+          - type: code
+            text: "OPEN v1\n"
+            lang: text
+
+      - type: list
+        ordered: true
+        items:
+          # An authored start override — the declaration keeps this, the
+          # running ordinal it does not (that is the builder's to resolve).
+          - text: Negotiate the version.
+            number: 1
+          - text: Exchange capabilities.
+          - text: Confirm.
+
+bibliography:
+  - label: rivest1978
+    type: article
+    authors: [Rivest, R.]
+    title: On data banks and privacy homomorphisms
+    year: 1978
+
+footnotes:
+  - label: fn-token
+    text: The version token is opaque to intermediaries.

@@ -33,6 +33,10 @@ display = [
 dev = [
     "pytest>=8.0",
     "jsonschema>=4.0",
+    # A declaration is authored in YAML (.decl.yaml, ADR 0021); the fixture
+    # test parses one. Test-only — the declaration models validate a parsed
+    # dict and never import yaml, so the core stays zero-dependency.
+    "pyyaml>=6.0",
     "cnd-sdk[display]",
 ]
 

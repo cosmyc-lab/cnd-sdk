@@ -1,0 +1,1454 @@
+{
+  "$defs": {
+    "CiteRef": {
+      "description": "Forward citation edge; ``label`` resolves in the CND ``bibliography`` pool.",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "text_span": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text Span"
+        },
+        "form": {
+          "anyOf": [
+            {
+              "enum": [
+                "normal",
+                "prose",
+                "full",
+                "author",
+                "year",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Form"
+        },
+        "supplement": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supplement"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "CiteRef",
+      "type": "object"
+    },
+    "DeclBibEntry": {
+      "description": "A bibliography entry in a declaration \u2014 ``BibEntry`` minus ``id``.\n\nThe content floor still applies at build time: an entry must carry\n``formatted``, a structured field, or both. It is a builder check, not\na shape the schema expresses.",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "formatted": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Formatted"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Type"
+        },
+        "authors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Authors",
+          "type": "array"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Year"
+        },
+        "container": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Container"
+        },
+        "doi": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Doi"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "fields": {
+          "additionalProperties": true,
+          "title": "Fields",
+          "type": "object"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "DeclBibEntry",
+      "type": "object"
+    },
+    "DeclCodeNode": {
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "type": {
+          "const": "code",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "lang": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lang"
+        },
+        "block": {
+          "default": true,
+          "title": "Block",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "text"
+      ],
+      "title": "DeclCodeNode",
+      "type": "object"
+    },
+    "DeclFigureNode": {
+      "description": "A captioned float wrapper. Keeps ``kind`` \u2014 the counter selector is\nauthored \u2014 but not the resolved ``number``/``counter_label``.",
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "type": {
+          "const": "figure",
+          "title": "Type",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        },
+        "caption": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caption"
+        },
+        "children": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "code": "#/$defs/DeclCodeNode",
+                "figure": "#/$defs/DeclFigureNode",
+                "heading": "#/$defs/DeclHeadingNode",
+                "image": "#/$defs/DeclImageNode",
+                "list": "#/$defs/DeclListNode",
+                "math": "#/$defs/DeclMathNode",
+                "paragraph": "#/$defs/DeclParagraphNode",
+                "quote": "#/$defs/DeclQuoteNode",
+                "table": "#/$defs/DeclTableNode",
+                "terms": "#/$defs/DeclTermsNode"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/DeclHeadingNode"
+              },
+              {
+                "$ref": "#/$defs/DeclParagraphNode"
+              },
+              {
+                "$ref": "#/$defs/DeclTableNode"
+              },
+              {
+                "$ref": "#/$defs/DeclQuoteNode"
+              },
+              {
+                "$ref": "#/$defs/DeclCodeNode"
+              },
+              {
+                "$ref": "#/$defs/DeclMathNode"
+              },
+              {
+                "$ref": "#/$defs/DeclFigureNode"
+              },
+              {
+                "$ref": "#/$defs/DeclImageNode"
+              },
+              {
+                "$ref": "#/$defs/DeclListNode"
+              },
+              {
+                "$ref": "#/$defs/DeclTermsNode"
+              }
+            ]
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "raw": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RawSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "DeclFigureNode",
+      "type": "object"
+    },
+    "DeclFootnote": {
+      "description": "A footnote in a declaration \u2014 ``Footnote`` minus ``id``.",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "text"
+      ],
+      "title": "DeclFootnote",
+      "type": "object"
+    },
+    "DeclHeadingNode": {
+      "description": "A section heading. No ``number``/``counter_label`` (resolved by the\nbuilder's counter engine) and no ``heading_path`` (derivable from tree\nposition).",
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "type": {
+          "const": "heading",
+          "title": "Type",
+          "type": "string"
+        },
+        "level": {
+          "title": "Level",
+          "type": "integer"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "children": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "code": "#/$defs/DeclCodeNode",
+                "figure": "#/$defs/DeclFigureNode",
+                "heading": "#/$defs/DeclHeadingNode",
+                "image": "#/$defs/DeclImageNode",
+                "list": "#/$defs/DeclListNode",
+                "math": "#/$defs/DeclMathNode",
+                "paragraph": "#/$defs/DeclParagraphNode",
+                "quote": "#/$defs/DeclQuoteNode",
+                "table": "#/$defs/DeclTableNode",
+                "terms": "#/$defs/DeclTermsNode"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/DeclHeadingNode"
+              },
+              {
+                "$ref": "#/$defs/DeclParagraphNode"
+              },
+              {
+                "$ref": "#/$defs/DeclTableNode"
+              },
+              {
+                "$ref": "#/$defs/DeclQuoteNode"
+              },
+              {
+                "$ref": "#/$defs/DeclCodeNode"
+              },
+              {
+                "$ref": "#/$defs/DeclMathNode"
+              },
+              {
+                "$ref": "#/$defs/DeclFigureNode"
+              },
+              {
+                "$ref": "#/$defs/DeclImageNode"
+              },
+              {
+                "$ref": "#/$defs/DeclListNode"
+              },
+              {
+                "$ref": "#/$defs/DeclTermsNode"
+              }
+            ]
+          },
+          "title": "Children",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "level",
+        "text"
+      ],
+      "title": "DeclHeadingNode",
+      "type": "object"
+    },
+    "DeclImageNode": {
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "type": {
+          "const": "image",
+          "title": "Type",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "alt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alt"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "DeclImageNode",
+      "type": "object"
+    },
+    "DeclListItem": {
+      "description": "One item of a declaration list.\n\n``number`` is an **override**, not a resolved ordinal: absent means\n\"number this item sequentially\", present means an explicit start or\nskip (markdown's ``3.`` on the first item of an ordered list). This is\nthe one place the declaration keeps a ``number`` the CND resolves \u2014 it\nkeeps the *authored* half (the override) and drops the *derived* half\n(the running ordinal), the same line drawn for figure numbers.",
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Number"
+        },
+        "children": {
+          "items": {
+            "$ref": "#/$defs/DeclListItem"
+          },
+          "title": "Children",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "DeclListItem",
+      "type": "object"
+    },
+    "DeclListNode": {
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "type": {
+          "const": "list",
+          "title": "Type",
+          "type": "string"
+        },
+        "ordered": {
+          "default": false,
+          "title": "Ordered",
+          "type": "boolean"
+        },
+        "tight": {
+          "default": true,
+          "title": "Tight",
+          "type": "boolean"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/DeclListItem"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "DeclListNode",
+      "type": "object"
+    },
+    "DeclMathNode": {
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "type": {
+          "const": "math",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "raw": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RawSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "block": {
+          "default": true,
+          "title": "Block",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "text"
+      ],
+      "title": "DeclMathNode",
+      "type": "object"
+    },
+    "DeclParagraphNode": {
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "type": {
+          "const": "paragraph",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "lang": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lang"
+        }
+      },
+      "required": [
+        "type",
+        "text"
+      ],
+      "title": "DeclParagraphNode",
+      "type": "object"
+    },
+    "DeclQuoteNode": {
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "type": {
+          "const": "quote",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "attribution": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attribution"
+        },
+        "block": {
+          "default": true,
+          "title": "Block",
+          "type": "boolean"
+        },
+        "lang": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lang"
+        }
+      },
+      "required": [
+        "type",
+        "text"
+      ],
+      "title": "DeclQuoteNode",
+      "type": "object"
+    },
+    "DeclTableNode": {
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "type": {
+          "const": "table",
+          "title": "Type",
+          "type": "string"
+        },
+        "kind": {
+          "default": "table",
+          "enum": [
+            "table",
+            "grid"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "content_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "data",
+                "content"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Content Kind"
+        },
+        "cells": {
+          "items": {
+            "$ref": "#/$defs/TableCell"
+          },
+          "title": "Cells",
+          "type": "array"
+        },
+        "raw": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RawSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "DeclTableNode",
+      "type": "object"
+    },
+    "DeclTermsNode": {
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/NodeRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        },
+        "cites": {
+          "items": {
+            "$ref": "#/$defs/CiteRef"
+          },
+          "title": "Cites",
+          "type": "array"
+        },
+        "footnotes": {
+          "items": {
+            "$ref": "#/$defs/FootnoteRef"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "type": {
+          "const": "terms",
+          "title": "Type",
+          "type": "string"
+        },
+        "tight": {
+          "default": true,
+          "title": "Tight",
+          "type": "boolean"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/TermItem"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "DeclTermsNode",
+      "type": "object"
+    },
+    "DocDate": {
+      "description": "Partial or full document date from cnd metadata.",
+      "properties": {
+        "year": {
+          "title": "Year",
+          "type": "integer"
+        },
+        "month": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Month"
+        },
+        "day": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Day"
+        }
+      },
+      "required": [
+        "year"
+      ],
+      "title": "DocDate",
+      "type": "object"
+    },
+    "DocMetadata": {
+      "description": "Bibliographic metadata for the work the CND represents.\n\nThis identifies the *work* \u2014 title, authors, date. The input artifact it\nwas built from is ``Cnd.source``, deliberately separate: the same work\ncan be built from a Typst source and later re-imported from another\nformat (docs/proposals/0008).",
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "authors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Authors",
+          "type": "array"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DocDate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Keywords",
+          "type": "array"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "lang": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lang"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "title": "DocMetadata",
+      "type": "object"
+    },
+    "FootnoteRef": {
+      "description": "Forward footnote edge; ``label`` resolves in the CND ``footnotes`` pool.",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "text_span": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text Span"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "FootnoteRef",
+      "type": "object"
+    },
+    "NodeRef": {
+      "description": "Forward cross-reference edge to another node.\n\nAn edge is ``{label, text_span?}``: it names its target by label and\nresolves through the CND's label index (docs/adr/0017, superseding the\n``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the\nreference marker sits in the containing node's rendered text, as a\n``[start, end)`` pair of Unicode code-point offsets (docs/adr/0013).",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "text_span": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text Span"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "NodeRef",
+      "type": "object"
+    },
+    "RawSource": {
+      "description": "The producer's verbatim source for a node, with its language.\n\nA bare string dropped the one thing a consumer needs to decide whether\nto attempt a parse: which language the content is in. ``format`` is an\nopen string (``\"typst\"``, ``\"latex\"``, ``\"mathml\"``\u2026), never a closed\nenum \u2014 a new producer must not require a spec revision.",
+      "properties": {
+        "format": {
+          "title": "Format",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "format",
+        "value"
+      ],
+      "title": "RawSource",
+      "type": "object"
+    },
+    "SourceInfo": {
+      "description": "The input artifact the CND was built from.\n\n``hash`` is self-describing (``\"sha256:\u2026\"``). Its comparability is\nnarrow and normative: two hashes are comparable only between CNDs from\nthe **same producer over the same source**, where equal means unchanged\nand different means changed. Comparing across producers is meaningless.\n\n``uri`` is an identifier in the producer's own space and is **never\npromised resolvable** \u2014 a consumer must not dereference it.",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "hash": {
+          "title": "Hash",
+          "type": "string"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uri"
+        }
+      },
+      "required": [
+        "type",
+        "hash"
+      ],
+      "title": "SourceInfo",
+      "type": "object"
+    },
+    "TableCell": {
+      "description": "Single cell inside a table node.",
+      "properties": {
+        "row": {
+          "title": "Row",
+          "type": "integer"
+        },
+        "col": {
+          "title": "Col",
+          "type": "integer"
+        },
+        "rowspan": {
+          "default": 1,
+          "title": "Rowspan",
+          "type": "integer"
+        },
+        "colspan": {
+          "default": 1,
+          "title": "Colspan",
+          "type": "integer"
+        },
+        "is_header": {
+          "default": false,
+          "title": "Is Header",
+          "type": "boolean"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "row",
+        "col",
+        "text"
+      ],
+      "title": "TableCell",
+      "type": "object"
+    },
+    "TermItem": {
+      "description": "Single term/description pair of a definition list.",
+      "properties": {
+        "term": {
+          "title": "Term",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "term",
+        "description"
+      ],
+      "title": "TermItem",
+      "type": "object"
+    }
+  },
+  "description": "The source form a producer emits and the builder compiles.\n\nNo ``id``, ``built_at`` or ``cnd_version`` \u2014 all three are the\nbuilder's to supply. ``source`` is kept, optional: a producer\nconverting ``notes.md`` legitimately records what it converted from,\nand provenance is not resolved presentation state.",
+  "properties": {
+    "declaration_version": {
+      "default": "0.1.0",
+      "title": "Declaration Version",
+      "type": "string"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "doc": {
+      "$ref": "#/$defs/DocMetadata"
+    },
+    "nodes": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "code": "#/$defs/DeclCodeNode",
+            "figure": "#/$defs/DeclFigureNode",
+            "heading": "#/$defs/DeclHeadingNode",
+            "image": "#/$defs/DeclImageNode",
+            "list": "#/$defs/DeclListNode",
+            "math": "#/$defs/DeclMathNode",
+            "paragraph": "#/$defs/DeclParagraphNode",
+            "quote": "#/$defs/DeclQuoteNode",
+            "table": "#/$defs/DeclTableNode",
+            "terms": "#/$defs/DeclTermsNode"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/DeclHeadingNode"
+          },
+          {
+            "$ref": "#/$defs/DeclParagraphNode"
+          },
+          {
+            "$ref": "#/$defs/DeclTableNode"
+          },
+          {
+            "$ref": "#/$defs/DeclQuoteNode"
+          },
+          {
+            "$ref": "#/$defs/DeclCodeNode"
+          },
+          {
+            "$ref": "#/$defs/DeclMathNode"
+          },
+          {
+            "$ref": "#/$defs/DeclFigureNode"
+          },
+          {
+            "$ref": "#/$defs/DeclImageNode"
+          },
+          {
+            "$ref": "#/$defs/DeclListNode"
+          },
+          {
+            "$ref": "#/$defs/DeclTermsNode"
+          }
+        ]
+      },
+      "title": "Nodes",
+      "type": "array"
+    },
+    "bibliography": {
+      "items": {
+        "$ref": "#/$defs/DeclBibEntry"
+      },
+      "title": "Bibliography",
+      "type": "array"
+    },
+    "footnotes": {
+      "items": {
+        "$ref": "#/$defs/DeclFootnote"
+      },
+      "title": "Footnotes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "doc",
+    "nodes"
+  ],
+  "title": "CND declaration",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cnd.dev/schema/cnd-declaration.schema.json"
+}

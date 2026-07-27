@@ -629,6 +629,35 @@ edited in place and carries no version history of its own: versioning a
 document is a consumer concern, and relating two builds of the same
 document is reconciliation's (docs/adr/0018).
 
+## 12. The declaration (non-normative)
+
+A **declaration** is a source form the builder compiles into a CND
+(docs/adr/0019, the declarative door). It serves producers with neither
+ids nor pagination to offer — a hand author, a language model, or a
+foreign-format producer whose source is unpaginated — while a producer
+that holds real pages emits the CND directly (§9's validation is that
+door's check).
+
+The declaration is **not part of this standard**. Like rendering (§7) it
+is an SDK surface, recorded here so the two are not confused, and it stays
+non-normative until it has proven itself; any promotion is a separate ADR.
+Its schema is `schema/cnd-declaration.schema.json`, generated from the
+same models as the CND schema (docs/adr/0004), and it carries its own
+`declaration_version`, versioned independently of `cnd_version`.
+
+A declaration is **the CND minus everything the builder derives**, the
+same derived-not-serialized rule (§2) applied to the production side: a
+declaration node carries no `id` (the builder mints it; ids are not
+durable anyway, docs/adr/0015), no `location` (an unpaginated source has
+no page), no `number` or `counter_label` (resolved counter state), and no
+`heading_path` (derivable from tree position). What it keeps is authored
+content — the `label` as the durable identity, the label-keyed link
+families, and every content field. What the declarative door guarantees
+is well-formedness, not truth: the builder cannot emit a malformed CND
+from a declaration, but a producer can still write an unbuildable one
+(a label nothing carries) or a buildable-but-false one, and that wrong
+layer is hand-correctable in the declaration before building.
+
 ## Out of scope
 
 Chunking strategies, embedding generation, vector storage backends,

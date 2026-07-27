@@ -124,7 +124,7 @@ landing first. Direct producers depend on `validate()` being available in their
 language.
 
 ## Implementation checklist
-- [ ] Declaration schema published with its version field
+- [x] Declaration schema published with its version field (`schema/cnd-declaration.schema.json`, generated from `cnd.declaration` models; `declaration_version` starts at 0.1.0)
 - [ ] `markdown → declaration`, heuristics documented as heuristics
 - [ ] `html → declaration`
 - [ ] `doclang → cnd` (direct door), with the element-by-element mapping
