@@ -328,6 +328,9 @@ def _relabel(violations: list[Violation], cnd: Cnd) -> list[Violation]:
     a handle the author can find in their own source.
     """
     handles: dict[str, str] = {}
+    # No current rule names the document itself, but a future one might —
+    # leak-proofing so that UUID would still relabel cleanly.
+    handles[str(cnd.id)] = "the document"
     for visit in cnd.iter():
         node = visit.node
         handles[str(node.id)] = (

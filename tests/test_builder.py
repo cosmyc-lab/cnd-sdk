@@ -6,7 +6,6 @@ counters) comes back on the built CND, and everything authored passes
 through untouched.
 """
 
-from datetime import timezone
 import json
 import re
 from pathlib import Path

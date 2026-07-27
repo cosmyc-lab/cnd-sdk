@@ -22,12 +22,19 @@ def _run(capsys, *argv) -> tuple[int, str, str]:
     return code, captured.out, captured.err
 
 
+def _corpus() -> list[Path]:
+    return sorted(FIXTURES.glob("*.cnd")) + sorted(
+        FIXTURES.glob("declaration/*.cnd")
+    )
+
+
 class TestValidate:
     def test_the_whole_corpus_is_conformant(self, capsys) -> None:
-        code, out, _ = _run(capsys, "validate", *sorted(FIXTURES.glob("*.cnd")))
+        cnds = _corpus()
+        code, out, _ = _run(capsys, "validate", *cnds)
 
         assert code == 0
-        assert out.count(": ok") == len(list(FIXTURES.glob("*.cnd")))
+        assert out.count(": ok") == len(cnds)
 
     def test_a_violation_exits_nonzero_and_names_the_rule(
         self, capsys, tmp_path: Path,

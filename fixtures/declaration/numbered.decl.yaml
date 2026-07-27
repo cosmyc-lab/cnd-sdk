@@ -3,6 +3,11 @@
 # shows the gap rather than papering over it), per-kind figure counters
 # (the kind-less figure wrapping a table draws from the "table" counter,
 # not "image"), and block-vs-inline math (only block math is numbered).
+#
+# numbered.cnd is this declaration's expected build output (`cnd build
+# --numbering`). Compare the two after erasing every `id` and `built_at`:
+# ids are minted fresh per build (docs/adr/0015), and `built_at` is a
+# timestamp — neither is reproducible across builds.
 declaration_version: "0.1.0"
 
 doc:
