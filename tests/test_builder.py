@@ -127,3 +127,61 @@ class TestTranscription:
         assert cnd.nodes[2].cells[0].text == "c"
         assert cnd.nodes[4].block is False
         assert cnd.nodes[9].items[0].term == "t"
+
+
+class TestListOrdinals:
+    def test_sequential_from_one_when_no_overrides(self) -> None:
+        decl = _decl(
+            [{"type": "list", "ordered": True, "items": [
+                {"text": "a"}, {"text": "b"}, {"text": "c"},
+            ]}]
+        )
+        numbers = [i.number for i in build(decl).nodes[0].items]
+        assert numbers == [1, 2, 3]
+
+    def test_override_rebases_the_rest_of_the_list(self) -> None:
+        # Mid-list override: following items count on from it, not from
+        # their positional index (the rule pinned on DeclListItem).
+        decl = _decl(
+            [{"type": "list", "ordered": True, "items": [
+                {"text": "a"}, {"text": "b", "number": 7}, {"text": "c"},
+            ]}]
+        )
+        numbers = [i.number for i in build(decl).nodes[0].items]
+        assert numbers == [1, 7, 8]
+
+    def test_start_override_on_first_item(self) -> None:
+        # markdown's "3." on the first item of an ordered list.
+        decl = _decl(
+            [{"type": "list", "ordered": True, "items": [
+                {"text": "a", "number": 3}, {"text": "b"},
+            ]}]
+        )
+        numbers = [i.number for i in build(decl).nodes[0].items]
+        assert numbers == [3, 4]
+
+    def test_nested_levels_count_independently(self) -> None:
+        decl = _decl(
+            [{"type": "list", "ordered": True, "items": [
+                {"text": "a", "children": [{"text": "a1"}, {"text": "a2"}]},
+                {"text": "b"},
+            ]}]
+        )
+        items = build(decl).nodes[0].items
+        assert [i.number for i in items] == [1, 2]
+        assert [i.number for i in items[0].children] == [1, 2]
+
+    def test_unordered_list_drops_overrides(self) -> None:
+        decl = _decl(
+            [{"type": "list", "ordered": False, "items": [
+                {"text": "a", "number": 5}, {"text": "b"},
+            ]}]
+        )
+        assert [i.number for i in build(decl).nodes[0].items] == [None, None]
+
+    def test_resolution_is_independent_of_numbering_flag(self) -> None:
+        decl = _decl(
+            [{"type": "list", "ordered": True, "items": [{"text": "a"}]}]
+        )
+        assert build(decl).nodes[0].items[0].number == 1
+        assert build(decl, numbering=True).nodes[0].items[0].number == 1
