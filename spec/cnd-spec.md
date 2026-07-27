@@ -465,6 +465,18 @@ The exact Markdown produced is **not normative** — no consumer may rely on
 its precise shape as part of the format. The "raw" representation of a node
 is its JSON serialization itself (`model_dump_json()`), not a renderer.
 
+**Converters** sit one layer above, and are equally non-normative. Where a
+renderer maps one node to a fragment, a converter maps a whole CND to one
+complete standalone artifact: document front matter, sections assembled by
+walking the tree in reading order, and the out-of-tree pools (§5) emitted
+as footnote and bibliography sections with their markers resolved by label.
+The reference SDK ships `cnd.converters.MarkdownConverter` and
+`cnd.converters.HtmlConverter` (docs/proposals/0007). Conversion is
+one-way and lossy by construction — a converter projects a CND onto a
+foreign format and documents what it drops. **No converter output round-
+trips back into a CND**, and no converter output shape is ever a
+conformance requirement.
+
 ## 8. Traversal
 
 Traversal is **not shared as code across languages** (docs/adr/0019): a

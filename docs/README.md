@@ -41,7 +41,7 @@ conventions.
 | [0004](proposals/0004-terms-footnote-citation-bibliography-nodes.md) | Terms nodes; footnote and bibliography pools; typed citation edges | implemented |
 | [0005](proposals/0005-figure-wrapper-image-node.md) | Figure as a wrapper node; new `ImageNode`; `TableNode` loses its caption | implemented |
 | [0006](proposals/0006-multi-format-rendering.md) | Multi-format rendering via renderer classes; remove `to_text()` | implemented |
-| [0007](proposals/0007-outbound-converters.md) | Outbound converters — a whole CND to a complete document artifact | draft |
+| [0007](proposals/0007-outbound-converters.md) | Outbound converters — a whole CND to a complete document artifact | draft (markdown + html shipped; doclang not started) |
 | [0008](proposals/0008-cnd-0.3.0-format-changes.md) | CND 0.3.0 format changes — field audit, provenance, and label-keyed links | implemented |
 | [0009](proposals/0009-declarative-and-direct-producers.md) | Declarative and direct producers — bringing foreign formats into CND | draft |
 | [0010](proposals/0010-counter-label.md) | Capture the counter label as its own field, beside the number | implemented |

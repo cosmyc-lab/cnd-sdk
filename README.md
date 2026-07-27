@@ -28,6 +28,23 @@ for traverse in cnd.iter():
     print(traverse.ctx.depth, traverse.node.type, renderer.render(traverse.node))
 ```
 
+Converting a whole CND into one standalone document — a renderer handles
+one node, a converter handles the document (front matter, sections in
+reading order, footnote and bibliography sections with their markers
+resolved). Conversion is one-way and lossy by construction; each
+converter's docstring says what it drops, and `warnings` reports what this
+particular document lost:
+
+```python
+from cnd.converters import HtmlConverter, MarkdownConverter
+
+result = MarkdownConverter().convert(cnd)
+open("doc.md", "w").write(result.text)
+print(result.warnings)
+
+open("doc.html", "w").write(HtmlConverter().convert(cnd).text)
+```
+
 Pretty-printing a CND tree (requires `cnd-sdk[display]`):
 
 ```python
