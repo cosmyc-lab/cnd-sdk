@@ -28,6 +28,11 @@ display = [
     "rich>=15.0.0",
     "typing-extensions>=4.0",
 ]
+yaml = [
+    # A declaration is authored in YAML (.decl.yaml, ADR 0021); `cnd build`
+    # lazy-imports this, so the core stays pydantic-only (ADR 0005).
+    "pyyaml>=6.0",
+]
 
 [dependency-groups]
 dev = [

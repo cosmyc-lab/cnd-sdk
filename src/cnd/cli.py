@@ -2,13 +2,10 @@
 
 This is deliberately *not* a general CND tool. ADR 0020 names the
 conformance verb set as ``validate``, ``hash``, ``reconcile``/``diff``,
-``build`` from a declaration, and terminal inspection. **Three of those
-five are implemented here**; the other two are absent for reasons worth
-keeping distinct:
+``build`` from a declaration, and terminal inspection. **Four of those
+five are implemented here** — ``build`` landed with the declaration
+(docs/adr/0019) — and the absent one is absent permanently:
 
-- ``build`` is a conformance verb by the ADR's own words, and is missing
-  only because the declaration (docs/adr/0019) does not exist yet. It
-  belongs in this CLI when it does.
 - ``cnd declare`` — foreign format to declaration — is a different case:
   it belongs with the producers *permanently*. Bundling it would make the
   hub depend on a satellite and let inference-heuristic churn in through
@@ -16,10 +13,10 @@ keeping distinct:
   out of the hub.
 
 So an implementer reading this should know: agreeing with these verbs is
-necessary for conformance, not yet sufficient. The corpus is in the same
-state — three of the four vector kinds ADR 0020 §4 requires
-(``hashes.json``, ``traversal.json``, ``matching.json``); only
-``declaration → CND`` awaits the declaration.
+necessary for conformance, not yet sufficient. The corpus carries all
+four vector kinds ADR 0020 §4 requires (``hashes.json``,
+``traversal.json``, ``matching.json``, and the ``declaration → CND``
+pairs under ``fixtures/declaration/``).
 
 ``diff`` is the odd one out and worth flagging to anyone comparing
 implementations: matching v1 is a *versioned reference algorithm*, not a
@@ -45,9 +42,11 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from cnd.builder import BuildError, build
 from cnd.core.cnd import Cnd
 from cnd.core.hashing import content_hash, node_hash
 from cnd.core.validate import validate
+from cnd.declaration import Declaration
 from cnd.reconcile import diff
 
 EXIT_OK = 0
@@ -69,10 +68,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "express, and computes the reference content hashes."
         ),
         epilog=(
-            "Partial: ADR 0020 also specifies `build` (from a declaration) "
-            "as a conformance verb; the declaration does not exist yet. "
-            "Agreeing with the verbs above is necessary for conformance, "
-            "not yet sufficient."
+            "`cnd declare` (foreign format → declaration) is not here and "
+            "never will be: it belongs with the producers (ADR 0020)."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -129,6 +126,31 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     delta.set_defaults(run=_run_diff)
 
+    produce = sub.add_parser(
+        "build",
+        help="compile a declaration into a CND (docs/adr/0019)",
+        description=(
+            "The declarative door: reads a declaration (JSON, or YAML with "
+            "the yaml extra), derives everything the declaration omits, and "
+            "emits a validated CND. Numbering is opt-in — the declarative "
+            "door serves unnumbered sources, so inventing counters is a "
+            "choice, never a default."
+        ),
+    )
+    produce.add_argument("file", type=Path, metavar="DECL")
+    produce.add_argument(
+        "--numbering",
+        action="store_true",
+        help="run the counter engine (one fixed house style)",
+    )
+    produce.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        help="write the CND here instead of stdout",
+    )
+    produce.set_defaults(run=_run_build)
+
     show = sub.add_parser(
         "inspect",
         help="render a readable trace of the tree (needs the display extra)",
@@ -159,6 +181,46 @@ def _load(path: Path) -> tuple[Cnd | None, str | None]:
         return Cnd.model_validate_json(path.read_text()), None
     except OSError as err:
         return None, f"cannot read: {err.strerror or err}"
+    except ValidationError as err:
+        count = err.error_count()
+        first = err.errors()[0]
+        location = ".".join(str(part) for part in first["loc"])
+        return None, f"{count} schema error(s), first at {location}: {first['msg']}"
+
+
+def _load_declaration(path: Path) -> tuple[Declaration | None, str | None]:
+    """Parse a declaration, returning either the model or a reason.
+
+    Mirrors ``_load``: unreadable, unparsable and invalid-shape all
+    report the same way. YAML needs the ``yaml`` extra and is imported
+    lazily so the core keeps its pydantic-only dependency floor
+    (ADR 0005's ``[display]`` precedent).
+    """
+    try:
+        text = path.read_text()
+    except OSError as err:
+        return None, f"cannot read: {err.strerror or err}"
+
+    if path.suffix in {".yaml", ".yml"}:
+        try:
+            import yaml
+        except ImportError:
+            return None, (
+                "reading a YAML declaration needs the yaml extra: "
+                "pip install cnd-sdk[yaml]"
+            )
+        try:
+            data = yaml.safe_load(text)
+        except yaml.YAMLError as err:
+            return None, f"invalid YAML: {err}"
+    else:
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as err:
+            return None, f"invalid JSON: {err}"
+
+    try:
+        return Declaration.model_validate(data), None
     except ValidationError as err:
         count = err.error_count()
         first = err.errors()[0]
@@ -229,6 +291,32 @@ def _run_hash(args: argparse.Namespace) -> int:
             for index, digest in enumerate(result.get("node_hashes", []), start=1):
                 print(f"  {index:>4}  {digest}")
     return EXIT_NONCONFORMANT if failed else EXIT_OK
+
+
+def _run_build(args: argparse.Namespace) -> int:
+    decl, error = _load_declaration(args.file)
+    if decl is None:
+        print(f"{args.file}: {error}", file=sys.stderr)
+        return EXIT_NONCONFORMANT
+
+    try:
+        cnd = build(decl, numbering=args.numbering)
+    except BuildError as err:
+        count = len(err.violations)
+        print(f"{args.file}: {count} violation(s)", file=sys.stderr)
+        for violation in err.violations:
+            print(
+                f"  [{violation.rule}] {violation.where}: {violation.message}",
+                file=sys.stderr,
+            )
+        return EXIT_NONCONFORMANT
+
+    payload = cnd.model_dump_json(indent=2)
+    if args.output is not None:
+        args.output.write_text(payload + "\n")
+    else:
+        print(payload)
+    return EXIT_OK
 
 
 # Statuses in report order: what a reader acts on first.

@@ -167,3 +167,86 @@ class TestDiff:
 
         assert code == 1
         assert "cannot read" in err
+
+
+class TestBuild:
+    DECL = FIXTURES / "declaration" / "article.decl.yaml"
+
+    def test_builds_a_declaration_to_stdout(self, capsys) -> None:
+        code, out, _ = _run(capsys, "build", self.DECL)
+
+        assert code == 0
+        built = json.loads(out)
+        assert built["cnd_version"] == "0.3.0"
+        assert built["nodes"][0]["type"] == "heading"
+        # Engine off by default: nothing numbered.
+        assert built["nodes"][0]["number"] is None
+
+    def test_numbering_flag_runs_the_counter_engine(self, capsys) -> None:
+        code, out, _ = _run(capsys, "build", "--numbering", self.DECL)
+
+        assert code == 0
+        assert json.loads(out)["nodes"][0]["number"] == "1"
+
+    def test_output_flag_writes_a_file(self, capsys, tmp_path: Path) -> None:
+        target = tmp_path / "article.cnd"
+
+        code, out, _ = _run(capsys, "build", self.DECL, "-o", target)
+
+        assert code == 0
+        assert out == ""
+        assert json.loads(target.read_text())["cnd_version"] == "0.3.0"
+
+    def test_unbuildable_declaration_exits_nonzero_with_rules(
+        self, capsys, tmp_path: Path,
+    ) -> None:
+        decl = {
+            "declaration_version": "0.1.0",
+            "doc": {"title": "T"},
+            "nodes": [
+                {"type": "paragraph", "text": "a", "refs": [{"label": "ghost"}]},
+            ],
+        }
+        path = tmp_path / "bad.decl.json"
+        path.write_text(json.dumps(decl))
+
+        code, _, err = _run(capsys, "build", path)
+
+        assert code == 1
+        assert "link-unresolved" in err
+        assert "@ghost" in err
+
+    def test_a_stray_key_is_rejected_not_dropped(
+        self, capsys, tmp_path: Path,
+    ) -> None:
+        decl = {
+            "declaration_version": "0.1.0",
+            "doc": {"title": "T"},
+            "nodes": [{"type": "paragraph", "text": "a", "capton": "typo"}],
+        }
+        path = tmp_path / "typo.decl.json"
+        path.write_text(json.dumps(decl))
+
+        code, _, err = _run(capsys, "build", path)
+
+        assert code == 1
+        assert "capton" in err
+
+    def test_yaml_without_pyyaml_names_the_extra(
+        self, capsys, monkeypatch,
+    ) -> None:
+        import builtins
+
+        real_import = builtins.__import__
+
+        def _no_yaml(name, *args, **kwargs):
+            if name == "yaml":
+                raise ImportError("No module named 'yaml'")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", _no_yaml)
+
+        code, _, err = _run(capsys, "build", self.DECL)
+
+        assert code == 1
+        assert "cnd-sdk[yaml]" in err
