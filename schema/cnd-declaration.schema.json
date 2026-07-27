@@ -62,6 +62,7 @@
       "type": "object"
     },
     "DeclBibEntry": {
+      "additionalProperties": false,
       "description": "A bibliography entry in a declaration \u2014 ``BibEntry`` minus ``id``.\n\nThe content floor still applies at build time: an entry must carry\n``formatted``, a structured field, or both. It is a builder check, not\na shape the schema expresses.",
       "properties": {
         "label": {
@@ -172,6 +173,7 @@
       "type": "object"
     },
     "DeclCodeNode": {
+      "additionalProperties": false,
       "properties": {
         "label": {
           "anyOf": [
@@ -246,6 +248,7 @@
       "type": "object"
     },
     "DeclFigureNode": {
+      "additionalProperties": false,
       "description": "A captioned float wrapper. Keeps ``kind`` \u2014 the counter selector is\nauthored \u2014 but not the resolved ``number``/``counter_label``.",
       "properties": {
         "label": {
@@ -387,6 +390,7 @@
       "type": "object"
     },
     "DeclFootnote": {
+      "additionalProperties": false,
       "description": "A footnote in a declaration \u2014 ``Footnote`` minus ``id``.",
       "properties": {
         "label": {
@@ -406,6 +410,7 @@
       "type": "object"
     },
     "DeclHeadingNode": {
+      "additionalProperties": false,
       "description": "A section heading. No ``number``/``counter_label`` (resolved by the\nbuilder's counter engine) and no ``heading_path`` (derivable from tree\nposition).",
       "properties": {
         "label": {
@@ -522,6 +527,7 @@
       "type": "object"
     },
     "DeclImageNode": {
+      "additionalProperties": false,
       "properties": {
         "label": {
           "anyOf": [
@@ -598,6 +604,7 @@
       "type": "object"
     },
     "DeclListItem": {
+      "additionalProperties": false,
       "description": "One item of a declaration list.\n\n``number`` is an **override**, not a resolved ordinal: absent means\n\"number this item sequentially\", present means an explicit start or\nskip (markdown's ``3.`` on the first item of an ordered list). This is\nthe one place the declaration keeps a ``number`` the CND resolves \u2014 it\nkeeps the *authored* half (the override) and drops the *derived* half\n(the running ordinal), the same line drawn for figure numbers.",
       "properties": {
         "text": {
@@ -631,6 +638,7 @@
       "type": "object"
     },
     "DeclListNode": {
+      "additionalProperties": false,
       "properties": {
         "label": {
           "anyOf": [
@@ -700,6 +708,7 @@
       "type": "object"
     },
     "DeclMathNode": {
+      "additionalProperties": false,
       "properties": {
         "label": {
           "anyOf": [
@@ -773,6 +782,7 @@
       "type": "object"
     },
     "DeclParagraphNode": {
+      "additionalProperties": false,
       "properties": {
         "label": {
           "anyOf": [
@@ -842,6 +852,7 @@
       "type": "object"
     },
     "DeclQuoteNode": {
+      "additionalProperties": false,
       "properties": {
         "label": {
           "anyOf": [
@@ -928,6 +939,7 @@
       "type": "object"
     },
     "DeclTableNode": {
+      "additionalProperties": false,
       "properties": {
         "label": {
           "anyOf": [
@@ -1023,6 +1035,7 @@
       "type": "object"
     },
     "DeclTermsNode": {
+      "additionalProperties": false,
       "properties": {
         "label": {
           "anyOf": [
@@ -1354,6 +1367,7 @@
       "type": "object"
     }
   },
+  "additionalProperties": false,
   "description": "The source form a producer emits and the builder compiles.\n\nNo ``id``, ``built_at`` or ``cnd_version`` \u2014 all three are the\nbuilder's to supply. ``source`` is kept, optional: a producer\nconverting ``notes.md`` legitimately records what it converted from,\nand provenance is not resolved presentation state.",
   "properties": {
     "declaration_version": {

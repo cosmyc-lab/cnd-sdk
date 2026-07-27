@@ -11,8 +11,10 @@ would not catch, since adding a stray field still validates.
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 from jsonschema import Draft202012Validator
+from pydantic import ValidationError
 
 from cnd.declaration import DECLARATION_VERSION, Declaration
 
@@ -87,6 +89,76 @@ class TestNothingTheBuilderDerivesIsCarried:
 
         assert "id" not in defs["DeclBibEntry"]["properties"]
         assert "id" not in defs["DeclFootnote"]["properties"]
+
+
+class TestUnknownFieldsAreRejected:
+    """A stray field is a rejection, not a silent drop — the point of an
+    authored form that is hand-corrected before building (spec §12)."""
+
+    def _decl(self, node: dict) -> dict:
+        return {
+            "declaration_version": "0.1.0",
+            "doc": {"title": "T"},
+            "nodes": [node],
+        }
+
+    def test_a_derived_field_on_a_node_is_rejected(self) -> None:
+        """The exact failure the prose promises: `location` cannot merely
+        be absent, it cannot be present."""
+        with pytest.raises(ValidationError, match="location"):
+            Declaration.model_validate(
+                self._decl({"type": "paragraph", "text": "x", "location": {"page": 1}})
+            )
+
+    def test_a_typo_on_an_optional_key_is_rejected_not_dropped(self) -> None:
+        """`capton` for `caption` would vanish silently under the default
+        config; here it raises, which is why strict was chosen."""
+        with pytest.raises(ValidationError, match="capton"):
+            Declaration.model_validate(
+                self._decl(
+                    {"type": "figure", "kind": "image", "capton": "A diagram"}
+                )
+            )
+
+    def test_a_top_level_typo_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="bibliografy"):
+            Declaration.model_validate(
+                {
+                    "declaration_version": "0.1.0",
+                    "doc": {"title": "T"},
+                    "nodes": [],
+                    "bibliografy": [],
+                }
+            )
+
+    def test_the_committed_schema_forbids_extras_on_nodes(self) -> None:
+        heading = _committed_schema()["$defs"]["DeclHeadingNode"]
+        assert heading.get("additionalProperties") is False
+
+    def test_the_extension_bag_still_holds_arbitrary_keys(self) -> None:
+        """`extra=forbid` guards the model's own fields, not the contents
+        of a dict-typed one."""
+        decl = Declaration.model_validate(
+            self._decl(
+                {"type": "paragraph", "text": "x", "state_metadata": {"anything": 1}}
+            )
+        )
+        assert decl.nodes[0].state_metadata == {"anything": 1}
+
+    def test_strictness_is_partial_at_the_reused_value_objects(self) -> None:
+        """A documented limit, pinned so it is a known boundary and not a
+        surprise: a stray key *inside* a reused CND value object (here a
+        table cell) is not caught, because forbidding on it would change
+        CND parsing (docs: `_Strict`)."""
+        decl = Declaration.model_validate(
+            self._decl(
+                {
+                    "type": "table",
+                    "cells": [{"row": 0, "col": 0, "text": "x", "txet": "typo"}],
+                }
+            )
+        )
+        assert decl.nodes[0].cells[0].text == "x"
 
 
 class TestWhatTheDeclarationKeeps:

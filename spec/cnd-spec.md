@@ -658,6 +658,13 @@ from a declaration, but a producer can still write an unbuildable one
 (a label nothing carries) or a buildable-but-false one, and that wrong
 layer is hand-correctable in the declaration before building.
 
+Because the declaration is authored by hand, an **unknown field is
+rejected rather than dropped** — a `capton` typed for `caption` raises
+instead of vanishing, so the mistake surfaces exactly where it is meant
+to be corrected. (This strictness reaches the declaration's own node and
+top-level fields; a stray key inside a value object it shares with the
+CND, like a table cell, is not caught.)
+
 ## Out of scope
 
 Chunking strategies, embedding generation, vector storage backends,

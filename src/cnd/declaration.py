@@ -35,7 +35,7 @@ declaration is free to evolve without dragging the CND along.
 
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # Authored-content value objects, shared verbatim with the CND: they carry
 # no id and no presentation state, so there is nothing to strip.
@@ -59,7 +59,32 @@ producer silently.
 """
 
 
-class DeclNodeBase(BaseModel):
+class _Strict(BaseModel):
+    """Base for the declaration-specific models: an unknown field is a
+    **rejection**, not a silent drop.
+
+    The declaration is authored by hand or by a language model, and its
+    whole purpose is to be hand-corrected before building (ADR 0019, spec
+    §12). A typo — ``capton`` for ``caption`` — that vanished silently
+    would defeat that: the mistake is invisible precisely where it is
+    meant to be caught. So a stray key raises. Forward compatibility does
+    not need silent tolerance here — ``declaration_version`` signals a
+    version mismatch explicitly.
+
+    **This strictness is partial by construction.** ``extra="forbid"`` is
+    per model and does not reach the value objects reused from the CND
+    (``TableCell``, the link edges, ``DocMetadata``): those keep the CND's
+    lenient config, since forbidding on them would change CND parsing. A
+    stray key on a node or at the top level is caught; one *inside* a
+    table cell or a link edge is not. The open extension bags
+    (``state_metadata``, ``fields``) are dict-typed and unaffected — they
+    still hold arbitrary keys.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class DeclNodeBase(_Strict):
     """Shared fields for every declaration node.
 
     The CND's ``NodeBase`` minus ``id`` and ``location``: a declaration
@@ -138,7 +163,7 @@ class DeclFigureNode(DeclNodeBase):
     raw: RawSource | None = None
 
 
-class DeclListItem(BaseModel):
+class DeclListItem(_Strict):
     """One item of a declaration list.
 
     ``number`` is an **override**, not a resolved ordinal: absent means
@@ -188,7 +213,7 @@ DeclHeadingNode.model_rebuild()
 DeclFigureNode.model_rebuild()
 
 
-class DeclBibEntry(BaseModel):
+class DeclBibEntry(_Strict):
     """A bibliography entry in a declaration — ``BibEntry`` minus ``id``.
 
     The content floor still applies at build time: an entry must carry
@@ -208,14 +233,14 @@ class DeclBibEntry(BaseModel):
     fields: dict[str, Any] = Field(default_factory=dict)
 
 
-class DeclFootnote(BaseModel):
+class DeclFootnote(_Strict):
     """A footnote in a declaration — ``Footnote`` minus ``id``."""
 
     label: str
     text: str
 
 
-class Declaration(BaseModel):
+class Declaration(_Strict):
     """The source form a producer emits and the builder compiles.
 
     No ``id``, ``built_at`` or ``cnd_version`` — all three are the
