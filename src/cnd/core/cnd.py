@@ -14,6 +14,15 @@ from cnd.core.nodes import (
 )
 
 
+CND_VERSION = "0.3.0"
+"""The format version this SDK builds and targets (spec/cnd-spec.md).
+
+Stamped into ``Cnd.cnd_version`` by the builder (docs/adr/0019). One
+constant so the builder, and any future writer, cannot drift from the
+version the models implement.
+"""
+
+
 class DocDate(BaseModel):
     """Partial or full document date from cnd metadata."""
 
