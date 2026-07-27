@@ -249,7 +249,7 @@
     },
     "DeclFigureNode": {
       "additionalProperties": false,
-      "description": "A captioned float wrapper. Keeps ``kind`` \u2014 the counter selector is\nauthored \u2014 but not the resolved ``number``/``counter_label``.",
+      "description": "A captioned float wrapper. Keeps ``kind`` (the authored counter\nselector) and ``counter_label`` (authored for a custom ``kind`` the\nbuilder has no localized word for), but not the resolved ``number``.",
       "properties": {
         "label": {
           "anyOf": [
@@ -317,6 +317,18 @@
           ],
           "default": null,
           "title": "Caption"
+        },
+        "counter_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Counter Label"
         },
         "children": {
           "items": {
@@ -411,7 +423,7 @@
     },
     "DeclHeadingNode": {
       "additionalProperties": false,
-      "description": "A section heading. No ``number``/``counter_label`` (resolved by the\nbuilder's counter engine) and no ``heading_path`` (derivable from tree\nposition).",
+      "description": "A section heading. No ``number`` (the builder's counter engine\nresolves it) and no ``heading_path`` (derivable from tree position).\n``counter_label`` is kept: a heading has no ``kind`` to derive a word\nfrom, so any word (\"Chapter\", \"Partie\") is authored.",
       "properties": {
         "label": {
           "anyOf": [
@@ -463,6 +475,18 @@
         "text": {
           "title": "Text",
           "type": "string"
+        },
+        "counter_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Counter Label"
         },
         "children": {
           "items": {
@@ -605,7 +629,7 @@
     },
     "DeclListItem": {
       "additionalProperties": false,
-      "description": "One item of a declaration list.\n\n``number`` is an **override**, not a resolved ordinal: absent means\n\"number this item sequentially\", present means an explicit start or\nskip (markdown's ``3.`` on the first item of an ordered list). This is\nthe one place the declaration keeps a ``number`` the CND resolves \u2014 it\nkeeps the *authored* half (the override) and drops the *derived* half\n(the running ordinal), the same line drawn for figure numbers.",
+      "description": "One item of a declaration list.\n\n``number`` is an **override**, not a resolved ordinal: absent means\n\"number this item sequentially\", present means an explicit start or\nskip (markdown's ``3.`` on the first item of an ordered list). This is\nthe one place the declaration keeps a ``number`` the CND resolves \u2014 it\nkeeps the *authored* half (the override) and drops the *derived* half\n(the running ordinal), the same line drawn for figure numbers.\n\nResolution rule the builder follows (pinned so two builders cannot\ndiverge): an item with no ``number`` takes the previous sibling's\nresolved number plus one, starting from 1; an item *with* a ``number``\ntakes it verbatim, and following items count on from there. So a\n``number`` **rebases** the rest of the list rather than only labelling\nits own item. Ignored on an ``ordered: false`` list, which has no\nordinals.",
       "properties": {
         "text": {
           "title": "Text",
@@ -767,6 +791,18 @@
             }
           ],
           "default": null
+        },
+        "counter_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Counter Label"
         },
         "block": {
           "default": true,
@@ -1368,10 +1404,9 @@
     }
   },
   "additionalProperties": false,
-  "description": "The source form a producer emits and the builder compiles.\n\nNo ``id``, ``built_at`` or ``cnd_version`` \u2014 all three are the\nbuilder's to supply. ``source`` is kept, optional: a producer\nconverting ``notes.md`` legitimately records what it converted from,\nand provenance is not resolved presentation state.",
+  "description": "The source form a producer emits and the builder compiles.\n\nNo ``id``, ``built_at`` or ``cnd_version`` \u2014 all three are the\nbuilder's to supply. ``source`` is kept, optional: a producer\nconverting ``notes.md`` legitimately records what it converted from,\nand provenance is not resolved presentation state.\n\n``declaration_version`` is **required**, matching the CND's required\n``cnd_version``. It exists to stop the first evolution of the schema\nfrom breaking every producer silently (ADR 0019 \u00a73); an omitted\nversion defaulting to \"current\" is exactly the silent assumption it\nguards against, so absence is an error, not \"latest\".",
   "properties": {
     "declaration_version": {
-      "default": "0.1.0",
       "title": "Declaration Version",
       "type": "string"
     },
@@ -1458,6 +1493,7 @@
     }
   },
   "required": [
+    "declaration_version",
     "doc",
     "nodes"
   ],

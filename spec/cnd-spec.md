@@ -649,10 +649,15 @@ A declaration is **the CND minus everything the builder derives**, the
 same derived-not-serialized rule (§2) applied to the production side: a
 declaration node carries no `id` (the builder mints it; ids are not
 durable anyway, docs/adr/0015), no `location` (an unpaginated source has
-no page), no `number` or `counter_label` (resolved counter state), and no
+no page), no `number` (the resolved running counter value), and no
 `heading_path` (derivable from tree position). What it keeps is authored
 content — the `label` as the durable identity, the label-keyed link
-families, and every content field. What the declarative door guarantees
+families, and every content field. It keeps `counter_label` too: unlike
+`number` that word has an authored half the builder cannot derive — a
+heading or equation has no `kind` to derive one from, and a custom-`kind`
+figure carries a word only the author knows. A list item likewise keeps
+`number`, but as an authored *override* of the sequential ordinal, not
+the resolved value. What the declarative door guarantees
 is well-formedness, not truth: the builder cannot emit a malformed CND
 from a declaration, but a producer can still write an unbuildable one
 (a label nothing carries) or a buildable-but-false one, and that wrong
@@ -664,6 +669,12 @@ instead of vanishing, so the mistake surfaces exactly where it is meant
 to be corrected. (This strictness reaches the declaration's own node and
 top-level fields; a stray key inside a value object it shares with the
 CND, like a table cell, is not caught.)
+
+One constraint the builder inherits from carrying `text_span`: an edge's
+`text_span` indexes into the node's rendered `text` (§5), so **the
+builder must pass a node's `text` through unaltered** — no whitespace
+collapse, no re-normalization — or every span silently shifts against the
+text it points into.
 
 ## Out of scope
 

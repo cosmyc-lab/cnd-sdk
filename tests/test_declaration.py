@@ -63,7 +63,11 @@ class TestNothingTheBuilderDerivesIsCarried:
     merely *allowed* these fields to be absent would not prove it — these
     assert they cannot be *present*."""
 
-    DERIVED_NODE_FIELDS = ("id", "location", "number", "counter_label", "heading_path")
+    # `counter_label` is NOT here: it has an authored half the builder
+    # cannot derive, so the declaration keeps it (Fable review). `number`
+    # stays — its resolved-ordinal form is dropped; the list-item override
+    # lives on DeclListItem, not a node.
+    DERIVED_NODE_FIELDS = ("id", "location", "number", "heading_path")
 
     def _node_properties(self) -> set[str]:
         schema = _committed_schema()
@@ -176,6 +180,24 @@ class TestWhatTheDeclarationKeeps:
 
         assert "number" in item
 
+    def test_counter_label_is_kept_on_every_counter_bearing_node(self) -> None:
+        """The authored counter word — with no `kind` on a heading or
+        equation it is purely authored, so dropping it while keeping the
+        list-number override would split the same authored/derived line two
+        opposite ways (Fable review)."""
+        defs = _committed_schema()["$defs"]
+
+        for node in ("DeclHeadingNode", "DeclMathNode", "DeclFigureNode"):
+            assert "counter_label" in defs[node]["properties"], node
+
+    def test_the_resolved_number_is_still_stripped_from_those_nodes(self) -> None:
+        """`counter_label` returns but `number` (the running counter value)
+        stays out — it has no authored half on a heading/math/figure."""
+        defs = _committed_schema()["$defs"]
+
+        for node in ("DeclHeadingNode", "DeclMathNode", "DeclFigureNode"):
+            assert "number" not in defs[node]["properties"], node
+
     def test_source_provenance_is_kept(self) -> None:
         """Provenance is not resolved presentation state; a producer knows
         what it converted from."""
@@ -187,10 +209,19 @@ class TestVersioning:
         """ADR 0019 §3: versioned independently of `cnd_version`, so the
         first evolution does not break every producer silently."""
         assert "declaration_version" in _committed_schema()["properties"]
+        assert DECLARATION_VERSION != "0.3.0"
 
-    def test_the_version_defaults_and_is_not_the_format_version(self) -> None:
+    def test_the_version_is_required_like_cnd_version(self) -> None:
+        """Absence must mean "unknown → error", not "latest" — the silent
+        assumption the field exists to prevent (Fable review). Required,
+        matching the CND's required `cnd_version`."""
+        assert "declaration_version" in _committed_schema()["required"]
+
+        with pytest.raises(ValidationError, match="declaration_version"):
+            Declaration.model_validate({"doc": {"title": "T"}, "nodes": []})
+
+    def test_a_present_version_parses(self) -> None:
         built = Declaration.model_validate(
             yaml.safe_load(next(iter(_declarations())).read_text())
         )
         assert built.declaration_version == DECLARATION_VERSION
-        assert DECLARATION_VERSION != "0.3.0"

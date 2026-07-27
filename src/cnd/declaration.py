@@ -20,13 +20,21 @@ a declaration node has no
 - ``id`` — the builder mints node ids; they are not durable anyway
   (ADR 0015), so a producer supplying them would only be supplying noise;
 - ``location`` — an unpaginated source has no page (ADR 0019);
-- ``number`` / ``counter_label`` — resolved counter state, which needs a
-  counter engine the declarative producer does not have;
+- ``number`` — the resolved running counter value ("2.1.1", "3"), which
+  needs a counter engine the declarative producer does not have. Its one
+  authored half — a list item's start override — survives on
+  ``DeclListItem``;
 - ``heading_path`` — derivable from the node's position in the tree.
 
 What it keeps is authored content: the ``label`` (the only durable
 identity, and it lives in the source — ADR 0015/0017), the link families
-keyed by label, and every content field. The value objects that carry no
+keyed by label, and every content field. It also keeps **``counter_label``**
+on the counter-bearing nodes — unlike ``number`` this has an authored half
+the builder cannot derive: a heading or equation has no ``kind`` to derive
+a word from, and a figure with a custom ``kind`` carries a word the author
+supplied and nothing else encodes (the very reason it is a field, per
+proposal 0010). Dropping it while keeping the list-number override would
+be the same authored/derived split resolved two opposite ways. The value objects that carry no
 presentation state — table cells, the link edges, dates, raw source — are
 the CND's own, reused rather than re-declared, because a table cell is a
 table cell in either form. Only the node types are defined fresh, so the
@@ -100,13 +108,15 @@ class DeclNodeBase(_Strict):
 
 
 class DeclHeadingNode(DeclNodeBase):
-    """A section heading. No ``number``/``counter_label`` (resolved by the
-    builder's counter engine) and no ``heading_path`` (derivable from tree
-    position)."""
+    """A section heading. No ``number`` (the builder's counter engine
+    resolves it) and no ``heading_path`` (derivable from tree position).
+    ``counter_label`` is kept: a heading has no ``kind`` to derive a word
+    from, so any word ("Chapter", "Partie") is authored."""
 
     type: Literal["heading"]
     level: int
     text: str
+    counter_label: str | None = None
     children: list["DeclNode"] = Field(default_factory=list)
 
 
@@ -143,6 +153,7 @@ class DeclMathNode(DeclNodeBase):
     type: Literal["math"]
     text: str
     raw: RawSource | None = None
+    counter_label: str | None = None
     block: bool = True
 
 
@@ -153,12 +164,14 @@ class DeclImageNode(DeclNodeBase):
 
 
 class DeclFigureNode(DeclNodeBase):
-    """A captioned float wrapper. Keeps ``kind`` — the counter selector is
-    authored — but not the resolved ``number``/``counter_label``."""
+    """A captioned float wrapper. Keeps ``kind`` (the authored counter
+    selector) and ``counter_label`` (authored for a custom ``kind`` the
+    builder has no localized word for), but not the resolved ``number``."""
 
     type: Literal["figure"]
     kind: str | None = None
     caption: str | None = None
+    counter_label: str | None = None
     children: list["DeclNode"] = Field(default_factory=list)
     raw: RawSource | None = None
 
@@ -172,6 +185,14 @@ class DeclListItem(_Strict):
     the one place the declaration keeps a ``number`` the CND resolves — it
     keeps the *authored* half (the override) and drops the *derived* half
     (the running ordinal), the same line drawn for figure numbers.
+
+    Resolution rule the builder follows (pinned so two builders cannot
+    diverge): an item with no ``number`` takes the previous sibling's
+    resolved number plus one, starting from 1; an item *with* a ``number``
+    takes it verbatim, and following items count on from there. So a
+    ``number`` **rebases** the rest of the list rather than only labelling
+    its own item. Ignored on an ``ordered: false`` list, which has no
+    ordinals.
     """
 
     text: str
@@ -247,9 +268,15 @@ class Declaration(_Strict):
     builder's to supply. ``source`` is kept, optional: a producer
     converting ``notes.md`` legitimately records what it converted from,
     and provenance is not resolved presentation state.
+
+    ``declaration_version`` is **required**, matching the CND's required
+    ``cnd_version``. It exists to stop the first evolution of the schema
+    from breaking every producer silently (ADR 0019 §3); an omitted
+    version defaulting to "current" is exactly the silent assumption it
+    guards against, so absence is an error, not "latest".
     """
 
-    declaration_version: str = DECLARATION_VERSION
+    declaration_version: str
     source: SourceInfo | None = None
     doc: DocMetadata
     nodes: list[DeclNode]

@@ -38,6 +38,10 @@ nodes:
       - type: figure
         label: lst-open
         kind: code
+        # The displayed counter word. Authored, not derived: the builder
+        # has no localized name for a "code" figure, so if the author wants
+        # "Listing 1" rather than nothing, the word lives here.
+        counter_label: Listing
         caption: Opening frame
         children:
           - type: code
