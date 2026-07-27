@@ -7,6 +7,7 @@ through untouched.
 """
 
 from datetime import timezone
+import re
 
 import pytest
 
@@ -185,3 +186,78 @@ class TestListOrdinals:
         )
         assert build(decl).nodes[0].items[0].number == 1
         assert build(decl, numbering=True).nodes[0].items[0].number == 1
+
+
+UUID_HEX = "[0-9a-f]{8}-"  # enough to spot a leaked UUID in a message
+
+
+class TestBuildErrors:
+    def _violations(self, decl: Declaration) -> list:
+        with pytest.raises(BuildError) as excinfo:
+            build(decl)
+        return excinfo.value.violations
+
+    def test_duplicate_label_is_a_build_error(self) -> None:
+        decl = _decl(
+            [
+                {"type": "paragraph", "text": "a", "label": "dup"},
+                {"type": "paragraph", "text": "b", "label": "dup"},
+            ]
+        )
+        violations = self._violations(decl)
+        assert [v.rule for v in violations] == ["label-not-unique"]
+        assert "@dup" in violations[0].where
+
+    def test_unresolved_ref_is_a_build_error(self) -> None:
+        decl = _decl(
+            [{"type": "paragraph", "text": "a", "refs": [{"label": "ghost"}]}]
+        )
+        violations = self._violations(decl)
+        assert [v.rule for v in violations] == ["link-unresolved"]
+        assert "@ghost" in violations[0].where
+
+    def test_wrong_domain_edge_is_a_build_error(self) -> None:
+        # cites → a node label: resolves, but not in the family's domain.
+        decl = _decl(
+            [
+                {"type": "paragraph", "text": "a", "label": "not-a-bib"},
+                {"type": "paragraph", "text": "b",
+                 "cites": [{"label": "not-a-bib"}]},
+            ]
+        )
+        assert [v.rule for v in self._violations(decl)] == ["link-wrong-domain"]
+
+    def test_empty_bib_entry_is_a_build_error(self) -> None:
+        decl = _decl(
+            [{"type": "paragraph", "text": "a"}],
+            bibliography=[{"label": "k1"}],  # no formatted, no structured field
+        )
+        assert [v.rule for v in self._violations(decl)] == ["bib-entry-empty"]
+
+    def test_unsupported_declaration_version(self) -> None:
+        decl = _decl([{"type": "paragraph", "text": "a"}])
+        decl = decl.model_copy(update={"declaration_version": "9.9.9"})
+        violations = self._violations(decl)
+        assert [v.rule for v in violations] == ["declaration-version-unsupported"]
+        assert "9.9.9" in violations[0].where
+
+    def test_where_is_label_first_never_a_minted_uuid(self) -> None:
+        # An unlabelled node in violation: named by reading-order position.
+        decl = _decl(
+            [{"type": "paragraph", "text": "a", "refs": [{"label": "ghost"}]}]
+        )
+        [violation] = self._violations(decl)
+        assert not re.search(UUID_HEX, violation.where)
+        assert not re.search(UUID_HEX, violation.message)
+        assert "#1" in violation.where  # first node in reading order
+
+    def test_error_message_joins_all_violations(self) -> None:
+        decl = _decl(
+            [
+                {"type": "paragraph", "text": "a", "refs": [{"label": "g1"}]},
+                {"type": "paragraph", "text": "b", "refs": [{"label": "g2"}]},
+            ]
+        )
+        with pytest.raises(BuildError) as excinfo:
+            build(decl)
+        assert "g1" in str(excinfo.value) and "g2" in str(excinfo.value)
