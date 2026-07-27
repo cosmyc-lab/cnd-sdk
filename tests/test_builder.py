@@ -261,3 +261,81 @@ class TestBuildErrors:
         with pytest.raises(BuildError) as excinfo:
             build(decl)
         assert "g1" in str(excinfo.value) and "g2" in str(excinfo.value)
+
+
+class TestCounterEngine:
+    def test_headings_dotted_with_reset(self) -> None:
+        decl = _decl(
+            [
+                {"type": "heading", "level": 1, "text": "A", "children": [
+                    {"type": "heading", "level": 2, "text": "A1"},
+                    {"type": "heading", "level": 2, "text": "A2"},
+                ]},
+                {"type": "heading", "level": 1, "text": "B", "children": [
+                    {"type": "heading", "level": 2, "text": "B1"},
+                ]},
+            ]
+        )
+        cnd = build(decl, numbering=True)
+        a, b = cnd.nodes
+        assert a.number == "1"
+        assert [h.number for h in a.children] == ["1.1", "1.2"]
+        assert b.number == "2"
+        assert b.children[0].number == "2.1"
+
+    def test_skipped_level_shows_zero(self) -> None:
+        # Level jumps 1 → 3: the pinned house style shows the gap as 0
+        # rather than papering over it.
+        decl = _decl(
+            [
+                {"type": "heading", "level": 1, "text": "A", "children": [
+                    {"type": "heading", "level": 3, "text": "deep"},
+                ]},
+            ]
+        )
+        cnd = build(decl, numbering=True)
+        assert cnd.nodes[0].children[0].number == "1.0.1"
+
+    def test_heading_path_elements_carry_the_number(self) -> None:
+        decl = _decl(
+            [
+                {"type": "heading", "level": 1, "text": "Top", "children": [
+                    {"type": "heading", "level": 2, "text": "Sub"},
+                ]},
+            ]
+        )
+        sub = build(decl, numbering=True).nodes[0].children[0]
+        assert sub.heading_path == ["1 Top", "1.1 Sub"]
+
+    def test_figures_count_per_kind_with_inference(self) -> None:
+        decl = _decl(
+            [
+                {"type": "figure", "kind": "image", "caption": "a"},
+                # kind=None wrapping a table: inferred as "table", so it
+                # must NOT advance the image counter.
+                {"type": "figure", "caption": "b", "children": [
+                    {"type": "table",
+                     "cells": [{"row": 0, "col": 0, "text": "x"}]},
+                ]},
+                {"type": "figure", "kind": "image", "caption": "c"},
+            ]
+        )
+        cnd = build(decl, numbering=True)
+        assert [f.number for f in cnd.nodes] == ["1", "1", "2"]
+
+    def test_block_math_numbered_inline_math_not(self) -> None:
+        decl = _decl(
+            [
+                {"type": "math", "text": "a", "block": True},
+                {"type": "math", "text": "b", "block": False},
+                {"type": "math", "text": "c", "block": True},
+            ]
+        )
+        cnd = build(decl, numbering=True)
+        assert [m.number for m in cnd.nodes] == ["(1)", None, "(2)"]
+
+    def test_counter_label_is_never_invented(self) -> None:
+        decl = _decl([{"type": "figure", "kind": "image", "caption": "a"}])
+        figure = build(decl, numbering=True).nodes[0]
+        assert figure.number == "1"
+        assert figure.counter_label is None
