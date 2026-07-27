@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from pydantic import ValidationError
 
 from cnd.builder import BuildError, build
 from cnd.core.cnd import CND_VERSION
@@ -255,6 +256,13 @@ class TestBuildErrors:
         assert not re.search(UUID_HEX, violation.where)
         assert not re.search(UUID_HEX, violation.message)
         assert "#1" in violation.where  # first node in reading order
+
+    def test_level_zero_heading_is_rejected_at_parse(self) -> None:
+        # `level` is constrained to >= 1 at the model (declaration.py): a
+        # level-0 heading is unrepresentable, not a counter-engine crash
+        # at build time (`_Counters.heading` would IndexError on it).
+        with pytest.raises(ValidationError):
+            _decl([{"type": "heading", "level": 0, "text": "bad"}])
 
     def test_error_message_joins_all_violations(self) -> None:
         decl = _decl(

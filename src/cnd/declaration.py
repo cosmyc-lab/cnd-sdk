@@ -111,10 +111,15 @@ class DeclHeadingNode(DeclNodeBase):
     """A section heading. No ``number`` (the builder's counter engine
     resolves it) and no ``heading_path`` (derivable from tree position).
     ``counter_label`` is kept: a heading has no ``kind`` to derive a word
-    from, so any word ("Chapter", "Partie") is authored."""
+    from, so any word ("Chapter", "Partie") is authored.
+
+    ``level`` starts at 1 — there is no level 0. Constraining it here
+    makes the invalid input unrepresentable rather than a counter-engine
+    crash at build time (ADR 0019 §4's own philosophy: reject at the
+    door, not downstream)."""
 
     type: Literal["heading"]
-    level: int
+    level: Annotated[int, Field(ge=1)]
     text: str
     counter_label: str | None = None
     children: list["DeclNode"] = Field(default_factory=list)

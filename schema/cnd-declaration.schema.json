@@ -423,7 +423,7 @@
     },
     "DeclHeadingNode": {
       "additionalProperties": false,
-      "description": "A section heading. No ``number`` (the builder's counter engine\nresolves it) and no ``heading_path`` (derivable from tree position).\n``counter_label`` is kept: a heading has no ``kind`` to derive a word\nfrom, so any word (\"Chapter\", \"Partie\") is authored.",
+      "description": "A section heading. No ``number`` (the builder's counter engine\nresolves it) and no ``heading_path`` (derivable from tree position).\n``counter_label`` is kept: a heading has no ``kind`` to derive a word\nfrom, so any word (\"Chapter\", \"Partie\") is authored.\n\n``level`` starts at 1 \u2014 there is no level 0. Constraining it here\nmakes the invalid input unrepresentable rather than a counter-engine\ncrash at build time (ADR 0019 \u00a74's own philosophy: reject at the\ndoor, not downstream).",
       "properties": {
         "label": {
           "anyOf": [
@@ -469,6 +469,7 @@
           "type": "string"
         },
         "level": {
+          "minimum": 1,
           "title": "Level",
           "type": "integer"
         },
