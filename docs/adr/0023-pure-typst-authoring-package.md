@@ -45,7 +45,24 @@ readable from the installed wheel via
 change is needed — hatchling's `packages = ["src/cnd"]` already sweeps
 non-Python files under the package directory.
 
-The package exports two names under `cnd`:
+The package exports its names as top-level module members, not as a
+dictionary. A whole-file import — `#import "/cnd.typ"` — binds the file as a
+module named `cnd` (by file stem), and members of a module are directly
+callable: `#cnd.table(..)`, `#cnd.metadata.update(..)`, exactly like a
+function reached through the compiler-injected module this package
+replaces.
+
+A dict export (`#let cnd = (metadata: ..., table: ...)`) was tried first and
+rejected: in stock Typst, a function value stored in a dictionary field
+cannot be called directly through field access — `#cnd.table(..)` raises
+"cannot directly call dictionary keys as functions," forcing the caller to
+write the parenthesized form `#(cnd.table)(..)` instead. That breaks
+call-syntax parity with the injected module `cnd.table(..)` was meant to be
+a drop-in replacement for, so the dict shape does not satisfy this ADR's own
+goal. The module export has no such restriction — a module's function
+members are ordinary bindings, callable exactly like top-level functions.
+
+The two exported names:
 
 - `cnd.metadata` — a `state("cnd.metadata", (:))`, the same state key CND
   emitters already read.
@@ -59,10 +76,16 @@ convention is `#cnd.table(table(columns: 2, [A], [B]), content_kind:
 "data")` — the author still calls `table(..)` themselves, and passes the
 result in — rather than `#cnd.table(content_kind: "data", columns: 2, ..)`.
 This keeps the table's span at the document's own call site, which is what
-the emitter's snippet-capture logic depends on.
+the emitter's snippet-capture logic depends on. (This is also why the
+package's own top-level function is itself named `table` — it shadows
+Typst's built-in `table` only inside a scope that imports it by name, which
+is exactly why consumers are told to import the whole file rather than
+destructure individual members.)
 
 Consumers map or copy the file into a project (e.g. as a root file
-`/cnd.typ`) and opt in per document with `#import "/cnd.typ": cnd`. This
+`/cnd.typ`) and opt in per document with `#import "/cnd.typ"` (the whole
+file, not `#import "/cnd.typ": table, metadata` — destructuring `table`
+would shadow Typst's own built-in `table` in the importing scope). This
 works on any stock Typst toolchain — the CLI, typst.app, tinymist, or any
 other compiler — because the only contract is the `cnd.metadata` state key
 itself, not a modified compiler binary. Compiler-side injection of a `cnd`
@@ -88,3 +111,7 @@ a document declares its CND metadata contract.
   any pure-Typst code can declare, not just the fork module — future
   changes to the key's shape are a compatibility concern for every producer
   that reads it, not just the fork.
+- The package's exported names are module-level bindings, not dict entries;
+  a future contributor adding a new export must add it as a top-level
+  `#let` in `cnd.typ`, not by extending a dict — the dict shape is rejected
+  by this ADR precisely because it breaks direct call syntax.

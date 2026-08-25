@@ -59,11 +59,14 @@ NodeDisplayVisitor().visit(cnd)
 copy it into a project (e.g. as a root file `cnd.typ`), then:
 
 ```typ
-#import "/cnd.typ": cnd
+#import "/cnd.typ"
 
 #cnd.metadata.update(it => it + (revision: "4.2"))
 #cnd.table(table(columns: 2, [A], [B]), content_kind: "data")
 ```
+
+Import the whole file rather than destructuring — `#import "/cnd.typ": table`
+would shadow Typst's own built-in `table`.
 
 It works on any stock Typst toolchain — the only contract is the
 `cnd.metadata` state key that CND emitters read. From Python, the file is
