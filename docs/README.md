@@ -30,6 +30,7 @@ conventions.
 | [0020](adr/0020-repository-as-conformance-hub.md) | The repository is a conformance hub; the hub ships a conformance CLI | accepted |
 | [0021](adr/0021-artifact-naming-and-file-identity.md) | Artifact naming and file identity — the CND and the declaration | accepted |
 | [0022](adr/0022-rust-succession-plan.md) | Rust succession plan — Python is the reference until the format freezes | proposed |
+| [0023](adr/0023-pure-typst-authoring-package.md) | Pure-Typst authoring package for CND metadata | accepted |
 
 ## Proposals (docs/proposals/)
 

@@ -53,6 +53,23 @@ from cnd.visitors.node_display_visitor import NodeDisplayVisitor
 NodeDisplayVisitor().visit(cnd)
 ```
 
+## Typst authoring package
+
+`src/cnd/typst/cnd.typ` is the official pure-Typst authoring package. Map or
+copy it into a project (e.g. as a root file `cnd.typ`), then:
+
+```typ
+#import "/cnd.typ": cnd
+
+#cnd.metadata.update(it => it + (revision: "4.2"))
+#cnd.table(table(columns: 2, [A], [B]), content_kind: "data")
+```
+
+It works on any stock Typst toolchain — the only contract is the
+`cnd.metadata` state key that CND emitters read. From Python, the file is
+available as `importlib.resources.files("cnd") / "typst" / "cnd.typ"`.
+See ADR 0023.
+
 ## Conformance CLI
 
 The `cnd` command is the executable oracle of the fixture corpus — the tool
