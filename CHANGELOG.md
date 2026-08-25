@@ -9,8 +9,21 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-25
+
 ### Added
 
+- **Pure-Typst authoring package** (`src/cnd/typst/cnd.typ`,
+  docs/adr/0023) — a single-file Typst module authors import as
+  `#import "/cnd.typ"` to mark up documents for CND extraction. It owns
+  the `"cnd.metadata"` state key (the only contract between authored
+  documents and an extractor); `cnd.table(body, content_kind: ...)` takes
+  the built content rather than wrapping the `table` call, so `raw`
+  snippet span provenance survives. Exported as a module, not a dict:
+  Typst cannot call functions stored in dict fields directly
+  (`#cnd.table(...)` would fail), so the file's module binding is the
+  public surface. The entries below shipped in the `v0.4.0` tag but were
+  left under Unreleased at that cut; they are documented here.
 - **The builder** (`cnd.builder`, docs/adr/0019) — `build(decl,
   numbering=False)` compiles a declaration into a validated CND: mints
   ids, derives `heading_path` and ordered-list ordinals (the
@@ -52,8 +65,7 @@ the minor version, fixes bump the patch version).
   `cnd.declaration` and generated from those models like the CND schema
   (ADR 0004), so it cannot drift; it carries its own `declaration_version`
   (0.1.0), independent of `cnd_version`. **Non-normative** — an SDK
-  surface, not part of the format (spec §12). The builder that consumes it
-  (`cnd build`, the fifth conformance verb) is not implemented yet.
+  surface, not part of the format (spec §12).
   `pyyaml` joins the dev dependencies to parse the `.decl.yaml` fixture;
   the models themselves import no YAML, so the core stays zero-dependency.
 
