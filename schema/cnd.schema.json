@@ -218,6 +218,13 @@
           "title": "Footnotes",
           "type": "array"
         },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/LinkRef"
+          },
+          "title": "Links",
+          "type": "array"
+        },
         "state_metadata": {
           "additionalProperties": true,
           "title": "State Metadata",
@@ -409,6 +416,13 @@
             "$ref": "#/$defs/FootnoteRef"
           },
           "title": "Footnotes",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/LinkRef"
+          },
+          "title": "Links",
           "type": "array"
         },
         "state_metadata": {
@@ -647,6 +661,13 @@
           "title": "Footnotes",
           "type": "array"
         },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/LinkRef"
+          },
+          "title": "Links",
+          "type": "array"
+        },
         "state_metadata": {
           "additionalProperties": true,
           "title": "State Metadata",
@@ -812,6 +833,13 @@
           "title": "Footnotes",
           "type": "array"
         },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/LinkRef"
+          },
+          "title": "Links",
+          "type": "array"
+        },
         "state_metadata": {
           "additionalProperties": true,
           "title": "State Metadata",
@@ -863,6 +891,35 @@
         "type"
       ],
       "title": "ImageNode",
+      "type": "object"
+    },
+    "LinkRef": {
+      "description": "Forward hyperlink edge; ``href`` resolves nowhere in the CND.\n\nThe fourth forward family and the only one not keyed by label: a\nhyperlink's target is outside the document by definition, so it admits\nno resolution domain and has no dangling state \u2014 a URL is a URL. The\nscheme is a consumer's business (``https:``, ``doi:``, an application\nscheme); the format only carries the string.",
+      "properties": {
+        "href": {
+          "title": "Href",
+          "type": "string"
+        },
+        "text_span": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text Span"
+        }
+      },
+      "required": [
+        "href"
+      ],
+      "title": "LinkRef",
       "type": "object"
     },
     "ListItem": {
@@ -937,6 +994,13 @@
             "$ref": "#/$defs/FootnoteRef"
           },
           "title": "Footnotes",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/LinkRef"
+          },
+          "title": "Links",
           "type": "array"
         },
         "state_metadata": {
@@ -1024,6 +1088,13 @@
             "$ref": "#/$defs/FootnoteRef"
           },
           "title": "Footnotes",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/LinkRef"
+          },
+          "title": "Links",
           "type": "array"
         },
         "state_metadata": {
@@ -1184,6 +1255,13 @@
           "title": "Footnotes",
           "type": "array"
         },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/LinkRef"
+          },
+          "title": "Links",
+          "type": "array"
+        },
         "state_metadata": {
           "additionalProperties": true,
           "title": "State Metadata",
@@ -1269,6 +1347,13 @@
             "$ref": "#/$defs/FootnoteRef"
           },
           "title": "Footnotes",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/LinkRef"
+          },
+          "title": "Links",
           "type": "array"
         },
         "state_metadata": {
@@ -1464,6 +1549,13 @@
           "title": "Footnotes",
           "type": "array"
         },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/LinkRef"
+          },
+          "title": "Links",
+          "type": "array"
+        },
         "state_metadata": {
           "additionalProperties": true,
           "title": "State Metadata",
@@ -1594,6 +1686,13 @@
             "$ref": "#/$defs/FootnoteRef"
           },
           "title": "Footnotes",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/LinkRef"
+          },
+          "title": "Links",
           "type": "array"
         },
         "state_metadata": {

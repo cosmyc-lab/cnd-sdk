@@ -1,6 +1,6 @@
 {
   "id": "155c6a69-a874-4aed-8279-486942fe5079",
-  "cnd_version": "0.3.0",
+  "cnd_version": "0.4.0",
   "built_at": "2026-07-27T11:04:54.221905Z",
   "source": null,
   "doc": {
@@ -53,10 +53,12 @@
               "location": null,
               "type": "image",
               "path": "bench.png",
-              "alt": "The measurement bench"
+              "alt": "The measurement bench",
+              "links": []
             }
           ],
-          "raw": null
+          "raw": null,
+          "links": []
         },
         {
           "id": "ba9a95ad-0625-498a-99de-5cefb2ce6075",
@@ -117,10 +119,12 @@
                   "text": "3.14"
                 }
               ],
-              "raw": null
+              "raw": null,
+              "links": []
             }
           ],
-          "raw": null
+          "raw": null,
+          "links": []
         },
         {
           "id": "e101761b-9521-4cbc-86aa-185552669198",
@@ -153,7 +157,8 @@
               "raw": null,
               "number": "(1)",
               "counter_label": null,
-              "block": true
+              "block": true,
+              "links": []
             },
             {
               "id": "2a95c391-e39f-4f55-90f2-21d62248c777",
@@ -165,7 +170,8 @@
               "location": null,
               "type": "paragraph",
               "text": "An inline aside follows.",
-              "lang": null
+              "lang": null,
+              "links": []
             },
             {
               "id": "935f8626-afb6-49e8-a89b-5d816c27e4a5",
@@ -180,9 +186,11 @@
               "raw": null,
               "number": null,
               "counter_label": null,
-              "block": false
+              "block": false,
+              "links": []
             }
-          ]
+          ],
+          "links": []
         },
         {
           "id": "fa20bb76-c9f3-4408-9ec4-befce57f6300",
@@ -208,12 +216,15 @@
               "location": null,
               "type": "image",
               "path": "detail.png",
-              "alt": "Detail view"
+              "alt": "Detail view",
+              "links": []
             }
           ],
-          "raw": null
+          "raw": null,
+          "links": []
         }
-      ]
+      ],
+      "links": []
     }
   ],
   "bibliography": [],

@@ -1,6 +1,6 @@
 {
   "id": "fbecfce0-c6fd-4652-b87e-2d9fbcca1907",
-  "cnd_version": "0.3.0",
+  "cnd_version": "0.4.0",
   "built_at": "2026-07-27T11:04:53.980135Z",
   "source": {
     "type": "markdown",
@@ -68,7 +68,8 @@
           "location": null,
           "type": "paragraph",
           "text": "The client opens with a version token, as the listing shows, following Rivest. See the note on opacity.",
-          "lang": null
+          "lang": null,
+          "links": []
         },
         {
           "id": "c3f685e5-d2d2-42e4-8186-368449f0e456",
@@ -95,10 +96,12 @@
               "type": "code",
               "text": "OPEN v1\n",
               "lang": "text",
-              "block": true
+              "block": true,
+              "links": []
             }
           ],
-          "raw": null
+          "raw": null,
+          "links": []
         },
         {
           "id": "6416229c-bdda-41e2-a8e2-a1c56efb637f",
@@ -127,9 +130,11 @@
               "number": 3,
               "children": []
             }
-          ]
+          ],
+          "links": []
         }
-      ]
+      ],
+      "links": []
     }
   ],
   "bibliography": [
