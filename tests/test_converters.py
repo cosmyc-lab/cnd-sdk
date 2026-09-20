@@ -17,6 +17,7 @@ from cnd.converters import (
     HtmlConverter,
     HtmlNodeRenderer,
     MarkdownConverter,
+    ResolvedMarker,
     format_bib_entry,
     iter_body,
 )
@@ -182,6 +183,18 @@ def test_markdown_renders_a_links_marker_ordered_with_the_other_families() -> No
     out = MarkdownConverter().convert(cnd).text
     assert "https://example.com/auth" in out
     assert out.index("example.com") < out.index("eq-1")  # span order holds
+
+
+def test_resolved_marker_label_is_none_for_a_links_marker() -> None:
+    # ``links`` is href-keyed, not label-keyed (spec §5): ``LinkRef`` has
+    # no ``label``, so ``.label`` must degrade to ``None`` rather than
+    # raise ``AttributeError`` on a family the property doesn't cover.
+    marker = ResolvedMarker(
+        family="links",
+        link=LinkRef(href="https://example.com/auth"),
+        target=None,
+    )
+    assert marker.label is None
 
 
 def test_silent_citation_emits_no_marker() -> None:

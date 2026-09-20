@@ -106,8 +106,15 @@ class ResolvedMarker:
     target: object | None
 
     @property
-    def label(self) -> str:
-        return self.link.label
+    def label(self) -> str | None:
+        """The three label-keyed families' label, else ``None``.
+
+        ``links`` is href-keyed, not label-keyed (spec §5): a ``LinkRef``
+        carries no ``label`` at all, so a ``links`` marker's ``label`` is
+        ``None`` rather than an attribute error. A converter that renders
+        ``links`` markers reads ``link.href`` instead.
+        """
+        return getattr(self.link, "label", None)
 
     @property
     def sort_key(self) -> tuple[int, int, int]:

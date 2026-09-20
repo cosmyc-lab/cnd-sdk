@@ -713,7 +713,11 @@ rejected rather than dropped** — a `capton` typed for `caption` raises
 instead of vanishing, so the mistake surfaces exactly where it is meant
 to be corrected. (This strictness reaches the declaration's own node and
 top-level fields; a stray key inside a value object it shares with the
-CND, like a table cell, is not caught.)
+CND, like a table cell, is not caught.) This same strictness is what an
+author hits for `links` (§5): the declaration keeps only the
+label-keyed link families, so a `links` field on a declaration node is
+unknown and raises rather than being accepted — the declarative door
+does not yet have a way to express a hyperlink (docs/adr/0024).
 
 One constraint the builder inherits from carrying `text_span`: an edge's
 `text_span` indexes into the node's rendered `text` (§5), so **the

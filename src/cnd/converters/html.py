@@ -221,6 +221,10 @@ class HtmlConverter(CndConverter):
     - ``RawSource`` survives only on a childless figure, as a ``<pre>``;
       ``table.raw`` and ``math.raw`` are dropped in favour of the
       structured content.
+    - ``links`` — **not yet rendered by this converter**; unlike the rest
+      of this list, this is a gap rather than an inherent limit: ``<a
+      href>`` is native to HTML, so a future revision can render it
+      (docs/adr/0024).
 
     This conversion does **not** round-trip.
     """
