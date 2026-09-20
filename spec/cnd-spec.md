@@ -203,10 +203,10 @@ Unlike the three label-keyed families, a `links` edge names a target
 carries — so it has no resolution domain and no dangling state: a URL is
 a URL whether or not anything ever fetches it.
 
-**Resolution (normative).** This section applies to the three
-label-keyed families (`refs`, `cites`, `footnotes`). `links` carries no
-label and is outside it: a `links` edge is never invalid for naming
-something the CND does not carry. A conformant CND satisfies both of:
+**Resolution (normative).** This rule applies to the three label-keyed
+families (`refs`, `cites`, `footnotes`). `links` carries no label and is
+outside it: a `links` edge is never invalid for naming something the
+CND does not carry. A conformant CND satisfies both of:
 
 1. every edge's `label` is carried by something in the CND — an edge
    naming a label nothing carries is invalid;
@@ -532,14 +532,14 @@ them iterates the pools directly.
 
 **Link families are not ordered against each other (normative).** Within
 a node, each family's list preserves the order the producer emitted, and
-the three label-keyed families are enumerated `refs`, `cites`,
-`footnotes`. That enumeration is a stable convention for reproducible
-output; it carries **no** claim about where the markers sit in the text.
-`links` sits outside that enumeration — it is href-keyed, not
-label-keyed (§5) — but its markers occupy the same text and carry the
-same `text_span` contract. The only positional truth about any marker,
-in any of the four families, is its `text_span`; a consumer that needs
-markers in text order sorts by it across all four.
+the four families are enumerated `refs`, `cites`, `footnotes`, `links`
+for ordering and reproducible output. That enumeration is a stable
+convention only — it carries **no** claim about where the markers sit
+in the text, and no claim about resolution: `links` keeps the narrower
+scope §5 gives it there (it is href-keyed, not label-keyed, and the
+normative resolution rule does not reach it). The only positional truth
+about any marker, in any of the four families, is its `text_span`; a
+consumer that needs markers in text order sorts by it across all four.
 
 **Derived positions.** Every yielded node is paired with a context
 carrying 1-based `index`/`count` pairs: `doc_index`/`doc_count`
@@ -658,7 +658,16 @@ release; consumers pin to a tag.
 **0.4.0** adds the `links` family (§5): a fourth, href-keyed forward
 family, additive with an empty default (`links: []`) on every node. A
 `"0.3.0"` CND with no `links` field parses and validates unchanged under
-`0.4.0` — nothing existing moves or gains a new required field.
+`0.4.0` — nothing existing moves or gains a new required field. This
+does not extend to content hashing: `links` is not excluded from the
+hashable field set (§10), so `links: []` enters the hash preimage of
+every node, and every node's and every document's content hash changes
+at this bump — a persisted `"0.3.0"`-era hash, or another
+implementation's vectors calibrated against a pre-0.4.0
+`fixtures/hashes.json`, is not comparable to one computed under
+`0.4.0`. In-process reconciliation (docs/adr/0018) is unaffected: it
+hashes both sides of a comparison with the same running library, never
+a persisted value.
 
 A CND is an **immutable build artifact** (docs/adr/0015). It is not
 edited in place and carries no version history of its own: versioning a

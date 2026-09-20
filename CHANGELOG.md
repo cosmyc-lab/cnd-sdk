@@ -9,6 +9,20 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+### Added
+
+- **`links`, a fourth forward-only link family** (docs/adr/0024) —
+  `LinkRef{href, text_span?}` on every node, defaulting to `[]`. Unlike
+  `refs`/`cites`/`footnotes` it is keyed by `href`, not by `label`: its
+  target is outside the CND by construction, so it has no resolution
+  domain and no dangling state. `cnd_version` moves to **0.4.0**
+  (spec §11) — additive, so a `"0.3.0"` CND with no `links` field parses
+  and validates unchanged. This does change every node's content hash
+  (§10): `links` is not excluded from the hashable field set, so a
+  persisted `"0.3.0"`-era hash, or another implementation's vectors
+  calibrated against a pre-0.4.0 `fixtures/hashes.json`, is not
+  comparable to one computed under `0.4.0`.
+
 ## [0.5.0] - 2026-08-25
 
 ### Added

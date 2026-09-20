@@ -1,7 +1,7 @@
 {
-  "id": "155c6a69-a874-4aed-8279-486942fe5079",
+  "id": "8de95ece-72b9-466a-b740-0d1d1064e8a7",
   "cnd_version": "0.4.0",
-  "built_at": "2026-07-27T11:04:54.221905Z",
+  "built_at": "2026-09-20T18:00:08.566373Z",
   "source": null,
   "doc": {
     "title": "Numbered, declared",
@@ -13,11 +13,12 @@
   },
   "nodes": [
     {
-      "id": "75eb32d1-63f1-4c35-9aca-99e19f9da8ca",
+      "id": "d0050a1c-ab31-4ef5-abb5-a77b1b69b8c5",
       "label": null,
       "refs": [],
       "cites": [],
       "footnotes": [],
+      "links": [],
       "state_metadata": {},
       "location": null,
       "type": "heading",
@@ -30,11 +31,12 @@
       ],
       "children": [
         {
-          "id": "baf1199f-54d0-46d6-bebc-aa231cae42c7",
+          "id": "a43592c7-4c8d-4518-bc27-b3e9416040a6",
           "label": null,
           "refs": [],
           "cites": [],
           "footnotes": [],
+          "links": [],
           "state_metadata": {},
           "location": null,
           "type": "figure",
@@ -44,28 +46,28 @@
           "counter_label": null,
           "children": [
             {
-              "id": "1719c3cb-67e1-4a6a-84e5-bd8b4ac7dcb3",
+              "id": "bf951f66-856b-4943-a7d3-12d8a1f8586d",
               "label": null,
               "refs": [],
               "cites": [],
               "footnotes": [],
+              "links": [],
               "state_metadata": {},
               "location": null,
               "type": "image",
               "path": "bench.png",
-              "alt": "The measurement bench",
-              "links": []
+              "alt": "The measurement bench"
             }
           ],
-          "raw": null,
-          "links": []
+          "raw": null
         },
         {
-          "id": "ba9a95ad-0625-498a-99de-5cefb2ce6075",
+          "id": "51275c31-667c-400f-9034-1f0d6efddbf3",
           "label": null,
           "refs": [],
           "cites": [],
           "footnotes": [],
+          "links": [],
           "state_metadata": {},
           "location": null,
           "type": "figure",
@@ -75,11 +77,12 @@
           "counter_label": null,
           "children": [
             {
-              "id": "2f3a7c6c-4785-427d-9f0f-9b68ea26638e",
+              "id": "6e86919b-f83d-4d32-bce9-a00c3087375b",
               "label": null,
               "refs": [],
               "cites": [],
               "footnotes": [],
+              "links": [],
               "state_metadata": {},
               "location": null,
               "type": "table",
@@ -119,19 +122,18 @@
                   "text": "3.14"
                 }
               ],
-              "raw": null,
-              "links": []
+              "raw": null
             }
           ],
-          "raw": null,
-          "links": []
+          "raw": null
         },
         {
-          "id": "e101761b-9521-4cbc-86aa-185552669198",
+          "id": "bd03da37-900e-468d-a699-f1a19cae400c",
           "label": null,
           "refs": [],
           "cites": [],
           "footnotes": [],
+          "links": [],
           "state_metadata": {},
           "location": null,
           "type": "heading",
@@ -145,11 +147,12 @@
           ],
           "children": [
             {
-              "id": "8762216f-5cab-45f4-aa85-08ff9e26be23",
+              "id": "93e341d1-fb0e-48ef-bdd2-3bca7ba9d103",
               "label": null,
               "refs": [],
               "cites": [],
               "footnotes": [],
+              "links": [],
               "state_metadata": {},
               "location": null,
               "type": "math",
@@ -157,28 +160,28 @@
               "raw": null,
               "number": "(1)",
               "counter_label": null,
-              "block": true,
-              "links": []
+              "block": true
             },
             {
-              "id": "2a95c391-e39f-4f55-90f2-21d62248c777",
+              "id": "28c73afe-893f-45cc-a9d5-0beda7b9f874",
               "label": null,
               "refs": [],
               "cites": [],
               "footnotes": [],
+              "links": [],
               "state_metadata": {},
               "location": null,
               "type": "paragraph",
               "text": "An inline aside follows.",
-              "lang": null,
-              "links": []
+              "lang": null
             },
             {
-              "id": "935f8626-afb6-49e8-a89b-5d816c27e4a5",
+              "id": "d2061347-169c-4e71-b729-696180321ed4",
               "label": null,
               "refs": [],
               "cites": [],
               "footnotes": [],
+              "links": [],
               "state_metadata": {},
               "location": null,
               "type": "math",
@@ -186,18 +189,17 @@
               "raw": null,
               "number": null,
               "counter_label": null,
-              "block": false,
-              "links": []
+              "block": false
             }
-          ],
-          "links": []
+          ]
         },
         {
-          "id": "fa20bb76-c9f3-4408-9ec4-befce57f6300",
+          "id": "152671a4-2156-4d3a-9b0a-dfa02a47d9f7",
           "label": null,
           "refs": [],
           "cites": [],
           "footnotes": [],
+          "links": [],
           "state_metadata": {},
           "location": null,
           "type": "figure",
@@ -207,24 +209,22 @@
           "counter_label": null,
           "children": [
             {
-              "id": "968e8498-87d4-4260-ae3f-b697e313f69c",
+              "id": "0b061147-2dcd-473d-8c42-56ccee172e7f",
               "label": null,
               "refs": [],
               "cites": [],
               "footnotes": [],
+              "links": [],
               "state_metadata": {},
               "location": null,
               "type": "image",
               "path": "detail.png",
-              "alt": "Detail view",
-              "links": []
+              "alt": "Detail view"
             }
           ],
-          "raw": null,
-          "links": []
+          "raw": null
         }
-      ],
-      "links": []
+      ]
     }
   ],
   "bibliography": [],
