@@ -9,6 +9,10 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-22
+
+SDK release 0.6.0 implements CND **format 0.4.0**.
+
 ### Added
 
 - **`links`, a fourth forward-only link family** (docs/adr/0024) —
