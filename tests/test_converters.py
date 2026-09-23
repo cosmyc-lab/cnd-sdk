@@ -17,11 +17,19 @@ from cnd.converters import (
     HtmlConverter,
     HtmlNodeRenderer,
     MarkdownConverter,
+    ResolvedMarker,
     format_bib_entry,
     iter_body,
 )
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
-from cnd.core.nodes import CiteRef, FigureNode, ImageNode, NodeRef, ParagraphNode
+from cnd.core.nodes import (
+    CiteRef,
+    FigureNode,
+    ImageNode,
+    LinkRef,
+    NodeRef,
+    ParagraphNode,
+)
 from cnd.core.render import MarkdownRenderer
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
@@ -160,11 +168,46 @@ def test_markers_follow_text_span_order() -> None:
     assert line == "[@durand2025, p. 42] [^fn-unit] [tab-mesures] @durand2025 [fig-atom]"
 
 
+def test_markdown_renders_a_links_marker_ordered_with_the_other_families() -> None:
+    cnd = _tiny_cnd(
+        nodes=[
+            ParagraphNode(
+                type="paragraph",
+                id=UUID("00000000-0000-4000-f000-000000000004"),
+                text="see the auth spec and eq 1",
+                links=[LinkRef(href="https://example.com/auth", text_span=[4, 17])],
+                refs=[NodeRef(label="eq-1", text_span=[22, 26])],
+            )
+        ]
+    )
+    out = MarkdownConverter().convert(cnd).text
+    assert "https://example.com/auth" in out
+    assert out.index("example.com") < out.index("eq-1")  # span order holds
+
+
+def test_resolved_marker_label_is_none_for_a_links_marker() -> None:
+    # ``links`` is href-keyed, not label-keyed (spec §5): ``LinkRef`` has
+    # no ``label``, so ``.label`` must degrade to ``None`` rather than
+    # raise ``AttributeError`` on a family the property doesn't cover.
+    marker = ResolvedMarker(
+        family="links",
+        link=LinkRef(href="https://example.com/auth"),
+        target=None,
+    )
+    assert marker.label is None
+
+
 def test_silent_citation_emits_no_marker() -> None:
     text = MarkdownConverter().convert(load("full_coverage")).text
     line = next(line for line in text.splitlines() if line.startswith("[grid-layout]"))
-    # form="none" on the fourth cites edge: three markers, not four.
-    assert line == "[grid-layout] [^fn-proto] [@nguyen2023] @durand2025 @nguyen2023"
+    # spans: refs[0,11], footnotes[7,12], links[16,22], cites[24,42],
+    # cites[58,67], cites[69,77]; the fourth cites edge is form="none"
+    # (no marker) and the links edge sorts between footnotes and cites.
+    assert line == (
+        "[grid-layout] [^fn-proto] "
+        "[https://example.org/appendix/grid-raw](https://example.org/appendix/grid-raw) "
+        "[@nguyen2023] @durand2025 @nguyen2023"
+    )
 
 
 def test_html_markers_are_links_to_pool_anchors() -> None:

@@ -68,6 +68,20 @@ class FootnoteRef(BaseModel):
     text_span: list[int] | None = None
 
 
+class LinkRef(BaseModel):
+    """Forward hyperlink edge; ``href`` resolves nowhere in the CND.
+
+    The fourth forward family and the only one not keyed by label: a
+    hyperlink's target is outside the document by definition, so it admits
+    no resolution domain and has no dangling state — a URL is a URL. The
+    scheme is a consumer's business (``https:``, ``doi:``, an application
+    scheme); the format only carries the string.
+    """
+
+    href: str
+    text_span: list[int] | None = None
+
+
 class NodeBase(BaseModel):
     """Shared fields for every cnd node."""
 
@@ -76,6 +90,7 @@ class NodeBase(BaseModel):
     refs: list[NodeRef] = Field(default_factory=list)
     cites: list[CiteRef] = Field(default_factory=list)
     footnotes: list[FootnoteRef] = Field(default_factory=list)
+    links: list[LinkRef] = Field(default_factory=list)
     state_metadata: dict[str, Any] = Field(default_factory=dict)
     location: NodeLocation | None = None
 

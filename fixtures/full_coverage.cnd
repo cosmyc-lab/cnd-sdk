@@ -555,6 +555,15 @@
               ]
             }
           ],
+          "links": [
+            {
+              "href": "https://example.org/appendix/grid-raw",
+              "text_span": [
+                16,
+                22
+              ]
+            }
+          ],
           "location": {
             "page": 7
           }

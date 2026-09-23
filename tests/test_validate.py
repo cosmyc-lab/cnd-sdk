@@ -21,7 +21,7 @@ from cnd import (
     ParagraphNode,
     validate,
 )
-from cnd.core.nodes import CiteRef
+from cnd.core.nodes import CiteRef, LinkRef
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -102,6 +102,13 @@ class TestLinkDomains:
         )
 
         assert _rules(cnd) == ["link-wrong-domain"]
+
+    def test_links_are_not_validated_against_the_label_index(self) -> None:
+        """A `links` href naming nothing is valid: spec §5's normative
+        resolution rule is scoped to the three label-keyed families."""
+        cnd = _cnd([_para(links=[LinkRef(href="cnd://nothing-here")])])
+
+        assert validate(cnd) == []
 
     def test_each_family_resolving_in_its_own_domain_is_clean(self) -> None:
         cnd = _cnd(

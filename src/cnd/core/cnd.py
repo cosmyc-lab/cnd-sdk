@@ -14,7 +14,7 @@ from cnd.core.nodes import (
 )
 
 
-CND_VERSION = "0.3.0"
+CND_VERSION = "0.4.0"
 """The format version this SDK builds and targets (spec/cnd-spec.md).
 
 Stamped into ``Cnd.cnd_version`` by the builder (docs/adr/0019). One

@@ -184,7 +184,7 @@ class TestBuild:
 
         assert code == 0
         built = json.loads(out)
-        assert built["cnd_version"] == "0.3.0"
+        assert built["cnd_version"] == "0.4.0"
         assert built["nodes"][0]["type"] == "heading"
         # Engine off by default: nothing numbered.
         assert built["nodes"][0]["number"] is None
@@ -202,7 +202,7 @@ class TestBuild:
 
         assert code == 0
         assert out == ""
-        assert json.loads(target.read_text())["cnd_version"] == "0.3.0"
+        assert json.loads(target.read_text())["cnd_version"] == "0.4.0"
 
     def test_unbuildable_declaration_exits_nonzero_with_rules(
         self, capsys, tmp_path: Path,

@@ -11,3 +11,5 @@ venv/
 .ruff_cache/
 *.egg
 .DS_Store
+.superpowers/
+.claude/settings.local.json

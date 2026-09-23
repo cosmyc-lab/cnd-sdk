@@ -26,6 +26,7 @@ from cnd.core.nodes import (
     CndNode,
     FigureNode,
     FootnoteRef,
+    LinkRef,
     NodeRef,
     NodeTraverse,
     NodeTraverseContext,
@@ -82,24 +83,43 @@ class ResolvedMarker:
 
     ``target`` is ``None`` when the label resolves to nothing, which is a
     document defect (``validate()`` reports it) that a converter reports
-    rather than raises on. ``sort_key`` orders markers in text order when
-    ``text_span`` is available, per spec §8: the enumeration order of the
-    families carries no positional claim, and the only positional truth
-    about a marker is its span.
+    rather than raises on. For a ``links`` edge ``target`` is *always*
+    ``None`` for a different reason: an ``href`` has no resolution domain
+    in the CND (spec §5), so there is nothing to resolve and nothing to
+    warn about — a converter that renders a ``links`` marker must not
+    read that ``None`` as an unresolved-label defect. ``sort_key`` orders
+    markers in text order when ``text_span`` is available, per spec §8:
+    the enumeration order of the families carries no positional claim,
+    and the only positional truth about a marker is its span.
+
+    ``resolve_markers`` below only ever produces ``refs``/``cites``/
+    ``footnotes`` markers — resolution is specific to the three
+    label-keyed families. A converter that also renders ``links`` builds
+    those markers itself (``family="links"``, ``target=None``) and
+    merges them in before sorting by ``sort_key``, which is why
+    ``family_rank`` carries a ``links`` entry here even though this
+    module never constructs one.
     """
 
     family: str
-    link: NodeRef | CiteRef | FootnoteRef
+    link: NodeRef | CiteRef | FootnoteRef | LinkRef
     target: object | None
 
     @property
-    def label(self) -> str:
-        return self.link.label
+    def label(self) -> str | None:
+        """The three label-keyed families' label, else ``None``.
+
+        ``links`` is href-keyed, not label-keyed (spec §5): a ``LinkRef``
+        carries no ``label`` at all, so a ``links`` marker's ``label`` is
+        ``None`` rather than an attribute error. A converter that renders
+        ``links`` markers reads ``link.href`` instead.
+        """
+        return getattr(self.link, "label", None)
 
     @property
     def sort_key(self) -> tuple[int, int, int]:
         span = self.link.text_span
-        family_rank = {"refs": 0, "cites": 1, "footnotes": 2}[self.family]
+        family_rank = {"refs": 0, "cites": 1, "footnotes": 2, "links": 3}[self.family]
         if span:
             return (0, span[0], family_rank)
         return (1, family_rank, 0)

@@ -102,7 +102,7 @@ def _check_label_uniqueness(cnd: Cnd) -> list[Violation]:
 
 
 def _check_link_domains(cnd: Cnd) -> list[Violation]:
-    """Each link family resolves in its own domain (docs/adr/0017).
+    """Each label-keyed link family resolves in its own domain (docs/adr/0017).
 
     Existence is not enough: labels are unique across the whole CND, so a
     ``cites`` edge naming a heading resolves to *something*. The family an
@@ -111,6 +111,10 @@ def _check_link_domains(cnd: Cnd) -> list[Violation]:
     This subsumes the "a refs target must carry a label" rule — an
     unlabelled node is unreachable by any edge, so nothing can point at
     it in the first place.
+
+    ``links`` is deliberately not in ``families`` below: it is href-keyed,
+    not label-keyed, so it has no label to resolve and no domain to check
+    against. Its target is outside the CND by definition (spec §5).
     """
     violations: list[Violation] = []
     families: tuple[tuple[str, type | tuple[type, ...], str], ...] = (

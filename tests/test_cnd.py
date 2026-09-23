@@ -1,4 +1,5 @@
 from pathlib import Path
+from uuid import UUID
 
 from ids import (
     HEADING002_ID,
@@ -14,6 +15,7 @@ from ids import (
 )
 
 from cnd import BibEntry, Cnd, FigureNode, Footnote
+from cnd.core.nodes import LinkRef, ParagraphNode
 
 
 def _load(path: Path) -> Cnd:
@@ -193,3 +195,22 @@ class TestPagination:
         doc = _load(unpaginated_cnd_path).doc
 
         assert doc.authors == [] and doc.keywords == []
+
+
+class TestLinks:
+    def test_links_is_a_fourth_forward_family_keyed_by_href(self) -> None:
+        node = ParagraphNode(
+            id=UUID(int=1), type="paragraph", text="see the auth spec",
+            links=[LinkRef(href="https://example.com/spec", text_span=[4, 17])],
+        )
+
+        assert node.links[0].href == "https://example.com/spec"
+        assert node.links[0].text_span == [4, 17]
+
+    def test_links_defaults_to_empty_so_every_existing_cnd_stays_valid(self) -> None:
+        node = ParagraphNode(id=UUID(int=2), type="paragraph", text="x")
+
+        assert node.links == []
+
+    def test_link_ref_admits_any_scheme_and_needs_no_span(self) -> None:
+        assert LinkRef(href="doi:10.1000/182").text_span is None

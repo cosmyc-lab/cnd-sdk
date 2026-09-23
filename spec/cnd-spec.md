@@ -1,6 +1,6 @@
 # CND Specification
 
-Status: **draft v0.3** (`cnd_version: "0.3.0"`). This document is the
+Status: **draft v0.4** (`cnd_version: "0.4.0"`). This document is the
 reference specification for the CND (Context Native Document)
 format. The JSON Schema at
 [`schema/cnd.schema.json`](schema/cnd.schema.json) is
@@ -36,8 +36,8 @@ downstream consumer (search index, RAG pipeline, editor, etc.). It captures:
 - Out-of-tree referenceable entities: a bibliography pool and a footnotes
   pool.
 - Forward-only link families from nodes to nodes (`refs`), to bibliography
-  entries (`cites`), and to footnotes (`footnotes`), independent of the
-  tree structure.
+  entries (`cites`), to footnotes (`footnotes`), and to hyperlinks outside
+  the CND (`links`), independent of the tree structure.
 
 ## 2. The CND
 
@@ -46,7 +46,7 @@ Top-level JSON structure (see `Cnd` in `src/cnd/core/cnd.py`):
 | Field | Type | Description |
 |---|---|---|
 | `id` | UUID | CND identifier, generated if absent. |
-| `cnd_version` | string | Version of the CND format the CND conforms to (`"0.3.0"` for this revision). |
+| `cnd_version` | string | Version of the CND format the CND conforms to (`"0.4.0"` for this revision). |
 | `built_at` | datetime | When the CND was built. |
 | `source` | [`SourceInfo`](#21-source) \| null | The input artifact this CND was built from. |
 | `doc` | [`DocMetadata`](#3-document-metadata) | Metadata of the **work**. |
@@ -149,10 +149,11 @@ Every node (see `NodeBase` in `src/cnd/core/nodes.py`) shares:
 | `refs` | array of [`NodeRef`](#5-cross-references-and-link-families) | Outgoing cross-references to other nodes. |
 | `cites` | array of [`CiteRef`](#5-cross-references-and-link-families) | Outgoing citations, resolving in the `bibliography` pool. |
 | `footnotes` | array of [`FootnoteRef`](#5-cross-references-and-link-families) | Outgoing footnote markers, resolving in the `footnotes` pool. |
+| `links` | array of [`LinkRef`](#5-cross-references-and-link-families) | Outgoing hyperlinks, resolving nowhere in the CND. |
 | `state_metadata` | object | Free-form extension bag for compiler- or consumer-specific state. Not interpreted by the standard. |
 | `location` | `NodeLocation` \| null | Layout facts the consumer cannot derive from the tree. A single field: `page`, the page on which the node **begins** in the built document. Null on an unpaginated CND — see §2.2 for the all-or-nothing rule. |
 
-All three link families live on nodes and point **outward** — there is no
+All four link families live on nodes and point **outward** — there is no
 serialized incoming-edge field of any kind.
 
 ## 5. Cross-references and link families
@@ -182,7 +183,30 @@ Edges key on the label rather than the id because an id is not durable
 (§2): an edge carrying one would be a reference that expires at the next
 build. The label lives in the source, so it survives one.
 
-**Resolution (normative).** A conformant CND satisfies both of:
+A fourth family, `links`, carries a forward hyperlink rather than a
+cross-reference: it is keyed by `href`, not by `label`, and shares only
+`text_span` with the other three:
+
+| Field | Type | Description |
+|---|---|---|
+| `href` | string, required | The link target — any URI the producer captured (`https:`, `doi:`, an application scheme). The format does not parse or validate it; the scheme is a consumer's business. |
+| `text_span` | `[start, end)` array of 2 ints \| null | Same meaning as above. |
+
+`LinkRef` is exactly `{href, text_span?}`:
+
+```json
+{ "href": "https://example.com/spec", "text_span": [4, 17] }
+```
+
+Unlike the three label-keyed families, a `links` edge names a target
+**outside** the CND by construction — a URL, not something the document
+carries — so it has no resolution domain and no dangling state: a URL is
+a URL whether or not anything ever fetches it.
+
+**Resolution (normative).** This rule applies to the three label-keyed
+families (`refs`, `cites`, `footnotes`). `links` carries no label and is
+outside it: a `links` edge is never invalid for naming something the
+CND does not carry. A conformant CND satisfies both of:
 
 1. every edge's `label` is carried by something in the CND — an edge
    naming a label nothing carries is invalid;
@@ -195,6 +219,10 @@ whole CND (§2), so a `cites` edge naming a heading resolves to
 *something*; the family is what makes it wrong. A consumer may build one
 global `label → target` index and check the target's kind, which is what
 the reference SDK does (`Cnd.resolve`).
+
+An edge belongs to the node in which its marker opens; `text_span` is
+null when the marker does not close inside that node's rendered text.
+This holds for all four families alike, `links` included.
 
 There is **no mirrored label field** on an edge. An earlier revision
 denormalized the target's label onto the link and required
@@ -504,11 +532,14 @@ them iterates the pools directly.
 
 **Link families are not ordered against each other (normative).** Within
 a node, each family's list preserves the order the producer emitted, and
-the families themselves are enumerated `refs`, `cites`, `footnotes`.
-That enumeration is a stable convention for reproducible output; it
-carries **no** claim about where the markers sit in the text. The only
-positional truth about a marker is its `text_span`, and a consumer that
-needs markers in text order sorts by it across all three families.
+the four families are enumerated `refs`, `cites`, `footnotes`, `links`
+for ordering and reproducible output. That enumeration is a stable
+convention only — it carries **no** claim about where the markers sit
+in the text, and no claim about resolution: `links` keeps the narrower
+scope §5 gives it there (it is href-keyed, not label-keyed, and the
+normative resolution rule does not reach it). The only positional truth
+about any marker, in any of the four families, is its `text_span`; a
+consumer that needs markers in text order sorts by it across all four.
 
 **Derived positions.** Every yielded node is paired with a context
 carrying 1-based `index`/`count` pairs: `doc_index`/`doc_count`
@@ -540,7 +571,7 @@ conformant only if it satisfies all of:
 |---|---|
 | Global id uniqueness | §2 |
 | Global label uniqueness | §2 |
-| Every edge resolves, in its family's domain | §5 |
+| Every edge resolves, in its family's domain (the three label-keyed families; `links` is out of scope) | §5 |
 | Pagination is all-or-nothing | §2.2 |
 | Every bibliography entry meets the content floor | §5.1 |
 
@@ -620,9 +651,23 @@ that. Pairing nodes across builds is reconciliation's problem
 ## 11. Versioning
 
 CNDs declare the format version they conform to via `cnd_version`;
-this revision of the specification is `"0.3.0"`. Every change to the node
+this revision of the specification is `"0.4.0"`. Every change to the node
 schema is a PR against this repository (`cnd-sdk`), tagged as a new
 release; consumers pin to a tag.
+
+**0.4.0** adds the `links` family (§5): a fourth, href-keyed forward
+family, additive with an empty default (`links: []`) on every node. A
+`"0.3.0"` CND with no `links` field parses and validates unchanged under
+`0.4.0` — nothing existing moves or gains a new required field. This
+does not extend to content hashing: `links` is not excluded from the
+hashable field set (§10), so `links: []` enters the hash preimage of
+every node, and every node's and every document's content hash changes
+at this bump — a persisted `"0.3.0"`-era hash, or another
+implementation's vectors calibrated against a pre-0.4.0
+`fixtures/hashes.json`, is not comparable to one computed under
+`0.4.0`. In-process reconciliation (docs/adr/0018) is unaffected: it
+hashes both sides of a comparison with the same running library, never
+a persisted value.
 
 A CND is an **immutable build artifact** (docs/adr/0015). It is not
 edited in place and carries no version history of its own: versioning a
@@ -668,7 +713,11 @@ rejected rather than dropped** — a `capton` typed for `caption` raises
 instead of vanishing, so the mistake surfaces exactly where it is meant
 to be corrected. (This strictness reaches the declaration's own node and
 top-level fields; a stray key inside a value object it shares with the
-CND, like a table cell, is not caught.)
+CND, like a table cell, is not caught.) This same strictness is what an
+author hits for `links` (§5): the declaration keeps only the
+label-keyed link families, so a `links` field on a declaration node is
+unknown and raises rather than being accepted — the declarative door
+does not yet have a way to express a hyperlink (docs/adr/0024).
 
 One constraint the builder inherits from carrying `text_span`: an edge's
 `text_span` indexes into the node's rendered `text` (§5), so **the

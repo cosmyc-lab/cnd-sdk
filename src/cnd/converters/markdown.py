@@ -78,8 +78,15 @@ class MarkdownConverter(CndConverter):
       and out of reading order (spec §8).
     - Per-node markers appended on their own line under each block:
       ``[label]`` for ``refs``, pandoc-style ``[@label]`` / ``@label``
-      for ``cites``, ``[^label]`` for ``footnotes``. Markers are ordered
-      by ``text_span`` where one exists, then by family (spec §8).
+      for ``cites``, ``[^label]`` for ``footnotes``, and ``[href](href)``
+      for ``links`` — the href is the only text a ``LinkRef`` carries, so
+      it stands in for the display text a Markdown link normally has.
+      Markers are ordered by ``text_span`` where one exists, then by
+      family (spec §8). A ``links`` marker is **appended**, like the
+      other three families, never spliced into the text at its span:
+      splicing would make marker position renderer-specific again and
+      would rewrite every existing golden document for a change that
+      only one family needs.
 
     The default renderer is ``MarkdownRenderer(tables="inline",
     figures="inline")``: a standalone document wants its content, not the
@@ -92,6 +99,8 @@ class MarkdownConverter(CndConverter):
     - ``text_span`` — markers are appended under the block, not spliced
       into the text at their standoff offsets, so marker *position*
       inside a node's text is lost. Their relative order is preserved.
+      This holds for ``links`` exactly as it does for the other three
+      families.
     - ``CiteRef.form`` — only the ``none`` (silent citation) and
       prose-vs-bracketed distinctions survive; ``full``, ``author`` and
       ``year`` collapse into their neighbours.
@@ -178,6 +187,18 @@ class MarkdownConverter(CndConverter):
 
     def _marker_line(self, cnd: Cnd, node, warnings: list[str]) -> str:
         markers = resolve_markers(cnd, node, warnings)
+        # ``links`` is href-keyed, not label-keyed (spec §5), so it never
+        # goes through label resolution: ``resolve_markers`` only ever
+        # produces refs/cites/footnotes markers. Build the links markers
+        # here, with no resolution and no warning — a links edge is never
+        # invalid for naming something the CND doesn't carry — then merge
+        # and re-sort with the same ``sort_key`` the other three families
+        # already use (spec §8), so there is exactly one ordering rule.
+        markers.extend(
+            ResolvedMarker(family="links", link=link, target=None)
+            for link in node.links
+        )
+        markers.sort(key=lambda marker: marker.sort_key)
         rendered = [self._marker(marker) for marker in markers]
         return " ".join(part for part in rendered if part)
 
@@ -187,6 +208,9 @@ class MarkdownConverter(CndConverter):
             return f"[{marker.label}]"
         if marker.family == "footnotes":
             return f"[^{marker.label}]"
+        if marker.family == "links":
+            href = marker.link.href
+            return f"[{href}]({href})"
         form = getattr(marker.link, "form", None)
         supplement = getattr(marker.link, "supplement", None)
         if form == "none":

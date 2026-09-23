@@ -1,5 +1,6 @@
-"""Kitchen-sink fixture coverage: every node type/variant, link family,
-and pool feature of format 0.3.0, exercised through the public SDK surface.
+"""Kitchen-sink fixture coverage: every node type/variant, link family
+(including 0.4.0's href-keyed `links`), and pool feature, exercised
+through the public SDK surface.
 
 The generic rendering sweep (all fixtures x all verbosity modes) lives in
 test_render.py and picks this fixture up automatically; the tests here pin
@@ -105,6 +106,17 @@ class TestFixtureShape:
         spans = [ref.text_span for v in cnd.iter() for ref in v.node.refs]
         assert any(span is not None for span in spans)
         assert any(span is None for span in spans)
+
+    def test_covers_a_populated_links_entry(self) -> None:
+        """The one node in the corpus exercising `links` (0.4.0, ADR 0024) —
+        without it, no fixture calibrates a non-Python implementation's
+        JCS bytes for a populated `LinkRef` inside a node hash."""
+        cnd = _load()
+        para = _node(cnd, FULL_PARA_REFS_ID)
+
+        [link] = para.links
+        assert link.href == "https://example.org/appendix/grid-raw"
+        assert link.text_span == [16, 22]
 
 
 class TestIncomingResolution:
