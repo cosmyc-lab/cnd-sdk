@@ -149,3 +149,10 @@ def test_backslash_before_a_newline_is_not_a_hard_break() -> None:
     kinds = [t.type for t in _paragraph_tokens("C:\\\nnext")]
     assert "hardbreak" not in kinds and "softbreak" in kinds
 
+
+
+def test_paragraph_shaped_like_a_table_stays_a_paragraph() -> None:
+    kinds = {t.type for t in _paragraph_tokens("a | b\n--- | ---")}
+    assert not kinds & {"table_open", "thead_open", "tr_open"}
+    kinds = {t.type for t in _paragraph_tokens("| a | b |\n| :-: | --: |\nx")}
+    assert "table_open" not in kinds

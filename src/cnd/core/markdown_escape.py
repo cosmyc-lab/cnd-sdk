@@ -18,6 +18,9 @@ _QUOTE = re.compile(r"^( {0,3})>")
 _BULLET = re.compile(r"^( {0,3})([-+])(?=[ \t]|$)")
 _ORDERED = re.compile(r"^( {0,3})(\d{1,9})([.)])(?=[ \t]|$)")
 _UNDERLINE = re.compile(r"^( {0,3})(=+|-+)[ \t]*$")
+# A GFM table delimiter row: only pipes, colons, dashes and blanks, with at
+# least one pipe and one dash. Over-matching is harmless (one extra backslash).
+_TABLE_DELIMITER = re.compile(r"^( {0,3})(?=[|:\- \t]*\|)(?=[|:\- \t]*-)[|:\- \t]*$")
 _DASH_BREAK = re.compile(r"^( {0,3})(?:-[ \t]*){3,}$")
 
 
@@ -53,7 +56,9 @@ def _escape_line_start(line: str) -> str:
     if m := _ORDERED.match(line):
         cut = len(m.group(1)) + len(m.group(2))
         return f"{line[:cut]}\\{line[cut:]}"
-    if m := _UNDERLINE.match(line) or _DASH_BREAK.match(line):
+    if m := (
+        _UNDERLINE.match(line) or _DASH_BREAK.match(line) or _TABLE_DELIMITER.match(line)
+    ):
         return f"{m.group(1)}\\{line[len(m.group(1)):]}"
     return line
 
