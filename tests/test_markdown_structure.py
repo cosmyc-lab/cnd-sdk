@@ -112,8 +112,12 @@ def test_table_row_keeps_its_column_count() -> None:
 
 def test_quote_is_a_blockquote_and_its_dash_line_is_not_a_list() -> None:
     tokens = _tokens()
-    assert any(t.type == "blockquote_open" for t in tokens)
+    assert len([t for t in tokens if t.type == "blockquote_open"]) == 1
     assert not any(t.type == "bullet_list_open" for t in tokens)
+    start = next(i for i, t in enumerate(tokens) if t.type == "blockquote_open")
+    end = next(i for i, t in enumerate(tokens) if t.type == "blockquote_close")
+    inside = [t.content for t in tokens[start:end] if t.type == "inline"]
+    assert any("A reviewer" in c for c in inside)  # attribution stays in the quote
 
 
 def test_image_with_a_space_in_its_path_is_an_image() -> None:
