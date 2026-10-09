@@ -104,7 +104,8 @@ def _cell_text(text: str, escape: Callable[[str], str] | None) -> str:
     """Cell text that cannot break the GFM row it sits in."""
     if escape:
         text = escape(text)
-    return text.replace("|", "\\|").replace("\r\n", "\n").replace("\n", "<br>")
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    return text.replace("|", "\\|").replace("\n", "<br>")
 
 
 def render_table_markdown(node: TableNode, *, escape: Callable[[str], str] | None = None) -> str:

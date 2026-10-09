@@ -42,6 +42,11 @@ def test_escape_inline(raw: str, expected: str) -> None:
         ("===", "\\==="),
         ("first line\n2. second", "first line\n2\\. second"),
         ("a - b", "a - b"),
+        ("-- -", "\\-- -"),
+        ("-  -  -", "\\-  -  -"),
+        ("  - -- -  ", "  \\- -- -  "),
+        ("---\r\nx", "\\---\nx"),
+        ("a\rb\r\nc", "a\nb\nc"),
     ],
 )
 def test_escape_block(raw: str, expected: str) -> None:

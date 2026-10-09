@@ -55,6 +55,10 @@ def _image_destination(path: str) -> str:
     return path
 
 
+def _unix_newlines(text: str) -> str:
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
 def _escape_alt(alt: str) -> str:
     return alt.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
 
@@ -209,9 +213,9 @@ class MarkdownRenderer(NodeRenderer):
         return table_node_placeholder(node)
 
     def render_quote(self, node: QuoteNode) -> str:
-        lines = self._text(node.text).split("\n")
+        lines = self._text(_unix_newlines(node.text)).split("\n")
         if node.attribution:
-            attribution = f"— {self._text(node.attribution)}"
+            attribution = f"— {self._text(_unix_newlines(node.attribution))}"
             lines += ["", *attribution.split("\n")]
         return "\n".join(f"> {line}" if line else ">" for line in lines)
 

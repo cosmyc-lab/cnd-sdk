@@ -18,6 +18,7 @@ _QUOTE = re.compile(r"^( {0,3})>")
 _BULLET = re.compile(r"^( {0,3})([-+])(?=[ \t]|$)")
 _ORDERED = re.compile(r"^( {0,3})(\d{1,9})([.)])(?=[ \t]|$)")
 _UNDERLINE = re.compile(r"^( {0,3})(=+|-+)[ \t]*$")
+_DASH_BREAK = re.compile(r"^( {0,3})(?:-[ \t]*){3,}$")
 
 
 def escape_inline(text: str) -> str:
@@ -52,11 +53,12 @@ def _escape_line_start(line: str) -> str:
     if m := _ORDERED.match(line):
         cut = len(m.group(1)) + len(m.group(2))
         return f"{line[:cut]}\\{line[cut:]}"
-    if m := _UNDERLINE.match(line):
+    if m := _UNDERLINE.match(line) or _DASH_BREAK.match(line):
         return f"{m.group(1)}\\{line[len(m.group(1)):]}"
     return line
 
 
 def escape_block(text: str) -> str:
     """``escape_inline`` plus a block marker at the start of any line."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     return "\n".join(_escape_line_start(line) for line in escape_inline(text).split("\n"))

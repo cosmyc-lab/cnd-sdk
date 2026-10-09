@@ -442,6 +442,10 @@ class TestTableCells:
         out = render_table_markdown(self._table(["k"], ["line one\nline two"]))
         assert out.splitlines()[2] == "| line one<br>line two |"
 
+    def test_lone_carriage_return_in_cell_becomes_br(self) -> None:
+        out = render_table_markdown(self._table(["k"], ["a\rb"]))
+        assert out.splitlines()[2] == "| a<br>b |"
+
     def test_escape_callback_runs_before_pipe_escaping(self) -> None:
         out = render_table_markdown(self._table(["k"], ["a|b"]), escape=lambda s: s + "!")
         assert out.splitlines()[2] == "| a\\|b! |"
@@ -510,6 +514,10 @@ class TestQuoteImageFigure:
     def test_quote_lines_are_prefixed(self) -> None:
         q = QuoteNode(type="quote", text="one\n\ntwo", attribution="Someone", **_base())
         assert MarkdownRenderer().render(q) == "> one\n>\n> two\n>\n> — Someone"
+
+    def test_quote_normalises_carriage_returns(self) -> None:
+        q = QuoteNode(type="quote", text="a\rb\r\nc", attribution="x\ry", **_base())
+        assert MarkdownRenderer().render(q) == "> a\n> b\n> c\n>\n> — x\n> y"
 
     def test_quote_escapes_when_flagged(self) -> None:
         q = QuoteNode(type="quote", text="1. not a list", **_base())
