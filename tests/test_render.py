@@ -390,3 +390,28 @@ class TestCodeFence:
     def test_inline_backticks_also_count(self) -> None:
         out = MarkdownRenderer().render(self._code("a ```` b", None))
         assert out.split("\n")[0] == "`````"
+
+
+class TestListNumbers:
+    def _items(self, *pairs: tuple[str, int | None]) -> list[ListItem]:
+        return [ListItem(text=t, number=n) for t, n in pairs]
+
+    def test_ordered_items_keep_their_numbers(self) -> None:
+        out = render_list_markdown(self._items(("a", 1), ("b", 3), ("c", 7)), ordered=True)
+        assert out == "1. a\n3. b\n7. c"
+
+    def test_list_starting_at_five(self) -> None:
+        out = render_list_markdown(self._items(("a", 5), ("b", 6)), ordered=True)
+        assert out == "5. a\n6. b"
+
+    def test_missing_numbers_fall_back_to_position(self) -> None:
+        out = render_list_markdown(self._items(("a", None), ("b", None)), ordered=True)
+        assert out == "1. a\n2. b"
+
+    def test_bullets_ignore_numbers(self) -> None:
+        out = render_list_markdown(self._items(("a", 4)), ordered=False)
+        assert out == "- a"
+
+    def test_escape_callback_applies_to_item_text(self) -> None:
+        out = render_list_markdown(self._items(("x", None)), ordered=False, escape=str.upper)
+        assert out == "- X"

@@ -1,5 +1,6 @@
 """Shared text-rendering plumbing used by ``cnd.core.render`` renderers."""
 
+from collections.abc import Callable
 from typing import Literal
 from uuid import UUID
 
@@ -37,19 +38,36 @@ def format_figure_placeholder(
     return f"[[figure:{figure_id} {formatted}]]"
 
 
-def render_list_markdown(items: list[ListItem], *, ordered: bool, depth: int = 0) -> str:
-    """Render a bullet or numbered list as markdown-like text."""
-    return "\n".join(_render_list_items(items, ordered, depth))
+def render_list_markdown(
+    items: list[ListItem],
+    *,
+    ordered: bool,
+    depth: int = 0,
+    escape: Callable[[str], str] | None = None,
+) -> str:
+    """Render a bullet or numbered list as markdown-like text.
+
+    An ordered item prints its own ``number`` when the producer set one
+    (a list that starts at 5, or skips values), else its position.
+    """
+    return "\n".join(_render_list_items(items, ordered, depth, escape))
 
 
-def _render_list_items(items: list[ListItem], ordered: bool, depth: int) -> list[str]:
+def _render_list_items(
+    items: list[ListItem],
+    ordered: bool,
+    depth: int,
+    escape: Callable[[str], str] | None,
+) -> list[str]:
     lines: list[str] = []
     for index, item in enumerate(items, start=1):
-        prefix = f"{index}." if ordered else "-"
+        number = item.number if item.number is not None else index
+        prefix = f"{number}." if ordered else "-"
         indent = "  " * depth
-        lines.append(f"{indent}{prefix} {item.text}")
+        text = escape(item.text) if escape else item.text
+        lines.append(f"{indent}{prefix} {text}")
         if item.children:
-            lines.extend(_render_list_items(item.children, ordered, depth + 1))
+            lines.extend(_render_list_items(item.children, ordered, depth + 1, escape))
     return lines
 
 
