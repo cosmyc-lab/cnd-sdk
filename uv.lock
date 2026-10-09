@@ -46,6 +46,7 @@ yaml = [
 dev = [
     { name = "cnd-sdk", extra = ["display"] },
     { name = "jsonschema" },
+    { name = "markdown-it-py" },
     { name = "pytest" },
     { name = "pyyaml" },
 ]
@@ -64,6 +65,7 @@ provides-extras = ["display", "yaml"]
 dev = [
     { name = "cnd-sdk", extras = ["display"] },
     { name = "jsonschema", specifier = ">=4.0" },
+    { name = "markdown-it-py", specifier = ">=3.0" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pyyaml", specifier = ">=6.0" },
 ]

@@ -9,6 +9,23 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Markdown output keeps the CND's structure** under a CommonMark parser:
+  code fences grow past any backtick run in the code; ordered items print
+  their own `number`; table cells escape `|` and turn newlines into `<br>`;
+  quotes are prefixed with `>`; image destinations with spaces or
+  parentheses are wrapped in `<…>`; an inline-mode figure with no children
+  renders its caption line instead of a placeholder.
+
+### Added
+
+- `MarkdownRenderer(escape=…, heading_numbers=…)`, both off by default so
+  plain-text consumers of the renderer see no change, and
+  `cnd.core.markdown_escape` (`escape_inline`, `escape_block`).
+  `MarkdownConverter`'s default renderer turns both on: free text is
+  escaped and headings carry their number.
+
 ## [0.6.0] - 2026-09-22
 
 SDK release 0.6.0 implements CND **format 0.4.0**.
