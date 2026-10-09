@@ -20,6 +20,7 @@ from cnd.core.markdown_escape import escape_block, escape_inline
         ("&amp; &#123; & x", "\\&amp; \\&#123; & x"),
         ("C:\\Users\\me", "C:\\Users\\me"),
         ("end\\*", "end\\\\\\*"),
+        ("ends with \\", "ends with \\\\"),
     ],
 )
 def test_escape_inline(raw: str, expected: str) -> None:

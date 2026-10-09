@@ -126,6 +126,9 @@ class NodeRenderer(ABC):
     def render_terms(self, node: TermsNode) -> str: ...
 
 
+_CLOSING_HASHES = re.compile(r"(?:^|(?<=[ \t]))(#+)[ \t]*$")
+
+
 class MarkdownRenderer(NodeRenderer):
     """Render nodes as CommonMark-ish Markdown text.
 
@@ -168,7 +171,11 @@ class MarkdownRenderer(NodeRenderer):
         return escape_block(text) if self.escape else text
 
     def render_heading(self, node: HeadingNode) -> str:
-        return f"{'#' * node.level} {self._text(node.text)}"
+        text = self._text(node.text)
+        if self.escape and (m := _CLOSING_HASHES.search(text)):
+            # CommonMark drops a closing "#" sequence from an ATX heading.
+            text = f"{text[: m.start(1)]}\\{text[m.start(1):]}"
+        return f"{'#' * node.level} {text}"
 
     def render_paragraph(self, node: ParagraphNode) -> str:
         return self._text(node.text)

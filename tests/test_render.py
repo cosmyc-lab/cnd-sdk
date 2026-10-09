@@ -463,3 +463,36 @@ class TestRendererEscapeFlag:
     def test_code_is_never_escaped(self) -> None:
         code = CodeNode(type="code", text="*a* <b>", lang=None, **_base())
         assert MarkdownRenderer(escape=True).render(code) == "```\n*a* <b>\n```"
+
+
+class TestEscapeTrailingMarkup:
+    def test_term_ending_in_backslash(self) -> None:
+        terms = TermsNode(type="terms", items=[TermItem(term="a\\", description="d")], **_base())
+        assert MarkdownRenderer(escape=True).render(terms) == "**a\\\\**\n: d"
+
+    def test_figure_caption_ending_in_backslash(self) -> None:
+        code = CodeNode(type="code", text="x", lang=None, **_base())
+        fig = FigureNode(
+            type="figure", children=[code], caption="C:\\", number="1",
+            counter_label="Figure", **_base(),
+        )
+        out = MarkdownRenderer(figures="inline", escape=True).render(fig)
+        assert out.splitlines()[-1] == "*Figure 1: C:\\\\*"
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("C #", "## C \\#"),
+            ("#", "## \\#"),
+            ("C ##  ", "## C \\##  "),
+            ("C#", "## C#"),
+            ("Use #tags", "## Use #tags"),
+        ],
+    )
+    def test_heading_closing_hashes(self, text: str, expected: str) -> None:
+        node = HeadingNode(type="heading", level=2, text=text, heading_path=[text], **_base())
+        assert MarkdownRenderer(escape=True).render(node) == expected
+
+    def test_heading_unescaped_is_unchanged(self) -> None:
+        node = HeadingNode(type="heading", level=2, text="C #", heading_path=["C #"], **_base())
+        assert MarkdownRenderer().render(node) == "## C #"
