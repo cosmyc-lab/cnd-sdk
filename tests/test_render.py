@@ -90,7 +90,7 @@ class TestMarkdownRenderer:
             **_base(),
         )
         assert self.renderer.render(node) == (
-            "Programs must be written for people to read.\n— Ada Lovelace"
+            "> Programs must be written for people to read.\n>\n> — Ada Lovelace"
         )
 
     def test_code(self) -> None:
@@ -496,3 +496,30 @@ class TestEscapeTrailingMarkup:
     def test_heading_unescaped_is_unchanged(self) -> None:
         node = HeadingNode(type="heading", level=2, text="C #", heading_path=["C #"], **_base())
         assert MarkdownRenderer().render(node) == "## C #"
+
+
+class TestQuoteImageFigure:
+    def test_quote_lines_are_prefixed(self) -> None:
+        q = QuoteNode(type="quote", text="one\n\ntwo", attribution="Someone", **_base())
+        assert MarkdownRenderer().render(q) == "> one\n>\n> two\n>\n> — Someone"
+
+    def test_quote_escapes_when_flagged(self) -> None:
+        q = QuoteNode(type="quote", text="1. not a list", **_base())
+        assert MarkdownRenderer(escape=True).render(q) == "> 1\\. not a list"
+
+    def test_image_path_with_space_is_bracketed(self) -> None:
+        img = ImageNode(type="image", path="logo team.png", alt="Team [logo]", **_base())
+        assert MarkdownRenderer().render(img) == "![Team \\[logo\\]](<logo team.png>)"
+
+    def test_plain_image_path_unchanged(self) -> None:
+        img = ImageNode(type="image", path="img/a.png", alt="A", **_base())
+        assert MarkdownRenderer().render(img) == "![A](img/a.png)"
+
+    def test_childless_figure_inline_renders_caption(self) -> None:
+        fig = FigureNode(type="figure", kind="image", caption="Release pipeline", number="1",
+                         counter_label="Figure", children=[], **_base())
+        assert MarkdownRenderer(figures="inline").render(fig) == "*Figure 1: Release pipeline*"
+
+    def test_childless_uncaptioned_figure_keeps_placeholder(self) -> None:
+        fig = FigureNode(type="figure", kind="image", children=[], **_base())
+        assert MarkdownRenderer(figures="inline").render(fig).startswith("[[figure:")

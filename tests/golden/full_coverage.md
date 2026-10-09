@@ -36,8 +36,9 @@ Les mesures nominales sont récapitulées dans la table des mesures ; la structu
 **Dérive**
 : Écart de mesure observé entre deux étalonnages.
 
-Mesurer, c'est comparer à une référence.
-— Manuel de métrologie interne
+> Mesurer, c'est comparer à une référence.
+>
+> — Manuel de métrologie interne
 
 ```python
 def moyenne(valeurs):

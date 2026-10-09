@@ -46,6 +46,17 @@ from cnd.core.nodes import (
 
 
 _BACKTICK_RUN = re.compile(r"`+")
+_DEST_NEEDS_BRACKETS = re.compile(r"[ ()<>]")
+
+
+def _image_destination(path: str) -> str:
+    if _DEST_NEEDS_BRACKETS.search(path):
+        return "<" + path.replace("<", "%3C").replace(">", "%3E") + ">"
+    return path
+
+
+def _escape_alt(alt: str) -> str:
+    return alt.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
 
 
 def _fence_for(text: str) -> str:
@@ -193,9 +204,10 @@ class MarkdownRenderer(NodeRenderer):
         return table_node_placeholder(node)
 
     def render_quote(self, node: QuoteNode) -> str:
+        lines = self._text(node.text).split("\n")
         if node.attribution:
-            return f"{node.text}\n— {node.attribution}"
-        return node.text
+            lines += ["", f"— {self._text(node.attribution)}"]
+        return "\n".join(f"> {line}" if line else ">" for line in lines)
 
     def render_code(self, node: CodeNode) -> str:
         fence = _fence_for(node.text)
@@ -219,6 +231,12 @@ class MarkdownRenderer(NodeRenderer):
             if caption_line:
                 parts.append(caption_line)
             return "\n\n".join(parts)
+        if wants_inline and node.raw is None:
+            # A figure carrying only raw source is unconvertible content: its
+            # placeholder must stay, a bare caption would hide that.
+            caption_line = self._figure_caption_line(node)
+            if caption_line and (node.caption or node.number):
+                return caption_line
         return format_figure_placeholder(
             figure_id=node.id,
             kind=node.kind or self._infer_figure_kind(node),
@@ -230,7 +248,7 @@ class MarkdownRenderer(NodeRenderer):
 
     def render_image(self, node: ImageNode) -> str:
         if node.path:
-            return f"![{node.alt or ''}]({node.path})"
+            return f"![{_escape_alt(node.alt or '')}]({_image_destination(node.path)})"
         if node.alt:
             return f'[[image:{node.id} alt="{node.alt}"]]'
         return f"[[image:{node.id}]]"
