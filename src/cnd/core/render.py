@@ -13,6 +13,7 @@ This module is part of the zero-dependency core — it must not import
 ``rich`` or any other optional extra.
 """
 
+import re
 from abc import ABC, abstractmethod
 
 try:  # Python >= 3.11
@@ -41,6 +42,20 @@ from cnd.core.nodes import (
     TableNode,
     TermsNode,
 )
+
+
+_BACKTICK_RUN = re.compile(r"`+")
+
+
+def _fence_for(text: str) -> str:
+    """A backtick fence longer than any backtick run inside ``text``.
+
+    CommonMark closes a fenced block on the first line holding a fence at
+    least as long as the opening one, so a fixed three-backtick fence lets
+    code that itself contains a fence end the block early.
+    """
+    longest = max((len(m.group()) for m in _BACKTICK_RUN.finditer(text)), default=0)
+    return "`" * max(3, longest + 1)
 
 
 class NodeRenderer(ABC):
@@ -155,8 +170,9 @@ class MarkdownRenderer(NodeRenderer):
         return node.text
 
     def render_code(self, node: CodeNode) -> str:
-        fence = f"```{node.lang or ''}".rstrip()
-        return f"{fence}\n{node.text}\n```"
+        fence = _fence_for(node.text)
+        opening = f"{fence}{node.lang or ''}".rstrip()
+        return f"{opening}\n{node.text}\n{fence}"
 
     def render_math(self, node: MathNode) -> str:
         return node.text

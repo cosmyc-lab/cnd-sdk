@@ -371,3 +371,22 @@ class TestRenderFixtures:
         # Débit is row 3) — the grid must be sized from row+rowspan, not
         # just the max row any single cell declares.
         assert len(rows) == 5
+
+
+class TestCodeFence:
+    def _code(self, text: str, lang: str | None = "markdown") -> CodeNode:
+        return CodeNode(type="code", text=text, lang=lang, **_base())
+
+    def test_plain_code_uses_three_backticks(self) -> None:
+        out = MarkdownRenderer().render(self._code("print(1)", "python"))
+        assert out == "```python\nprint(1)\n```"
+
+    def test_fence_outgrows_inner_backtick_runs(self) -> None:
+        text = "intro\n```typ\n#set page()\n```\nmore\n````\nend"
+        out = MarkdownRenderer().render(self._code(text))
+        assert out.startswith("`````markdown\n")
+        assert out.endswith("\n`````")
+
+    def test_inline_backticks_also_count(self) -> None:
+        out = MarkdownRenderer().render(self._code("a ```` b", None))
+        assert out.split("\n")[0] == "`````"
