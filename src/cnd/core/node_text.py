@@ -98,14 +98,23 @@ def table_node_placeholder(node: TableNode) -> str:
     )
 
 
-def render_table_markdown(node: TableNode) -> str:
+def _cell_text(text: str, escape: Callable[[str], str] | None) -> str:
+    """Cell text that cannot break the GFM row it sits in."""
+    if escape:
+        text = escape(text)
+    return text.replace("|", "\\|").replace("\r\n", "\n").replace("\n", "<br>")
+
+
+def render_table_markdown(node: TableNode, *, escape: Callable[[str], str] | None = None) -> str:
     """Render a table node's cells as a Markdown grid.
 
     Spanned cells (``rowspan``/``colspan`` > 1) place their text once, at
     the cell's own ``(row, col)`` — Markdown has no native merged-cell
     syntax, so the rest of the span is left blank rather than repeated.
     The separator row follows the header row (cells flagged ``is_header``
-    when present, else row 0).
+    when present, else row 0). Cell text has ``|`` escaped and newlines
+    turned into ``<br>`` so the row keeps its column count; ``escape``,
+    when given, runs first on each cell.
     """
     if not node.cells:
         return ""
@@ -114,7 +123,7 @@ def render_table_markdown(node: TableNode) -> str:
     grid: list[list[str]] = [["" for _ in range(max_col + 1)] for _ in range(max_row + 1)]
     header_rows: set[int] = set()
     for cell in node.cells:
-        grid[cell.row][cell.col] = cell.text
+        grid[cell.row][cell.col] = _cell_text(cell.text, escape)
         if cell.is_header:
             header_rows.add(cell.row)
 

@@ -415,3 +415,25 @@ class TestListNumbers:
     def test_escape_callback_applies_to_item_text(self) -> None:
         out = render_list_markdown(self._items(("x", None)), ordered=False, escape=str.upper)
         assert out == "- X"
+
+
+class TestTableCells:
+    def _table(self, *rows: list[str]) -> TableNode:
+        cells = [
+            TableCell(row=r, col=c, text=t, is_header=(r == 0))
+            for r, row in enumerate(rows)
+            for c, t in enumerate(row)
+        ]
+        return TableNode(type="table", cells=cells, **_base())
+
+    def test_pipe_in_cell_is_escaped(self) -> None:
+        out = render_table_markdown(self._table(["k", "v"], ['kind: "a" | "b"', "x"]))
+        assert out.splitlines()[2] == '| kind: "a" \\| "b" | x |'
+
+    def test_newline_in_cell_becomes_br(self) -> None:
+        out = render_table_markdown(self._table(["k"], ["line one\nline two"]))
+        assert out.splitlines()[2] == "| line one<br>line two |"
+
+    def test_escape_callback_runs_before_pipe_escaping(self) -> None:
+        out = render_table_markdown(self._table(["k"], ["a|b"]), escape=lambda s: s + "!")
+        assert out.splitlines()[2] == "| a\\|b! |"
