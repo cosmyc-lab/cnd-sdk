@@ -16,14 +16,14 @@ cnd_version: "0.3.0"
 built_at: "2026-07-15T08:30:00+00:00"
 ---
 
-# Vue d'ensemble
+# 1 Vue d'ensemble
 
 Les mesures nominales sont récapitulées dans la table des mesures ; la structure atomique est illustrée plus bas.
 [@durand2025, p. 42] [^fn-unit] [tab-mesures] @durand2025 [fig-atom]
 
 1. Étalonner les capteurs
-  1. Vérifier le zéro
-  2. Vérifier la pleine échelle
+   1. Vérifier le zéro
+   2. Vérifier la pleine échelle
 2. Lancer l'acquisition
 
 - Alimentation 24 V redondée
@@ -36,8 +36,9 @@ Les mesures nominales sont récapitulées dans la table des mesures ; la structu
 **Dérive**
 : Écart de mesure observé entre deux étalonnages.
 
-Mesurer, c'est comparer à une référence.
-— Manuel de métrologie interne
+> Mesurer, c'est comparer à une référence.
+>
+> — Manuel de métrologie interne
 
 ```python
 def moyenne(valeurs):
@@ -46,7 +47,7 @@ def moyenne(valeurs):
 
 e(t) = m(t) - r(t)
 
-## Résultats et figures
+## 1.1 Résultats et figures
 [fig-schema]
 
 | Capteur | Nominal |
@@ -93,7 +94,7 @@ e(t) = m(t) - r(t)
 
 [[image:00000000-0000-4000-e000-000000000027 alt="Image incorporée sans chemin extrait"]]
 
-# Références
+# 2 Références
 
 Grille brute en annexe. Les travaux antérieurs couvrent la méthode, l'auteur, l'année et une citation muette.
 [grid-layout] [^fn-proto] [https://example.org/appendix/grid-raw](https://example.org/appendix/grid-raw) [@nguyen2023] @durand2025 @nguyen2023

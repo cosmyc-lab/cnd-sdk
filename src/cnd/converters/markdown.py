@@ -89,9 +89,15 @@ class MarkdownConverter(CndConverter):
       only one family needs.
 
     The default renderer is ``MarkdownRenderer(tables="inline",
-    figures="inline")``: a standalone document wants its content, not the
-    ``[[figure:…]]`` placeholders that serve chunking pipelines. Inject
-    another renderer to change that.
+    figures="inline", escape=True, heading_numbers=True)``: a standalone
+    document wants its content, not the ``[[figure:…]]`` placeholders
+    that serve chunking pipelines. It escapes free text (paragraphs,
+    headings, list items, terms, table cells, quotes, captions) so that a
+    Markdown parser reads the structure the CND has and not structure
+    the prose happens to spell; code and math text are emitted verbatim,
+    and the footnote and bibliography sections are not escaped yet.
+    It keeps heading ``number`` and ``counter_label`` as a prefix on the
+    heading line. Inject another renderer to change any of that.
 
     **Irreducibly dropped** — properties of Markdown as a target, the
     same for every document (docs/proposals/0007):
@@ -112,8 +118,7 @@ class MarkdownConverter(CndConverter):
     - ``RawSource`` (``raw`` on table, math, figure) and
       ``BibEntry.fields``: the producer's verbatim source and the full
       structured bibliography entry have no Markdown target.
-    - Whatever the injected renderer itself drops — ``MarkdownRenderer``
-      drops heading ``number``/``counter_label``, for instance.
+    - Whatever the injected renderer itself drops.
 
     This conversion does **not** round-trip. Nothing reconstructs a CND
     from the Markdown it produces.
@@ -135,7 +140,9 @@ class MarkdownConverter(CndConverter):
 
     @classmethod
     def default_renderer(cls) -> NodeRenderer:
-        return MarkdownRenderer(tables="inline", figures="inline")
+        return MarkdownRenderer(
+            tables="inline", figures="inline", escape=True, heading_numbers=True
+        )
 
     def convert(self, cnd: Cnd) -> ConversionResult:
         warnings: list[str] = []

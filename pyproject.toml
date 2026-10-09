@@ -43,6 +43,9 @@ dev = [
     # dict and never import yaml, so the core stays zero-dependency.
     "pyyaml>=6.0",
     "cnd-sdk[display]",
+    # Test-only: a real CommonMark parser to check the Markdown export keeps
+    # the CND structure (tests/test_markdown_structure.py).
+    "markdown-it-py>=3.0",
 ]
 
 [tool.hatch.build.targets.wheel]

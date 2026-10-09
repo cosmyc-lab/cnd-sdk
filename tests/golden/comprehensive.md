@@ -18,11 +18,11 @@ built_at: "2026-06-06T12:00:00+00:00"
 
 Résumé exécutif placé avant le premier titre. Ce paragraphe doit produire un chunk isolé avec un heading_path vide.
 
-# Architecture générale
+# 1 Architecture générale
 
 Le système DCS repose sur trois couches fonctionnelles : acquisition, traitement et supervision.
 
-## Couche d'acquisition
+## 1.1 Couche d'acquisition
 [tab-plages-mesure]
 
 Les capteurs analogiques et numériques sont regroupés par bus de terrain. Voir le tableau des plages de mesure.
@@ -38,7 +38,7 @@ La fréquence d'échantillonnage nominale est de 10 Hz pour les boucles rapides.
 
 *Table 1: Plages de mesure des capteurs de terrain.*
 
-## Couche de traitement
+## 1.2 Couche de traitement
 [tab-plages-mesure] [tab-recap-signaux]
 
 Les algorithmes de régulation s'exécutent sur le contrôleur redondant. Les plages capteurs (Table 1) et le récapitulatif annexe (Table 4) doivent rester cohérents.
@@ -51,11 +51,11 @@ Les algorithmes de régulation s'exécutent sur le contrôleur redondant. Les pl
 
 *Table 2: Boucles de régulation PID actives.*
 
-# Exploitation
+# 2 Exploitation
 
-## Surveillance opérateur
+## 2.1 Surveillance opérateur
 
-### Gestion des alarmes
+### 2.1.1 Gestion des alarmes
 [tab-delais-alarmes]
 
 Les alarmes sont classées en quatre niveaux de criticité : info, avertissement, alarme, critique.
@@ -70,11 +70,11 @@ Le délai d'acquittement maximal est défini par la politique site. Consulter la
 
 *Table 3: Délais d'acquittement par niveau de criticité.*
 
-## Maintenance préventive
+## 2.2 Maintenance préventive
 
 Les interventions planifiées suivent le calendrier OEM. Aucune table n'est associée à cette section.
 
-# Annexes
+# 3 Annexes
 
 | Tag | Unité | Bus |
 | --- | --- | --- |

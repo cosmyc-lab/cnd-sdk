@@ -9,6 +9,33 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Markdown output keeps the CND's structure** under a CommonMark parser.
+  These fixes apply to every `MarkdownRenderer`, escaping on or off, so the
+  text produced by `MarkdownRenderer()` changes for quotes, ordered and
+  nested lists, table cells, image alt text and destinations, and childless
+  inline figures:
+  code fences grow past any backtick run in the code; ordered items print
+  their own `number`; nested list items are indented to their parent's
+  content column (three spaces under `1.`, not two); table cells escape `|`
+  and turn line breaks into `<br>`; quotes are prefixed with `>`, and so are
+  their attribution lines; image destinations with spaces or parentheses
+  are wrapped in `<…>` and alt text escapes `[`/`]`; an inline-mode figure
+  with no children renders its caption line, which composes the counter
+  label and the number.
+
+### Added
+
+- `MarkdownRenderer(escape=…, heading_numbers=…)`, both off by default, and
+  `cnd.core.markdown_escape` (`escape_inline`, `escape_block`).
+  `MarkdownConverter`'s default renderer turns both on: free text in
+  paragraphs, headings, list items, terms, table cells, quotes and
+  captions is escaped and headings carry their number. Free text in the
+  footnote and bibliography sections is not escaped yet.
+- `render_list_markdown` and `render_table_markdown` take an `escape=`
+  keyword, applied to each item's or cell's text.
+
 ## [0.6.0] - 2026-09-22
 
 SDK release 0.6.0 implements CND **format 0.4.0**.

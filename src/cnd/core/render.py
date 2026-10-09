@@ -13,6 +13,7 @@ This module is part of the zero-dependency core — it must not import
 ``rich`` or any other optional extra.
 """
 
+import re
 from abc import ABC, abstractmethod
 
 try:  # Python >= 3.11
@@ -20,6 +21,7 @@ try:  # Python >= 3.11
 except ImportError:  # pragma: no cover — Python 3.10, via pydantic's typing-extensions
     from typing_extensions import assert_never
 
+from cnd.core.markdown_escape import escape_block
 from cnd.core.node_text import (
     NodeTextMode,
     format_figure_placeholder,
@@ -41,6 +43,40 @@ from cnd.core.nodes import (
     TableNode,
     TermsNode,
 )
+
+
+_BACKTICK_RUN = re.compile(r"`+")
+_DEST_NEEDS_BRACKETS = re.compile(r"[ ()<>]")
+
+
+def _image_destination(path: str) -> str:
+    if _DEST_NEEDS_BRACKETS.search(path):
+        return "<" + path.replace("<", "%3C").replace(">", "%3E") + ">"
+    return path
+
+
+def _unix_newlines(text: str) -> str:
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+_ALT_ESCAPE = re.compile(r"\\(?=[!-/:-@\[-`{-~]|\Z)|[\[\]]")
+
+
+def _escape_alt(alt: str) -> str:
+    """Escape ``[``/``]``; double a backslash only where it would escape
+    something (before ASCII punctuation or at the end), as escape_inline does."""
+    return _ALT_ESCAPE.sub(lambda m: "\\\\" if m.group() == "\\" else "\\" + m.group(), alt)
+
+
+def _fence_for(text: str) -> str:
+    """A backtick fence longer than any backtick run inside ``text``.
+
+    CommonMark closes a fenced block on the first line holding a fence at
+    least as long as the opening one, so a fixed three-backtick fence lets
+    code that itself contains a fence end the block early.
+    """
+    longest = max((len(m.group()) for m in _BACKTICK_RUN.finditer(text)), default=0)
+    return "`" * max(3, longest + 1)
 
 
 class NodeRenderer(ABC):
@@ -110,6 +146,9 @@ class NodeRenderer(ABC):
     def render_terms(self, node: TermsNode) -> str: ...
 
 
+_CLOSING_HASHES = re.compile(r"(?:^|(?<=[ \t]))(#+)[ \t]*$")
+
+
 class MarkdownRenderer(NodeRenderer):
     """Render nodes as CommonMark-ish Markdown text.
 
@@ -122,6 +161,18 @@ class MarkdownRenderer(NodeRenderer):
     - ``"auto"`` — defer to the table's ``content_kind`` hint: inline when
       ``"content"``, placeholder when ``"data"`` or unset (never guessed).
       For a figure, ``auto`` looks at the wrapped table's hint.
+
+    Two further flags default to off:
+
+    - ``escape`` — escape free text (paragraphs, headings, list items,
+      terms, table cells, figure captions) so it cannot start Markdown
+      syntax. Code and math text are never escaped.
+    - ``heading_numbers`` — prefix each heading with its ``counter_label``
+      and ``number`` when it has them (never escaped).
+
+    Both default to off because plain-text consumers (chunk text,
+    embeddings) must not receive backslashes, and heading numbers would
+    change their text. ``MarkdownConverter`` turns both on.
     """
 
     def __init__(
@@ -129,34 +180,54 @@ class MarkdownRenderer(NodeRenderer):
         *,
         tables: NodeTextMode = "placeholder",
         figures: NodeTextMode = "placeholder",
+        escape: bool = False,
+        heading_numbers: bool = False,
     ) -> None:
         self.tables = tables
         self.figures = figures
+        self.escape = escape
+        self.heading_numbers = heading_numbers
+
+    def _text(self, text: str) -> str:
+        return escape_block(text) if self.escape else text
 
     def render_heading(self, node: HeadingNode) -> str:
-        return f"{'#' * node.level} {node.text}"
+        text = self._text(node.text)
+        if self.escape and (m := _CLOSING_HASHES.search(text)):
+            # CommonMark drops a closing "#" sequence from an ATX heading.
+            text = f"{text[: m.start(1)]}\\{text[m.start(1):]}"
+        if self.heading_numbers:
+            prefix = " ".join(p for p in (node.counter_label, node.number) if p)
+            if prefix:
+                text = f"{prefix} {text}"
+        return f"{'#' * node.level} {text}"
 
     def render_paragraph(self, node: ParagraphNode) -> str:
-        return node.text
+        return self._text(node.text)
 
     def render_table(self, node: TableNode) -> str:
         wants_inline = self.tables == "inline" or (
             self.tables == "auto" and node.content_kind == "content"
         )
         if wants_inline:
-            rendered = render_table_markdown(node)
+            rendered = render_table_markdown(
+                node, escape=self._text if self.escape else None
+            )
             if rendered:
                 return rendered
         return table_node_placeholder(node)
 
     def render_quote(self, node: QuoteNode) -> str:
+        lines = self._text(_unix_newlines(node.text)).split("\n")
         if node.attribution:
-            return f"{node.text}\n— {node.attribution}"
-        return node.text
+            attribution = f"— {self._text(_unix_newlines(node.attribution))}"
+            lines += ["", *attribution.split("\n")]
+        return "\n".join(f"> {line}" if line else ">" for line in lines)
 
     def render_code(self, node: CodeNode) -> str:
-        fence = f"```{node.lang or ''}".rstrip()
-        return f"{fence}\n{node.text}\n```"
+        fence = _fence_for(node.text)
+        opening = f"{fence}{node.lang or ''}".rstrip()
+        return f"{opening}\n{node.text}\n{fence}"
 
     def render_math(self, node: MathNode) -> str:
         return node.text
@@ -175,6 +246,12 @@ class MarkdownRenderer(NodeRenderer):
             if caption_line:
                 parts.append(caption_line)
             return "\n\n".join(parts)
+        if wants_inline and node.raw is None:
+            # A figure carrying only raw source is unconvertible content: its
+            # placeholder must stay, a bare caption would hide that.
+            caption_line = self._figure_caption_line(node)
+            if caption_line and (node.caption or node.number):
+                return caption_line
         return format_figure_placeholder(
             figure_id=node.id,
             kind=node.kind or self._infer_figure_kind(node),
@@ -186,27 +263,31 @@ class MarkdownRenderer(NodeRenderer):
 
     def render_image(self, node: ImageNode) -> str:
         if node.path:
-            return f"![{node.alt or ''}]({node.path})"
+            return f"![{_escape_alt(node.alt or '')}]({_image_destination(node.path)})"
         if node.alt:
             return f'[[image:{node.id} alt="{node.alt}"]]'
         return f"[[image:{node.id}]]"
 
     def render_list(self, node: ListNode) -> str:
-        return render_list_markdown(node.items, ordered=node.ordered)
+        return render_list_markdown(
+            node.items,
+            ordered=node.ordered,
+            escape=self._text if self.escape else None,
+        )
 
     def render_terms(self, node: TermsNode) -> str:
         return "\n".join(
-            f"**{item.term}**\n: {item.description}" for item in node.items
+            f"**{self._text(item.term)}**\n: {self._text(item.description)}" for item in node.items
         )
 
-    @staticmethod
-    def _figure_caption_line(node: FigureNode) -> str | None:
+    def _figure_caption_line(self, node: FigureNode) -> str | None:
         # Composing "Figure 3" from its parts is the renderer's job, which is
         # why the format keeps them apart (docs/proposals/0010).
         counter = " ".join(
             part for part in (node.counter_label, node.number) if part
         )
-        title = ": ".join(part for part in (counter, node.caption) if part)
+        caption = self._text(node.caption) if node.caption else None
+        title = ": ".join(part for part in (counter, caption) if part)
         return f"*{title}*" if title else None
 
     @staticmethod
