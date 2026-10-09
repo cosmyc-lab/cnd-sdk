@@ -552,3 +552,11 @@ class TestHeadingNumbers:
 
     def test_unnumbered_heading_unchanged(self) -> None:
         assert MarkdownRenderer(heading_numbers=True).render(self._h()) == "## Scope"
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [("1. Intro", "## 2 1\\. Intro"), ("Intro #", "## 2 Intro \\#")],
+    )
+    def test_prefix_is_added_after_escaping(self, text: str, expected: str) -> None:
+        node = HeadingNode(type="heading", level=2, text=text, heading_path=[text], **_base(), number="2")
+        assert MarkdownRenderer(escape=True, heading_numbers=True).render(node) == expected
