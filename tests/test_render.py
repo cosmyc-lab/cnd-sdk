@@ -437,3 +437,29 @@ class TestTableCells:
     def test_escape_callback_runs_before_pipe_escaping(self) -> None:
         out = render_table_markdown(self._table(["k"], ["a|b"]), escape=lambda s: s + "!")
         assert out.splitlines()[2] == "| a\\|b! |"
+
+
+class TestRendererEscapeFlag:
+    def test_default_renderer_does_not_escape(self) -> None:
+        node = ParagraphNode(type="paragraph", text="1. a *b* <c>", **_base())
+        assert MarkdownRenderer().render(node) == "1. a *b* <c>"
+
+    def test_escape_flag_escapes_paragraph_heading_list_terms(self) -> None:
+        r = MarkdownRenderer(escape=True)
+        assert r.render(ParagraphNode(type="paragraph", text="1. a", **_base())) == "1\\. a"
+        heading = HeadingNode(type="heading", level=2, text="Use *this*", heading_path=["Use *this*"], **_base())
+        assert r.render(heading) == "## Use \\*this\\*"
+        lst = ListNode(type="list", items=[ListItem(text="<x>")], **_base())
+        assert r.render(lst) == "- \\<x>"
+        terms = TermsNode(type="terms", items=[TermItem(term="a_", description="*b*")], **_base())
+        assert r.render(terms) == "**a\\_**\n: \\*b\\*"
+
+    def test_escape_flag_reaches_table_cells(self) -> None:
+        cells = [TableCell(row=0, col=0, text="h", is_header=True), TableCell(row=1, col=0, text="*x*")]
+        table = TableNode(type="table", cells=cells, **_base())
+        out = MarkdownRenderer(tables="inline", escape=True).render(table)
+        assert out.splitlines()[2] == "| \\*x\\* |"
+
+    def test_code_is_never_escaped(self) -> None:
+        code = CodeNode(type="code", text="*a* <b>", lang=None, **_base())
+        assert MarkdownRenderer(escape=True).render(code) == "```\n*a* <b>\n```"

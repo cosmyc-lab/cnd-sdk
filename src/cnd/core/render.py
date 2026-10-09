@@ -21,6 +21,7 @@ try:  # Python >= 3.11
 except ImportError:  # pragma: no cover — Python 3.10, via pydantic's typing-extensions
     from typing_extensions import assert_never
 
+from cnd.core.markdown_escape import escape_block
 from cnd.core.node_text import (
     NodeTextMode,
     format_figure_placeholder,
@@ -137,6 +138,17 @@ class MarkdownRenderer(NodeRenderer):
     - ``"auto"`` — defer to the table's ``content_kind`` hint: inline when
       ``"content"``, placeholder when ``"data"`` or unset (never guessed).
       For a figure, ``auto`` looks at the wrapped table's hint.
+
+    Two further flags default to off:
+
+    - ``escape`` — escape free text (paragraphs, headings, list items,
+      terms, table cells, figure captions) so it cannot start Markdown
+      syntax. Code and math text are never escaped.
+    - ``heading_numbers`` — reserved for numbering headings in the output.
+
+    Both default to off because plain-text consumers (chunk text,
+    embeddings) must not receive backslashes, and heading numbers would
+    change their text. ``MarkdownConverter`` turns both on.
     """
 
     def __init__(
@@ -144,22 +156,31 @@ class MarkdownRenderer(NodeRenderer):
         *,
         tables: NodeTextMode = "placeholder",
         figures: NodeTextMode = "placeholder",
+        escape: bool = False,
+        heading_numbers: bool = False,
     ) -> None:
         self.tables = tables
         self.figures = figures
+        self.escape = escape
+        self.heading_numbers = heading_numbers
+
+    def _text(self, text: str) -> str:
+        return escape_block(text) if self.escape else text
 
     def render_heading(self, node: HeadingNode) -> str:
-        return f"{'#' * node.level} {node.text}"
+        return f"{'#' * node.level} {self._text(node.text)}"
 
     def render_paragraph(self, node: ParagraphNode) -> str:
-        return node.text
+        return self._text(node.text)
 
     def render_table(self, node: TableNode) -> str:
         wants_inline = self.tables == "inline" or (
             self.tables == "auto" and node.content_kind == "content"
         )
         if wants_inline:
-            rendered = render_table_markdown(node)
+            rendered = render_table_markdown(
+                node, escape=self._text if self.escape else None
+            )
             if rendered:
                 return rendered
         return table_node_placeholder(node)
@@ -208,21 +229,25 @@ class MarkdownRenderer(NodeRenderer):
         return f"[[image:{node.id}]]"
 
     def render_list(self, node: ListNode) -> str:
-        return render_list_markdown(node.items, ordered=node.ordered)
+        return render_list_markdown(
+            node.items,
+            ordered=node.ordered,
+            escape=self._text if self.escape else None,
+        )
 
     def render_terms(self, node: TermsNode) -> str:
         return "\n".join(
-            f"**{item.term}**\n: {item.description}" for item in node.items
+            f"**{self._text(item.term)}**\n: {self._text(item.description)}" for item in node.items
         )
 
-    @staticmethod
-    def _figure_caption_line(node: FigureNode) -> str | None:
+    def _figure_caption_line(self, node: FigureNode) -> str | None:
         # Composing "Figure 3" from its parts is the renderer's job, which is
         # why the format keeps them apart (docs/proposals/0010).
         counter = " ".join(
             part for part in (node.counter_label, node.number) if part
         )
-        title = ": ".join(part for part in (counter, node.caption) if part)
+        caption = self._text(node.caption) if node.caption else None
+        title = ": ".join(part for part in (counter, caption) if part)
         return f"*{title}*" if title else None
 
     @staticmethod
