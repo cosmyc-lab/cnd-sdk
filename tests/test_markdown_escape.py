@@ -21,6 +21,8 @@ from cnd.core.markdown_escape import escape_block, escape_inline
         ("C:\\Users\\me", "C:\\Users\\me"),
         ("end\\*", "end\\\\\\*"),
         ("ends with \\", "ends with \\\\"),
+        ("C:\\\nnext", "C:\\\\\nnext"),
+        ("C:\\\rnext", "C:\\\\\rnext"),
     ],
 )
 def test_escape_inline(raw: str, expected: str) -> None:

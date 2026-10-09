@@ -29,7 +29,7 @@ def escape_inline(text: str) -> str:
         nxt = text[i + 1] if i + 1 < n else ""
         prev = text[i - 1] if i > 0 else ""
         if ch == "\\":
-            out.append("\\\\" if not nxt or nxt in _ASCII_PUNCT else "\\")
+            out.append("\\\\" if not nxt or nxt in _ASCII_PUNCT or nxt in "\r\n" else "\\")
         elif ch in _ALWAYS:
             out.append("\\" + ch)
         elif ch == "_":

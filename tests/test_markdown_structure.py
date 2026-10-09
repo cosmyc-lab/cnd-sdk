@@ -135,3 +135,17 @@ def test_nested_ordered_list_parses_as_two_lists() -> None:
     body = MarkdownConverter().convert(cnd).text.split("\n---\n", 1)[1]
     tokens = MarkdownIt("commonmark").enable("table").parse(body)
     assert len([t for t in tokens if t.type == "ordered_list_open"]) == 2
+
+
+def _paragraph_tokens(text: str):
+    node = ParagraphNode(type="paragraph", text=text, **_id())
+    cnd = Cnd(cnd_version="0.4.0", built_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+              doc=DocMetadata(title="Para", authors=[]), nodes=[node])
+    body = MarkdownConverter().convert(cnd).text.split("\n---\n", 1)[1]
+    return list(_all(MarkdownIt("commonmark").enable("table").parse(body)))
+
+
+def test_backslash_before_a_newline_is_not_a_hard_break() -> None:
+    kinds = [t.type for t in _paragraph_tokens("C:\\\nnext")]
+    assert "hardbreak" not in kinds and "softbreak" in kinds
+
