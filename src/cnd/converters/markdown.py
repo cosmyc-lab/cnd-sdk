@@ -92,9 +92,10 @@ class MarkdownConverter(CndConverter):
     figures="inline", escape=True, heading_numbers=True)``: a standalone
     document wants its content, not the ``[[figure:…]]`` placeholders
     that serve chunking pipelines. It escapes free text (paragraphs,
-    headings, list items, terms, table cells, captions) so that a
+    headings, list items, terms, table cells, quotes, captions) so that a
     Markdown parser reads the structure the CND has and not structure
-    the prose happens to spell; code and math text are emitted verbatim.
+    the prose happens to spell; code and math text are emitted verbatim,
+    and the footnote and bibliography sections are not escaped yet.
     It keeps heading ``number`` and ``counter_label`` as a prefix on the
     heading line. Inject another renderer to change any of that.
 
