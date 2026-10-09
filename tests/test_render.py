@@ -527,6 +527,10 @@ class TestQuoteImageFigure:
         img = ImageNode(type="image", path="logo team.png", alt="Team [logo]", **_base())
         assert MarkdownRenderer().render(img) == "![Team \\[logo\\]](<logo team.png>)"
 
+    def test_alt_text_keeps_backslashes_before_letters(self) -> None:
+        img = ImageNode(type="image", path="a.png", alt="C:\\dir and \\*x\\", **_base())
+        assert MarkdownRenderer().render(img) == "![C:\\dir and \\\\*x\\\\](a.png)"
+
     def test_plain_image_path_unchanged(self) -> None:
         img = ImageNode(type="image", path="img/a.png", alt="A", **_base())
         assert MarkdownRenderer().render(img) == "![A](img/a.png)"

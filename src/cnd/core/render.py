@@ -59,8 +59,13 @@ def _unix_newlines(text: str) -> str:
     return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
+_ALT_ESCAPE = re.compile(r"\\(?=[!-/:-@\[-`{-~]|\Z)|[\[\]]")
+
+
 def _escape_alt(alt: str) -> str:
-    return alt.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+    """Escape ``[``/``]``; double a backslash only where it would escape
+    something (before ASCII punctuation or at the end), as escape_inline does."""
+    return _ALT_ESCAPE.sub(lambda m: "\\\\" if m.group() == "\\" else "\\" + m.group(), alt)
 
 
 def _fence_for(text: str) -> str:
