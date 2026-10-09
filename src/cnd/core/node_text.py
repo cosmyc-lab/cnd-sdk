@@ -50,24 +50,26 @@ def render_list_markdown(
     An ordered item prints its own ``number`` when the producer set one
     (a list that starts at 5, or skips values), else its position.
     """
-    return "\n".join(_render_list_items(items, ordered, depth, escape))
+    return "\n".join(_render_list_items(items, ordered, "  " * depth, escape))
 
 
 def _render_list_items(
     items: list[ListItem],
     ordered: bool,
-    depth: int,
+    indent: str,
     escape: Callable[[str], str] | None,
 ) -> list[str]:
     lines: list[str] = []
     for index, item in enumerate(items, start=1):
         number = item.number if item.number is not None else index
         prefix = f"{number}." if ordered else "-"
-        indent = "  " * depth
         text = escape(item.text) if escape else item.text
         lines.append(f"{indent}{prefix} {text}")
         if item.children:
-            lines.extend(_render_list_items(item.children, ordered, depth + 1, escape))
+            # A child must start at its parent's content column, so the
+            # indent grows with the marker ("- " is 2, "1. " is 3, "10. " is 4).
+            child_indent = indent + " " * (len(prefix) + 1)
+            lines.extend(_render_list_items(item.children, ordered, child_indent, escape))
     return lines
 
 

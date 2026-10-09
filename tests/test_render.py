@@ -273,7 +273,15 @@ class TestFigureRendering:
 class TestNodeTextHelpers:
     def test_render_list_markdown_nested(self) -> None:
         items = [ListItem(text="Parent", children=[ListItem(text="Child")])]
-        assert render_list_markdown(items, ordered=True) == "1. Parent\n  1. Child"
+        assert render_list_markdown(items, ordered=True) == "1. Parent\n   1. Child"
+
+    def test_nested_bullets_keep_two_space_indent(self) -> None:
+        items = [ListItem(text="a", children=[ListItem(text="b", children=[ListItem(text="c")])])]
+        assert render_list_markdown(items, ordered=False) == "- a\n  - b\n    - c"
+
+    def test_nested_ordered_indent_follows_the_parent_marker(self) -> None:
+        items = [ListItem(text="p", number=10, children=[ListItem(text="c", children=[ListItem(text="d")])])]
+        assert render_list_markdown(items, ordered=True) == "10. p\n    1. c\n       1. d"
 
     def test_format_figure_placeholder(self) -> None:
         figure_id = uuid4()

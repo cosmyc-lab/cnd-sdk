@@ -123,3 +123,15 @@ def test_quote_is_a_blockquote_and_its_dash_line_is_not_a_list() -> None:
 def test_image_with_a_space_in_its_path_is_an_image() -> None:
     images = [t for t in _all(_tokens()) if t.type == "image"]
     assert [i.attrs["src"] for i in images] == ["team%20logo.png"]
+
+
+def test_nested_ordered_list_parses_as_two_lists() -> None:
+    node = ListNode(type="list", ordered=True, items=[
+        ListItem(text="a", children=[ListItem(text="a1"), ListItem(text="a2")]),
+        ListItem(text="b"),
+    ], **_id())
+    cnd = Cnd(cnd_version="0.4.0", built_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+              doc=DocMetadata(title="Nested", authors=[]), nodes=[node])
+    body = MarkdownConverter().convert(cnd).text.split("\n---\n", 1)[1]
+    tokens = MarkdownIt("commonmark").enable("table").parse(body)
+    assert len([t for t in tokens if t.type == "ordered_list_open"]) == 2

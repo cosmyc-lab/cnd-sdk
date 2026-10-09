@@ -22,8 +22,8 @@ Les mesures nominales sont récapitulées dans la table des mesures ; la structu
 [@durand2025, p. 42] [^fn-unit] [tab-mesures] @durand2025 [fig-atom]
 
 1. Étalonner les capteurs
-  1. Vérifier le zéro
-  2. Vérifier la pleine échelle
+   1. Vérifier le zéro
+   2. Vérifier la pleine échelle
 2. Lancer l'acquisition
 
 - Alimentation 24 V redondée
