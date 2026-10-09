@@ -523,3 +523,14 @@ class TestQuoteImageFigure:
     def test_childless_uncaptioned_figure_keeps_placeholder(self) -> None:
         fig = FigureNode(type="figure", kind="image", children=[], **_base())
         assert MarkdownRenderer(figures="inline").render(fig).startswith("[[figure:")
+
+    @pytest.mark.parametrize("escape", [False, True])
+    def test_multiline_attribution_stays_in_quote(self, escape: bool) -> None:
+        q = QuoteNode(type="quote", text="body", attribution="- x\n> y\n\nz", **_base())
+        out = MarkdownRenderer(escape=escape).render(q)
+        assert all(line.startswith(">") for line in out.split("\n"))
+        assert out.split("\n")[-2] == ">"
+
+    def test_quote_empty_body_line_escaped(self) -> None:
+        q = QuoteNode(type="quote", text="a\n\nb", **_base())
+        assert MarkdownRenderer(escape=True).render(q) == "> a\n>\n> b"

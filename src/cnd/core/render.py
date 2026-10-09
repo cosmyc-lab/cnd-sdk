@@ -206,7 +206,8 @@ class MarkdownRenderer(NodeRenderer):
     def render_quote(self, node: QuoteNode) -> str:
         lines = self._text(node.text).split("\n")
         if node.attribution:
-            lines += ["", f"— {self._text(node.attribution)}"]
+            attribution = f"— {self._text(node.attribution)}"
+            lines += ["", *attribution.split("\n")]
         return "\n".join(f"> {line}" if line else ">" for line in lines)
 
     def render_code(self, node: CodeNode) -> str:
