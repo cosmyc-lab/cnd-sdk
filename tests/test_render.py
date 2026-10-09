@@ -534,3 +534,21 @@ class TestQuoteImageFigure:
     def test_quote_empty_body_line_escaped(self) -> None:
         q = QuoteNode(type="quote", text="a\n\nb", **_base())
         assert MarkdownRenderer(escape=True).render(q) == "> a\n>\n> b"
+
+
+class TestHeadingNumbers:
+    def _h(self, **kw) -> HeadingNode:
+        return HeadingNode(type="heading", level=2, text="Scope", heading_path=["Scope"], **_base(), **kw)
+
+    def test_numbers_off_by_default(self) -> None:
+        assert MarkdownRenderer().render(self._h(number="4.1")) == "## Scope"
+
+    def test_number_prefixes_text(self) -> None:
+        assert MarkdownRenderer(heading_numbers=True).render(self._h(number="4.1")) == "## 4.1 Scope"
+
+    def test_counter_label_and_number(self) -> None:
+        out = MarkdownRenderer(heading_numbers=True).render(self._h(number="3", counter_label="Chapter"))
+        assert out == "## Chapter 3 Scope"
+
+    def test_unnumbered_heading_unchanged(self) -> None:
+        assert MarkdownRenderer(heading_numbers=True).render(self._h()) == "## Scope"

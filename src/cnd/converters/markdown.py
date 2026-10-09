@@ -112,8 +112,13 @@ class MarkdownConverter(CndConverter):
     - ``RawSource`` (``raw`` on table, math, figure) and
       ``BibEntry.fields``: the producer's verbatim source and the full
       structured bibliography entry have no Markdown target.
-    - Whatever the injected renderer itself drops — ``MarkdownRenderer``
-      drops heading ``number``/``counter_label``, for instance.
+    - Whatever the injected renderer itself drops.
+
+    The default renderer escapes free text (paragraphs, headings, list
+    items, terms, table cells, captions) so that a Markdown parser reads
+    the structure the CND has and not structure the prose happens to
+    spell; code and math text are emitted verbatim. It also keeps heading
+    ``number`` and ``counter_label`` as a prefix on the heading line.
 
     This conversion does **not** round-trip. Nothing reconstructs a CND
     from the Markdown it produces.
@@ -135,7 +140,9 @@ class MarkdownConverter(CndConverter):
 
     @classmethod
     def default_renderer(cls) -> NodeRenderer:
-        return MarkdownRenderer(tables="inline", figures="inline")
+        return MarkdownRenderer(
+            tables="inline", figures="inline", escape=True, heading_numbers=True
+        )
 
     def convert(self, cnd: Cnd) -> ConversionResult:
         warnings: list[str] = []

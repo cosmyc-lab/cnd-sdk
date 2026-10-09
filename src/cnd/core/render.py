@@ -158,7 +158,8 @@ class MarkdownRenderer(NodeRenderer):
     - ``escape`` — escape free text (paragraphs, headings, list items,
       terms, table cells, figure captions) so it cannot start Markdown
       syntax. Code and math text are never escaped.
-    - ``heading_numbers`` — reserved for numbering headings in the output.
+    - ``heading_numbers`` — prefix each heading with its ``counter_label``
+      and ``number`` when it has them (never escaped).
 
     Both default to off because plain-text consumers (chunk text,
     embeddings) must not receive backslashes, and heading numbers would
@@ -186,6 +187,10 @@ class MarkdownRenderer(NodeRenderer):
         if self.escape and (m := _CLOSING_HASHES.search(text)):
             # CommonMark drops a closing "#" sequence from an ATX heading.
             text = f"{text[: m.start(1)]}\\{text[m.start(1):]}"
+        if self.heading_numbers:
+            prefix = " ".join(p for p in (node.counter_label, node.number) if p)
+            if prefix:
+                text = f"{prefix} {text}"
         return f"{'#' * node.level} {text}"
 
     def render_paragraph(self, node: ParagraphNode) -> str:

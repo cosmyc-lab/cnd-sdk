@@ -415,3 +415,11 @@ def _tiny_cnd(*, nodes, bibliography=(), footnotes=()) -> Cnd:
         bibliography=list(bibliography),
         footnotes=list(footnotes),
     )
+
+
+def test_markdown_converter_default_renderer_escapes_and_numbers() -> None:
+    renderer = MarkdownConverter.default_renderer()
+    assert isinstance(renderer, MarkdownRenderer)
+    assert renderer.escape is True
+    assert renderer.heading_numbers is True
+    assert renderer.tables == "inline" and renderer.figures == "inline"
