@@ -47,3 +47,4 @@ conventions.
 | [0008](proposals/0008-cnd-0.3.0-format-changes.md) | CND 0.3.0 format changes — field audit, provenance, and label-keyed links | implemented |
 | [0009](proposals/0009-declarative-and-direct-producers.md) | Declarative and direct producers — bringing foreign formats into CND | draft |
 | [0010](proposals/0010-counter-label.md) | Capture the counter label as its own field, beside the number | implemented |
+| [0011](proposals/0011-decorative-content.md) | Content marked decorative is never emitted | implemented |
