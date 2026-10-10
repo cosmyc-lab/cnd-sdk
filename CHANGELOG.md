@@ -9,6 +9,13 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+### Changed
+
+- **Spec §2, "Decorative content"** (docs/proposals/0011): content the
+  source marks as decorative — Typst `pdf.artifact`, tagged-PDF artifacts,
+  HTML `aria-hidden` — is never emitted: no node, no text, no pool entry,
+  no link edge. Producer behaviour only; no schema change.
+
 ### Fixed
 
 - **Markdown output keeps the CND's structure** under a CommonMark parser.
@@ -27,6 +34,9 @@ the minor version, fixes bump the patch version).
 
 ### Added
 
+- `cnd.decorative(body)` in the Typst package (`src/cnd/typst/cnd.typ`):
+  marks content as decorative (it is `pdf.artifact`), so producers never
+  emit it (spec §2).
 - `MarkdownRenderer(escape=…, heading_numbers=…)`, both off by default, and
   `cnd.core.markdown_escape` (`escape_inline`, `escape_block`).
   `MarkdownConverter`'s default renderer turns both on: free text in

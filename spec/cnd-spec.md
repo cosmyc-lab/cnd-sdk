@@ -85,6 +85,25 @@ reference SDK computes them during traversal, §8). Only `page` is
 serialized, because page breaks are a layout result that cannot be
 reconstructed from the tree.
 
+**Decorative content (normative)**: content the source marks as
+decorative — present for presentation only, carrying no meaning — is not
+part of the document. A producer MUST NOT emit it: it yields no node, no
+text inside another node's text, no pool entry, and no link edge.
+Everything nested inside decorative content is decorative, whatever its
+kind. A label inside it does not exist in the CND, so a reference to it
+from kept content yields no edge (its rendered text, if any, stays in the
+kept node's text). A footnote declared inside it gets no pool entry, and
+no marker — its own or a re-reference — yields an edge to it; a kept
+footnote keeps the label the built document shows, even when a
+decorative one consumed a number before it. A marker written inside
+decorative content — a reference, a citation, a footnote re-reference —
+yields no edge, whatever it points at. The bibliography pool is the
+built document's bibliography: an entry the document lists stays, even
+if only decorative content cites it. Only an explicit marker counts; a
+producer never infers decoration. What the marker is depends on the
+source format — Typst `pdf.artifact`, tagged-PDF artifacts, HTML
+`aria-hidden="true"` (docs/proposals/0011).
+
 ### 2.1 Source
 
 `source` identifies the **input artifact**, and is deliberately separate
