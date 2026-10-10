@@ -9,6 +9,10 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-10
+
+SDK release 0.7.0 still implements CND **format 0.4.0**: no schema change.
+
 ### Changed
 
 - **Spec §2, "Decorative content"** (docs/proposals/0011): content the
