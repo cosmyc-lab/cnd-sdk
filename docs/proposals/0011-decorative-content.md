@@ -62,11 +62,7 @@ The rule does not make anything decorative by inference. A producer that guessed
 - **A dedicated node type** holding decorative content for renderers that want it. Rejected for now. No consumer has asked for it, and a CND describes meaning, not page decoration. If a use appears, it is an additive change.
 
 ## Impact
-- **Producers:** must honour their format's decorative marker. The reference Typst producer drops every element kind wrapped in an artifact, and the footnotes and citations written in one. Two gaps remain in that producer, tracked there:
-  - a `@reference` or a `link` written inside decorative content can still yield a `refs` or `links` edge on a neighbouring kept node;
-  - a floating `place` written inside decorative content is still emitted, because its body is laid out away from the artifact.
-
-  The Typst package gains `cnd.decorative(body)`, so authors can write the intent by name. Labelling the wrapper itself (`#cnd.decorative[..] <label>`) makes any `@label` a compile error, since an artifact cannot be referenced.
+- **Producers:** must honour their format's decorative marker. The reference Typst producer drops everything wrapped in an artifact — every element kind, floats placed from inside one, and the footnotes, citations, references and links written in one — and resolves no reference to a label inside one. The Typst package gains `cnd.decorative(body)`, so authors can write the intent by name. Labelling the wrapper itself (`#cnd.decorative[..] <label>`) makes any `@label` a compile error, since an artifact cannot be referenced.
 - **Consumers:** nothing to do. Content they no longer receive was noise.
 - **Conformance:** not checkable from a CND alone, since a validator cannot see what was dropped. It is a producer obligation, tested by the producer's own suite.
 
