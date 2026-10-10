@@ -63,7 +63,12 @@ copy it into a project (e.g. as a root file `cnd.typ`), then:
 
 #cnd.metadata.update(it => it + (revision: "4.2"))
 #cnd.table(table(columns: 2, [A], [B]), content_kind: "data")
+#cnd.decorative(image("logo.png", width: 2cm))
 ```
+
+`cnd.decorative(body)` marks content as purely decorative — a logo, an
+ornament, an icon — so no producer emits it (spec §2, "Decorative
+content"). It is Typst's `pdf.artifact`, so the rendered page is unchanged.
 
 Import the whole file rather than destructuring — `#import "/cnd.typ": table`
 would shadow Typst's own built-in `table`.

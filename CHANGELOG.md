@@ -34,6 +34,9 @@ the minor version, fixes bump the patch version).
 
 ### Added
 
+- `cnd.decorative(body)` in the Typst package (`src/cnd/typst/cnd.typ`):
+  marks content as decorative (it is `pdf.artifact`), so producers never
+  emit it (spec §2).
 - `MarkdownRenderer(escape=…, heading_numbers=…)`, both off by default, and
   `cnd.core.markdown_escape` (`escape_inline`, `escape_block`).
   `MarkdownConverter`'s default renderer turns both on: free text in

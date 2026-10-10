@@ -58,11 +58,12 @@ The rule does not make anything decorative by inference. A producer that guessed
 - **A dedicated node type** holding decorative content for renderers that want it. Rejected for now. No consumer has asked for it, and a CND describes meaning, not page decoration. If a use appears, it is an additive change.
 
 ## Impact
-- **Producers:** must honour their format's decorative marker. The reference Typst producer already drops artifacts for every element kind.
+- **Producers:** must honour their format's decorative marker. The reference Typst producer already drops artifacts for every element kind. The Typst package gains `cnd.decorative(body)`, so authors can write the intent by name.
 - **Consumers:** nothing to do. Content they no longer receive was noise.
 - **Conformance:** not checkable from a CND alone, since a validator cannot see what was dropped. It is a producer obligation, tested by the producer's own suite.
 
 ## Implementation checklist
 - [x] Spec §2: "Decorative content (normative)"
+- [x] `cnd.decorative(body)` in the Typst package (`src/cnd/typst/cnd.typ`), a named wrapper over `pdf.artifact`
 - [x] `docs/README.md` index row
 - [x] `CHANGELOG.md` entry

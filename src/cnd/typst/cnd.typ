@@ -34,3 +34,11 @@
     d
   })
 }
+
+// Marks content as purely decorative — an ornament, a logo, an icon, a
+// background — so CND emitters never emit it: no node, no text, no
+// footnote (spec §2, "Decorative content"; docs/proposals/0011). It is
+// Typst's own `pdf.artifact`, so the PDF's accessibility tree skips it too.
+// Never wrap content that carries meaning: a chart or a diagram goes in a
+// `figure` with a caption that says what it shows.
+#let decorative(body) = pdf.artifact(body)
