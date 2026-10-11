@@ -88,7 +88,7 @@ e(t) = m(t) - r(t)
 
 *Atome 1: Structure atomique du réseau mesuré.*
 
-[[figure:00000000-0000-4000-e000-000000000025 kind="canvas" number="3" caption="Tracé vectoriel non convertible."]]
+[[figure:00000000-0000-4000-e000-000000000025 kind="canvas" counter="Figure" number="3" caption="Tracé vectoriel non convertible."]]
 
 ![Logo du banc, image nue hors figure](figures/logo-banc.png)
 

@@ -28,7 +28,9 @@ from cnd.core.node_text import (
     header_row_text,
     render_list_markdown,
     render_table_markdown,
+    row_labels_text,
     table_node_placeholder,
+    table_shape,
 )
 from cnd.core.nodes import (
     CndNode,
@@ -252,12 +254,16 @@ class MarkdownRenderer(NodeRenderer):
             caption_line = self._figure_caption_line(node)
             if caption_line and (node.caption or node.number):
                 return caption_line
+        table = self._figure_table(node)
         return format_figure_placeholder(
             figure_id=node.id,
             kind=node.kind or self._infer_figure_kind(node),
             caption=node.caption,
             number=node.number,
-            header_row=self._figure_header_row(node),
+            counter_label=node.counter_label,
+            header_row=header_row_text(table) if table else None,
+            shape=table_shape(table) if table else None,
+            row_labels=row_labels_text(table) if table else None,
             summary=self._figure_summary(node),
         )
 
@@ -297,11 +303,9 @@ class MarkdownRenderer(NodeRenderer):
         return "figure"
 
     @staticmethod
-    def _figure_header_row(node: FigureNode) -> str | None:
+    def _figure_table(node: FigureNode) -> TableNode | None:
         tables = [child for child in node.children if isinstance(child, TableNode)]
-        if len(tables) == 1:
-            return header_row_text(tables[0])
-        return None
+        return tables[0] if len(tables) == 1 else None
 
     def _figure_summary(self, node: FigureNode) -> str | None:
         parts = [self._child_summary(child) for child in node.children]
