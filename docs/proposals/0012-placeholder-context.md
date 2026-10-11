@@ -31,7 +31,7 @@ The placeholder keeps its shape, `[[figure:<id> key="value" …]]`, and gains at
 | `caption` | `caption` | when set |
 | `header` | the header row's cells, joined with ` \| ` | a table, or a figure wrapping exactly one table |
 | `rows`, `cols` | the grid's extent, spans included | same |
-| `row_labels` | the first column's cells below the header rows, joined with ` \| `; after 20 labels, ` \| … (+N)` | same, with two columns or more |
+| `row_labels` | the first column's cells below the header rows (rows whose every cell is a header), joined with ` \| `; after 20 labels, ` \| … (+N)` | same, with two columns or more |
 | `summary` | one short description per child | a figure with children |
 
 Body cells other than the first column stay out on purpose: a placeholder exists so a numeric grid does not flood text consumers. `get`-style access to the full table is the consumer's job, by id.
