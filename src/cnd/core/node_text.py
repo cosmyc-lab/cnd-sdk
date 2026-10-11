@@ -134,20 +134,32 @@ def table_shape(node: TableNode) -> tuple[int, int] | None:
     """``(rows, cols)`` of the table's grid, spans included."""
     if not node.cells:
         return None
-    rows = max(cell.row + cell.rowspan for cell in node.cells)
-    cols = max(cell.col + cell.colspan for cell in node.cells)
+    rows = max(cell.row + max(cell.rowspan, 1) for cell in node.cells)
+    cols = max(cell.col + max(cell.colspan, 1) for cell in node.cells)
     return rows, cols
+
+
+def _header_rows(node: TableNode) -> set[int]:
+    """Rows whose every cell is a header. A row merely *containing* a
+    header cell is not one: row headers (the first column of a data table)
+    flag a cell on every row. With no flag anywhere, row 0, the same
+    assumption as :func:`header_row_text`."""
+    if not any(cell.is_header for cell in node.cells):
+        return {0}
+    rows: dict[int, bool] = {}
+    for cell in node.cells:
+        rows[cell.row] = rows.get(cell.row, True) and cell.is_header
+    return {row for row, all_header in rows.items() if all_header}
 
 
 def row_labels_text(node: TableNode, cap: int = ROW_LABELS_CAP) -> str | None:
     """The first column's text below the header, joined — the labels a data
     table's rows are usually looked up by. None for a single-column table,
-    where the first column is the whole body. Header rows are the cells
-    flagged ``is_header``, else row 0 (as in :func:`header_row_text`)."""
+    where the first column is the whole body. See :func:`_header_rows`."""
     shape = table_shape(node)
     if shape is None or shape[1] < 2:
         return None
-    header_rows = {cell.row for cell in node.cells if cell.is_header} or {0}
+    header_rows = _header_rows(node)
     labels = [
         cell.text
         for cell in sorted(node.cells, key=lambda c: c.row)

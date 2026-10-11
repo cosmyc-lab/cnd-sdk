@@ -626,6 +626,13 @@ class TestPlaceholderContext:
         node = TableNode(type="table", cells=cells, **_base())
         assert 'row_labels="Alpha"' in MarkdownRenderer().render(node)
 
+    def test_row_headers_are_row_labels_not_header_rows(self) -> None:
+        cells = _grid([["", "2024"], ["France", "3"], ["Spain", "4"]], header=False)
+        for cell in cells:
+            cell.is_header = cell.row == 0 or cell.col == 0
+        node = TableNode(type="table", cells=cells, **_base())
+        assert 'row_labels="France | Spain"' in MarkdownRenderer().render(node)
+
     def test_figure_placeholder_carries_counter_label_and_table_context(self) -> None:
         table = TableNode(
             type="table",
