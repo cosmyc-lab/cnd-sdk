@@ -9,6 +9,10 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-11
+
+SDK release 0.8.0 still implements CND **format 0.4.0**: no schema change.
+
 ### Changed
 
 - **Figure placeholders carry more context** (docs/proposals/0012): the
