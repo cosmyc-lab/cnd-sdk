@@ -504,7 +504,10 @@ The reference SDK provides a renderer hierarchy in `cnd.core.render`
   CommonMark-ish text. Verbosity for tables and figures is constructor
   configuration (`tables=` / `figures=`, each one of `"placeholder"`,
   `"inline"`, `"auto"`), orthogonal to the output format: `"placeholder"`
-  emits a parseable `[[figure:<id> …]]` placeholder, `"inline"` renders the
+  emits a parseable `[[figure:<id> …]]` placeholder carrying what the node
+  holds except a table's body cells (kind, counter label, number, caption,
+  header row, size, row labels, child summary; docs/proposals/0012),
+  `"inline"` renders the
   cells/children as text, and `"auto"` defers to the table's
   `content_kind` hint (§6.3).
 

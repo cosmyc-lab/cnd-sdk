@@ -9,6 +9,14 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+### Changed
+
+- **Figure placeholders carry more context** (docs/proposals/0012): the
+  counter label (`counter="Table"`), a table's size (`rows`, `cols`) and
+  its first-column labels (`row_labels`, capped at 20) join the existing
+  attributes. Attribute values are now escaped (`\`, `"`, line breaks,
+  `]]`), so every placeholder stays one parseable line.
+
 ## [0.7.0] - 2026-10-10
 
 SDK release 0.7.0 still implements CND **format 0.4.0**: no schema change.

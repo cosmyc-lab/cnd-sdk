@@ -23,19 +23,42 @@ def format_figure_placeholder(
     number: str | None = None,
     header_row: str | None = None,
     summary: str | None = None,
+    counter_label: str | None = None,
+    shape: tuple[int, int] | None = None,
+    row_labels: str | None = None,
 ) -> str:
-    """Build a parseable figure placeholder for chunk content."""
+    """Build a parseable figure placeholder for chunk content.
+
+    It carries everything the node says about itself except a table's body
+    cells (docs/proposals/0012). Attribute values are quoted, with ``\\``
+    and ``"`` backslash-escaped, line breaks folded to spaces and ``]]``
+    split, so the placeholder is always one line ending at its first ``]]``.
+    """
     attrs: dict[str, str] = {"kind": kind}
+    if counter_label:
+        attrs["counter"] = counter_label
     if number:
         attrs["number"] = number
     if caption:
         attrs["caption"] = caption
     if header_row:
         attrs["header"] = header_row
+    if shape:
+        attrs["rows"], attrs["cols"] = str(shape[0]), str(shape[1])
+    if row_labels:
+        attrs["row_labels"] = row_labels
     if summary:
         attrs["summary"] = summary
-    formatted = " ".join(f'{key}="{value}"' for key, value in attrs.items())
+    formatted = " ".join(f'{key}="{_attr_value(value)}"' for key, value in attrs.items())
     return f"[[figure:{figure_id} {formatted}]]"
+
+
+def _attr_value(value: str) -> str:
+    value = value.replace("\\", "\\\\").replace('"', '\\"')
+    value = " ".join(value.split())
+    while "]]" in value:
+        value = value.replace("]]", "] ]")
+    return value
 
 
 def render_list_markdown(
@@ -97,7 +120,55 @@ def table_node_placeholder(node: TableNode) -> str:
         figure_id=node.id,
         kind=node.kind,
         header_row=header_row_text(node),
+        shape=table_shape(node),
+        row_labels=row_labels_text(node),
     )
+
+
+#: How many first-column labels a placeholder lists before it says how many
+#: it left out — enough to find a row by name, not a dump of the column.
+ROW_LABELS_CAP = 20
+
+
+def table_shape(node: TableNode) -> tuple[int, int] | None:
+    """``(rows, cols)`` of the table's grid, spans included."""
+    if not node.cells:
+        return None
+    rows = max(cell.row + max(cell.rowspan, 1) for cell in node.cells)
+    cols = max(cell.col + max(cell.colspan, 1) for cell in node.cells)
+    return rows, cols
+
+
+def _header_rows(node: TableNode) -> set[int]:
+    """Rows whose every cell is a header. A row merely *containing* a
+    header cell is not one: row headers (the first column of a data table)
+    flag a cell on every row. With no flag anywhere, row 0, the same
+    assumption as :func:`header_row_text`."""
+    if not any(cell.is_header for cell in node.cells):
+        return {0}
+    rows: dict[int, bool] = {}
+    for cell in node.cells:
+        rows[cell.row] = rows.get(cell.row, True) and cell.is_header
+    return {row for row, all_header in rows.items() if all_header}
+
+
+def row_labels_text(node: TableNode, cap: int = ROW_LABELS_CAP) -> str | None:
+    """The first column's text below the header, joined — the labels a data
+    table's rows are usually looked up by. None for a single-column table,
+    where the first column is the whole body. See :func:`_header_rows`."""
+    shape = table_shape(node)
+    if shape is None or shape[1] < 2:
+        return None
+    header_rows = _header_rows(node)
+    labels = [
+        cell.text
+        for cell in sorted(node.cells, key=lambda c: c.row)
+        if cell.col == 0 and cell.row not in header_rows and cell.text
+    ]
+    if not labels:
+        return None
+    kept = " | ".join(labels[:cap])
+    return f"{kept} | … (+{len(labels) - cap})" if len(labels) > cap else kept
 
 
 def _cell_text(text: str, escape: Callable[[str], str] | None) -> str:

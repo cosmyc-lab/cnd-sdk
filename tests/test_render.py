@@ -580,3 +580,82 @@ class TestHeadingNumbers:
     def test_prefix_is_added_after_escaping(self, text: str, expected: str) -> None:
         node = HeadingNode(type="heading", level=2, text=text, heading_path=[text], **_base(), number="2")
         assert MarkdownRenderer(escape=True, heading_numbers=True).render(node) == expected
+
+
+def _grid(rows: list[list[str]], *, header: bool = True) -> list[TableCell]:
+    return [
+        TableCell(row=r, col=c, text=text, is_header=header and r == 0)
+        for r, row in enumerate(rows)
+        for c, text in enumerate(row)
+    ]
+
+
+class TestPlaceholderContext:
+    """A placeholder carries everything the node says about itself except
+    the body cells (docs/proposals/0012)."""
+
+    def test_table_placeholder_carries_size_and_row_labels(self) -> None:
+        node = TableNode(
+            type="table",
+            cells=_grid([["Country", "2024", "2025"], ["France", "1", "2"], ["Spain", "3", "4"]]),
+            **_base(),
+        )
+        rendered = MarkdownRenderer().render(node)
+        assert 'header="Country | 2024 | 2025"' in rendered
+        assert 'rows="3" cols="3"' in rendered
+        assert 'row_labels="France | Spain"' in rendered
+        assert '"1"' not in rendered and "| 2 |" not in rendered
+
+    def test_row_labels_are_capped(self) -> None:
+        body = [[f"r{i}", str(i)] for i in range(25)]
+        node = TableNode(type="table", cells=_grid([["Key", "Val"], *body]), **_base())
+        rendered = MarkdownRenderer().render(node)
+        labels = " | ".join(f"r{i}" for i in range(20))
+        assert f'row_labels="{labels} | … (+5)"' in rendered
+
+    def test_single_column_table_has_no_row_labels(self) -> None:
+        node = TableNode(type="table", cells=_grid([["Item"], ["a"], ["b"]]), **_base())
+        rendered = MarkdownRenderer().render(node)
+        assert "row_labels" not in rendered
+        assert 'rows="3" cols="1"' in rendered
+
+    def test_row_labels_skip_every_header_row(self) -> None:
+        cells = _grid([["Group", "x"], ["Name", "y"], ["Alpha", "1"]], header=False)
+        cells[0].is_header = cells[1].is_header = True
+        cells[2].is_header = cells[3].is_header = True
+        node = TableNode(type="table", cells=cells, **_base())
+        assert 'row_labels="Alpha"' in MarkdownRenderer().render(node)
+
+    def test_row_headers_are_row_labels_not_header_rows(self) -> None:
+        cells = _grid([["", "2024"], ["France", "3"], ["Spain", "4"]], header=False)
+        for cell in cells:
+            cell.is_header = cell.row == 0 or cell.col == 0
+        node = TableNode(type="table", cells=cells, **_base())
+        assert 'row_labels="France | Spain"' in MarkdownRenderer().render(node)
+
+    def test_figure_placeholder_carries_counter_label_and_table_context(self) -> None:
+        table = TableNode(
+            type="table",
+            content_kind="data",
+            cells=_grid([["Country", "GDP"], ["France", "3"]]),
+            **_base(),
+        )
+        node = FigureNode(
+            type="figure", kind="table", caption="GDP", number="3",
+            counter_label="Table", children=[table], **_base(),
+        )
+        rendered = MarkdownRenderer().render(node)
+        assert rendered.startswith(f"[[figure:{node.id} ")
+        assert 'counter="Table" number="3"' in rendered
+        assert 'rows="2" cols="2"' in rendered
+        assert 'row_labels="France"' in rendered
+
+    def test_attribute_values_cannot_break_the_placeholder(self) -> None:
+        node = FigureNode(
+            type="figure", kind="image", caption='Say "hi"\nthen ]] leave \\ now',
+            children=[], raw={"format": "typst", "value": "#x"}, **_base(),
+        )
+        rendered = MarkdownRenderer().render(node)
+        assert rendered.count("\n") == 0
+        assert rendered.endswith("]]") and rendered.count("]]") == 1
+        assert 'caption="Say \\"hi\\" then ] ] leave \\\\ now"' in rendered
