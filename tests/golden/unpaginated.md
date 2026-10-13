@@ -12,7 +12,6 @@ The client opens with a version token, as shown in the listing below.
 
 ```text
 OPEN v1
-
 ```
 
 *Opening frame*

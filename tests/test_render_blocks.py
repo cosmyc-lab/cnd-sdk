@@ -134,6 +134,17 @@ class TestTermsQuoteAdmonitionCode:
             "paragraph_open", "inline", "paragraph_close", "fence",
         ]
 
+    def test_code_ending_in_a_newline_adds_no_blank_line(self) -> None:
+        node = CodeNode(type="code", text="a = 1\n", lang="python", **_id())
+        out = R.render(node)
+        assert out == "```python\na = 1\n```"
+        fence = [t for t in _parse(out) if t.type == "fence"][0]
+        assert fence.content == "a = 1\n"
+
+    def test_code_strips_only_one_trailing_newline(self) -> None:
+        node = CodeNode(type="code", text="a\n\n", **_id())
+        assert R.render(node) == "```\na\n\n```"
+
     def test_code_title_is_escaped_with_the_text(self) -> None:
         node = CodeNode(type="code", text="x", title="__init__.py", **_id())
         out = MarkdownRenderer(escape=True).render(node)

@@ -310,7 +310,10 @@ class MarkdownRenderer(NodeRenderer):
     def render_code(self, node: CodeNode) -> str:
         fence = _fence_for(node.text)
         opening = f"{fence}{node.lang or ''}".rstrip()
-        block = f"{opening}\n{node.text}\n{fence}"
+        # The closing fence goes on a line of its own: a text that already
+        # ends in a newline would otherwise gain a blank line in the block.
+        text = node.text[:-1] if node.text.endswith("\n") else node.text
+        block = f"{opening}\n{text}\n{fence}"
         if node.title:
             title = " ".join(_unix_newlines(node.title).split("\n"))
             return f"{self._plain(title)}\n{block}"

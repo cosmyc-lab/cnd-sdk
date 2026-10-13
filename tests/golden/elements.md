@@ -52,7 +52,6 @@ States that energy equals mass times the speed of light squared.
 main.py
 ```python
 print('hi')
-
 ```
 
 a^2 + b^2 = c^2
