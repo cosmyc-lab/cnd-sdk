@@ -178,3 +178,16 @@ class TestImageSource:
     def test_unsafe_source_without_alt(self) -> None:
         out = H.render(self._image("javascript:x", alt=None))
         assert out == '<span class="cnd-missing-image">image</span>'
+
+
+@pytest.mark.parametrize("kind", ["", "   ", "\t\n"])
+def test_a_blank_admonition_kind_has_no_kind_class(kind: str) -> None:
+    node = AdmonitionNode(type="admonition", kind=kind, title=rt("T"), children=[], **_id())
+    out = H.render(node)
+    assert out.startswith('<aside class="cnd-admonition">')
+    assert "cnd-admonition-\"" not in out and "cnd-admonition- " not in out
+
+
+def test_an_admonition_kind_is_one_class_token() -> None:
+    node = AdmonitionNode(type="admonition", kind=" my kind ", children=[], **_id())
+    assert H.render(node).startswith('<aside class="cnd-admonition cnd-admonition-my-kind">')

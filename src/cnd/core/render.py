@@ -1,8 +1,9 @@
 """Node renderers (docs/adr — rendering as an SDK renderer hierarchy).
 
-Nodes are pure data: no node has a rendering method. Rendering a node to
-text is done by a ``NodeRenderer`` — one abstract method per node type plus
-a single concrete ``render()`` dispatch over the discriminated union.
+Nodes are pure data: no node has a rendering method. Rendering a node
+to text is done by a ``NodeRenderer`` — one abstract method per node
+type plus a single concrete ``render()`` dispatch over the
+discriminated union.
 ``MarkdownRenderer`` is the concrete content renderer; verbosity for
 tables/figures is constructor configuration, orthogonal to the format.
 Every renderer renders the prose of a node (a ``RichText``) through

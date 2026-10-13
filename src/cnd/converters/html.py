@@ -111,8 +111,9 @@ class HtmlNodeRenderer(NodeRenderer):
 
     A ``links`` edge with a ``text_span`` makes the text it spans an
     ``<a class="cnd-link">``, unless its href fails
-    ``cnd.core.urls.is_safe_url``: the text then stays plain. ``links=False``
-    leaves every text plain, for a caller that renders links elsewhere.
+    ``cnd.core.urls.is_safe_url``: the text then stays plain.
+    ``links=False`` leaves every text plain, for a caller that renders
+    links elsewhere.
     """
 
     def __init__(self, *, links: bool = True) -> None:
@@ -193,9 +194,10 @@ class HtmlNodeRenderer(NodeRenderer):
 
     def render_admonition(self, node: AdmonitionNode) -> str:
         title = self.render_text(node.title) if node.title is not None else escape(node.kind)
+        token = _css_token(node.kind)
+        kind_class = f" cnd-admonition-{token}" if token else ""
         return (
-            f'<aside{_anchor(node)} class="cnd-admonition '
-            f'cnd-admonition-{_css_token(node.kind)}">'
+            f'<aside{_anchor(node)} class="cnd-admonition{kind_class}">'
             f'<p class="cnd-admonition-title">{title}</p>'
             f"{self._blocks(node.children)}</aside>"
         )
@@ -287,8 +289,8 @@ class HtmlConverter(CndConverter):
     - ``<head>``: ``<title>`` and ``<meta>`` for authors, description,
       keywords, date, status, version and every ``doc.extra`` pair from
       ``cnd.doc``, except an ``extra`` key naming a meta element the
-      converter writes itself (skipped, with a warning); ``cnd_version`` and ``built_at`` as ``data-``
-      attributes on ``<html>``.
+      converter writes itself (skipped, with a warning); ``cnd_version``
+      and ``built_at`` as ``data-`` attributes on ``<html>``.
     - ``<article>``: the body, assembled by walking the tree in reading
       order and delegating each block to the injected renderer. A
       container (figure, list, table, quote…) renders once, from the
