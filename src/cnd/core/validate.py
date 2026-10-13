@@ -12,12 +12,19 @@ asymmetry is deliberate and named rather than papered over.
 
 The function is a value function — CND in, list of violations out — so
 it crosses any boundary (docs/adr/0019 §5).
+
+Invariants checked: ids unique across the whole CND; labels unique;
+edges resolve in their own domain; ``text_span`` inside its text; marks
+in bounds, canonically ordered, merged per kind and never reaching into
+an atomic mark; pagination all-or-nothing; bibliography floor; no
+``doc.extra`` key repeating a named metadata field.
 """
 
 from dataclasses import dataclass
 
-from cnd.core.cnd import BibEntry, Cnd, Footnote
-from cnd.core.nodes import CndNode
+from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
+from cnd.core.nodes import CndNode, texts_of
+from cnd.core.text import ATOMIC_MARK_KINDS, RichText
 
 # The lifted bibliographic fields; an entry satisfies the content floor
 # with a `formatted` string or with at least one of these.
@@ -60,11 +67,27 @@ def validate(cnd: Cnd) -> list[Violation]:
     been raised by the time a ``Cnd`` exists.
     """
     violations: list[Violation] = []
+    violations += _check_id_uniqueness(cnd)
     violations += _check_label_uniqueness(cnd)
     violations += _check_link_domains(cnd)
+    violations += _check_text_spans(cnd)
+    violations += _check_marks(cnd)
     violations += _check_pagination(cnd)
     violations += _check_bibliography_floor(cnd)
+    violations += _check_doc_extra(cnd)
     return violations
+
+
+def _all_texts(cnd: Cnd):
+    """Every RichText of the CND with a handle for messages: the node
+    texts of the body and the footnotes, then formatted bibliography
+    entries."""
+    for visit in cnd.iter_all():
+        for text in texts_of(visit.node):
+            yield text, f"{visit.node.type} {visit.node.id}"
+    for entry in cnd.bibliography:
+        if entry.formatted is not None:
+            yield entry.formatted, f"bibliography entry {entry.id}"
 
 
 def _check_label_uniqueness(cnd: Cnd) -> list[Violation]:
@@ -92,7 +115,7 @@ def _check_label_uniqueness(cnd: Cnd) -> list[Violation]:
             return
         seen[label] = owner
 
-    for visit in cnd.iter():
+    for visit in cnd.iter_all():
         claim(visit.node.label, f"{visit.node.type} {visit.node.id}")
     for entry in cnd.bibliography:
         claim(entry.label, f"bibliography entry {entry.id}")
@@ -122,11 +145,9 @@ def _check_link_domains(cnd: Cnd) -> list[Violation]:
         ("cites", BibEntry, "a bibliography entry"),
         ("footnotes", Footnote, "a footnote"),
     )
-    for visit in cnd.iter():
-        node = visit.node
-        where = f"{node.type} {node.id}"
+    for text, where in _all_texts(cnd):
         for family, expected, described in families:
-            for link in getattr(node, family):
+            for link in getattr(text, family):
                 target = cnd.resolve(link.label)
                 if target is None:
                     violations.append(
@@ -172,7 +193,7 @@ def _check_pagination(cnd: Cnd) -> list[Violation]:
     """
     located: list[CndNode] = []
     unlocated: list[CndNode] = []
-    for visit in cnd.iter():
+    for visit in cnd.iter_all():
         (located if visit.node.location is not None else unlocated).append(visit.node)
 
     if not located or not unlocated:
@@ -215,3 +236,130 @@ def _check_bibliography_floor(cnd: Cnd) -> list[Violation]:
 
 def _has_structured_fields(entry: BibEntry) -> bool:
     return any(getattr(entry, name) for name in _BIB_STRUCTURED_FIELDS)
+
+
+def _check_id_uniqueness(cnd: Cnd) -> list[Violation]:
+    """Every id is unique across the whole CND (§2): body nodes, footnote
+    content nodes and the entries of both pools."""
+    seen: dict[str, str] = {}
+    violations: list[Violation] = []
+    owners = [(v.node.id, f"{v.node.type} {v.node.id}") for v in cnd.iter_all()]
+    owners += [(e.id, f"bibliography entry {e.id}") for e in cnd.bibliography]
+    owners += [(f.id, f"footnote {f.id}") for f in cnd.footnotes]
+    for ident, owner in owners:
+        key = str(ident)
+        if key in seen:
+            violations.append(
+                Violation(
+                    "id-not-unique", f"id is already used by {seen[key]}", owner
+                )
+            )
+            continue
+        seen[key] = owner
+    return violations
+
+
+def _check_text_spans(cnd: Cnd) -> list[Violation]:
+    """Every ``text_span`` lies inside the ``value`` it indexes (§5)."""
+    violations: list[Violation] = []
+    for text, where in _all_texts(cnd):
+        length = len(text.value)
+        for edge in text.edges():
+            span = edge.text_span
+            if span is None:
+                continue
+            if len(span) != 2 or not 0 <= span[0] <= span[1] <= length:
+                name = getattr(edge, "label", None) or edge.href
+                violations.append(
+                    Violation(
+                        "text-span-out-of-bounds",
+                        f"text_span {span} is outside a text of {length} code points",
+                        f"@{name} on {where}",
+                    )
+                )
+    return violations
+
+
+def _check_marks(cnd: Cnd) -> list[Violation]:
+    """Mark invariants (docs/proposals/0013, Marks): bounds, canonical
+    order, same-kind merge, atomic verbatim."""
+    violations: list[Violation] = []
+    for text, where in _all_texts(cnd):
+        violations += _mark_violations(text, where)
+    return violations
+
+
+def _mark_violations(text: RichText, where: str) -> list[Violation]:
+    out: list[Violation] = []
+    length = len(text.value)
+    for mark in text.marks:
+        if not 0 <= mark.start < mark.end <= length:
+            out.append(
+                Violation(
+                    "mark-out-of-bounds",
+                    f"{mark.kind} mark [{mark.start}, {mark.end}) is outside a text of {length} code points",
+                    where,
+                )
+            )
+    keys = [(m.start, m.end, m.kind) for m in text.marks]
+    if keys != sorted(keys):
+        out.append(
+            Violation(
+                "mark-not-canonical",
+                "marks are not sorted by (start, end, kind)",
+                where,
+            )
+        )
+    by_kind: dict[str, list] = {}
+    for mark in text.marks:
+        by_kind.setdefault(mark.kind, []).append(mark)
+    for kind, marks in by_kind.items():
+        ordered = sorted(marks, key=lambda m: (m.start, m.end))
+        for prev, cur in zip(ordered, ordered[1:]):
+            if cur.start <= prev.end:
+                out.append(
+                    Violation(
+                        "mark-same-kind-overlap",
+                        f"two {kind} marks overlap or touch at {cur.start}; merge them",
+                        where,
+                    )
+                )
+    spans = [(i, m.start, m.end, f"{m.kind} mark") for i, m in enumerate(text.marks)]
+    spans += [
+        (None, e.text_span[0], e.text_span[1], "edge span")
+        for e in text.edges()
+        if e.text_span is not None and len(e.text_span) == 2
+    ]
+    for index, atom in enumerate(text.marks):
+        if atom.kind not in ATOMIC_MARK_KINDS:
+            continue
+        for other, start, end, what in spans:
+            if other == index:
+                continue
+            disjoint = end <= atom.start or start >= atom.end
+            covers = start <= atom.start and end >= atom.end
+            if not (disjoint or covers):
+                out.append(
+                    Violation(
+                        "mark-atomic-crossed",
+                        f"{what} [{start}, {end}) reaches inside the {atom.kind} mark "
+                        f"[{atom.start}, {atom.end})",
+                        where,
+                    )
+                )
+    return out
+
+
+def _check_doc_extra(cnd: Cnd) -> list[Violation]:
+    """No ``doc.extra`` key repeats a named metadata field (§3), or the
+    document would carry two contradictory values."""
+    named = set(DocMetadata.model_fields)
+    return [
+        Violation(
+            "doc-extra-shadows-field",
+            "an extra key repeats a named metadata field",
+            f"doc.extra[{key!r}]",
+        )
+        for key in sorted(cnd.doc.extra)
+        if key in named
+    ]
