@@ -304,26 +304,31 @@ class _MarkdownWriter:
         if span.kind == _EDGE:
             return f"{span.wrap[0]}{inner}{span.wrap[1]}", ""
         delimiter = MARKDOWN_DELIMITERS.get(span.kind)
-        if delimiter is not None and self._can_delimit(piece, delimiter, touches_star):
+        if delimiter is not None and self._can_delimit(piece, inner, delimiter, touches_star):
             return f"{delimiter}{inner}{delimiter}", delimiter
         if self.text_only:
             return inner, ""
         tag = HTML_TAGS[span.kind]
         return f"<{tag}>{inner}</{tag}>", "<"
 
-    def _can_delimit(self, piece: _Piece, delimiter: str, touches_star: bool) -> bool:
+    def _can_delimit(
+        self, piece: _Piece, inner: str, delimiter: str, touches_star: bool
+    ) -> bool:
         """Whether ``delimiter`` around the piece parses back as this mark.
 
-        It must open and close by CommonMark's flanking rules, judged on
-        the characters around the piece in ``value``; and a ``*`` opener
-        never directly follows a ``*`` closer, since the two runs would
-        merge into one.
+        It must open and close by CommonMark's flanking rules. Inside, the
+        delimiter touches the first and last characters of the rendered
+        ``inner``, which are a nested mark's own delimiter or tag when one
+        opens or closes at the edge, or an escape; outside, it touches the
+        characters around the piece in ``value``. A ``*`` opener never
+        directly follows a ``*`` closer, since the two runs would merge
+        into one.
         """
-        if touches_star and delimiter.startswith("*"):
+        if not inner or (touches_star and delimiter.startswith("*")):
             return False
         value = self.value
         prev = value[piece.start - 1] if piece.start > 0 else None
-        first, last = value[piece.start], value[piece.end - 1]
+        first, last = inner[0], inner[-1]
         nxt = value[piece.end] if piece.end < len(value) else None
         return _left_flanking(prev, first) and _right_flanking(last, nxt)
 

@@ -80,7 +80,9 @@ class TestNesting:
     def test_crossing_marks_split_and_still_parse(self) -> None:
         text = rt("abcdefgh", marks=[m(0, 5, "strong"), m(3, 8, "emph")])
         out = md(text)
-        assert out == "**abc*de***<em>fgh</em>"
+        # The strong piece closes after the emph's "*": a "**" there could
+        # not close, so it falls back to its tag.
+        assert out == "<strong>abc*de*</strong>*fgh*"
         assert parsed(out) == "<p><strong>abc<em>de</em></strong><em>fgh</em></p>"
 
     def test_crossing_marks_in_html(self) -> None:
@@ -209,3 +211,40 @@ class TestComposition:
             ("strong", 1, 2),
         ]
         assert md(text) == "*a**b**c*"
+
+
+class TestFlankingOnTheRenderedEdge:
+    """A delimiter touches the rendered inner text: when a nested mark
+    opens or closes at the edge, its own delimiter is the neighbour."""
+
+    @pytest.mark.parametrize(
+        ("value", "marks", "expected"),
+        [
+            # emph and strike over the same word after a letter
+            ("xab", [m(1, 3, "emph"), m(1, 3, "strike")], "<p>x<em><s>ab</s></em></p>"),
+            # a nested mark opening at the edge
+            ("xabc", [m(1, 4, "emph"), m(1, 2, "strike")], "<p>x<em><s>a</s>bc</em></p>"),
+            # a nested mark closing at the edge
+            ("abcx", [m(0, 3, "emph"), m(2, 3, "strike")], "<p><em>ab<s>c</s></em>x</p>"),
+            # strong around strike, both edges
+            ("xaby", [m(1, 3, "strong"), m(1, 3, "strike")], "<p>x<s><strong>ab</strong></s>y</p>"),
+            # a code span opening at the edge
+            ("xab", [m(1, 3, "emph"), m(1, 2, "code")], "<p>x<em><code>a</code>b</em></p>"),
+        ],
+    )
+    def test_nested_mark_at_the_edge_round_trips(self, value, marks, expected) -> None:
+        assert parsed(md(rt(value, marks=marks), escape=True)) == expected
+
+    def test_the_reported_case(self) -> None:
+        out = md(rt("xab", marks=[m(1, 3, "emph"), m(1, 3, "strike")]))
+        assert out == "x<em>~~ab~~</em>"
+
+    def test_text_only_drops_the_mark_it_cannot_delimit(self) -> None:
+        out = md(rt("xab", marks=[m(1, 3, "emph"), m(1, 3, "strike")]), text_only=True)
+        assert out == "x~~ab~~"
+        assert "*" not in out
+
+    def test_spaces_around_still_take_delimiters(self) -> None:
+        out = md(rt("x ab y", marks=[m(2, 4, "emph"), m(2, 4, "strike")]))
+        assert out == "x *~~ab~~* y"
+        assert parsed(out) == "<p>x <em><s>ab</s></em> y</p>"
