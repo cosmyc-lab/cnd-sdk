@@ -5,7 +5,7 @@ Target 1 of docs/proposals/0007, built directly on
 """
 
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
-from cnd.core.nodes import CndNode
+from cnd.core.nodes import CndNode, HeadingNode, ParagraphNode
 from cnd.core.render import MarkdownRenderer, NodeRenderer
 from cnd.core.text import RichText
 
@@ -215,7 +215,12 @@ class MarkdownConverter(CndConverter):
         rendered = self.renderer.render(node).strip()
         markers = self._marker_line(cnd, node, warnings)
         if markers and rendered:
-            return f"{rendered}\n{markers}"
+            # Only a paragraph or a heading takes its markers on the next
+            # line. Under any other block (list, table, quote, admonition,
+            # figure, code, math) a bare next line would read as a table
+            # row or a lazy continuation, so a blank line separates them.
+            tight = isinstance(node, (ParagraphNode, HeadingNode))
+            return f"{rendered}{chr(10) if tight else chr(10) * 2}{markers}"
         return markers or rendered
 
     def _marker_line(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:

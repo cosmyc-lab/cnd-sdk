@@ -73,7 +73,48 @@ class TestMarkers:
             items=[item(para(rt("see it", refs=[NodeRef(label="t", text_span=[4, 6])])))],
         )
         out = MarkdownConverter().convert(_cnd([target, lst])).text
-        assert "- see it\n[t]" in out
+        assert "- see it\n\n[t]" in out
+
+    def _parse(self, node, target):
+        out = MarkdownConverter().convert(_cnd([target, node])).text
+        body = out.split("\n---\n", 1)[1]
+        return MarkdownIt("commonmark").enable("table").parse(body)
+
+    @staticmethod
+    def _marker_paragraph(tokens, marker):
+        inline = [i for i, t in enumerate(tokens) if t.type == "inline" and t.content == marker]
+        assert len(inline) == 1
+        assert tokens[inline[0] - 1].type == "paragraph_open"
+        return inline[0]
+
+    @staticmethod
+    def _inside(tokens, open_type, close_type, marker):
+        start = max(i for i, t in enumerate(tokens) if t.type == open_type)
+        end = next(i for i in range(start, len(tokens)) if tokens[i].type == close_type)
+        return any(t.content == marker for t in tokens[start:end] if t.type == "inline")
+
+    def test_marker_under_a_list_is_its_own_paragraph(self) -> None:
+        lst = ListNode(type="list", id=uuid4(),
+                       items=[item(para(rt("see", refs=[NodeRef(label="t", text_span=[0, 3])])))])
+        tokens = self._parse(lst, para("target", label="t"))
+        self._marker_paragraph(tokens, "[t]")
+        assert not self._inside(tokens, "list_item_open", "list_item_close", "[t]")
+
+    def test_marker_under_a_table_is_not_a_row(self) -> None:
+        link = LinkRef(href="http://x", text_span=[0, 1])
+        table = TableNode(type="table", id=uuid4(), kind="content", cells=[
+            cell(0, 0, "h", is_header=True), cell(1, 0, None, children=[para(rt("c", links=[link]))]),
+        ])
+        tokens = self._parse(table, para("target", label="t"))
+        self._marker_paragraph(tokens, "[http://x](http://x)")
+        assert len([t for t in tokens if t.type in ("td_open", "th_open")]) == 2
+
+    def test_marker_under_a_quote_is_its_own_paragraph(self) -> None:
+        quote = QuoteNode(type="quote", id=uuid4(),
+                          children=[para(rt("see", refs=[NodeRef(label="t", text_span=[0, 3])]))])
+        tokens = self._parse(quote, para("target", label="t"))
+        self._marker_paragraph(tokens, "[t]")
+        assert not self._inside(tokens, "blockquote_open", "blockquote_close", "[t]")
 
     def test_spans_of_two_texts_are_never_compared(self) -> None:
         figure = FigureNode(
