@@ -34,7 +34,7 @@ from cnd.core.nodes import (
 )
 from cnd.core.render import NodeRenderer, expand_headings
 from cnd.core.text import Edge, LinkRef, RichText
-from cnd.core.urls import is_safe_url
+from cnd.core.urls import is_safe_image_source, is_safe_url
 
 from cnd.converters.base import (
     CndConverter,
@@ -234,8 +234,11 @@ class HtmlNodeRenderer(NodeRenderer):
         return title
 
     def render_image(self, node: ImageNode) -> str:
+        """``<img>``; a path that is missing or fails
+        ``cnd.core.urls.is_safe_image_source`` renders the alt text in a
+        ``cnd-missing-image`` span instead."""
         alt = escape(node.alt or "", quote=True)
-        if node.path:
+        if node.path and is_safe_image_source(node.path):
             src = escape(node.path, quote=True)
             return f'<img{_anchor(node)} src="{src}" alt="{alt}">'
         return (
@@ -268,8 +271,9 @@ class HtmlConverter(CndConverter):
     The output is a complete file — doctype, ``<head>`` with charset,
     title and metadata, an inline stylesheet, and a ``<body>`` — never a
     fragment. It is self-contained apart from ``ImageNode.path``, which
-    is emitted verbatim as ``src`` and is the producer's identifier, not
-    a promise that it resolves.
+    is emitted as ``src`` and is the producer's identifier, not a promise
+    that it resolves; a path that is neither a safe URL nor a
+    ``data:image/`` URI (``cnd.core.urls``) renders the alt text instead.
 
     Structure, all of it **non-normative** (spec §7):
 

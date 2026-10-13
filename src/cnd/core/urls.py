@@ -8,7 +8,7 @@ renderer asks the same question here.
 
 import re
 
-__all__ = ["is_safe_url"]
+__all__ = ["is_safe_image_source", "is_safe_url"]
 
 SAFE_SCHEMES = frozenset({"http", "https", "mailto"})
 """Schemes a renderer may link to; a URL without a scheme is relative."""
@@ -36,3 +36,9 @@ def is_safe_url(url: str) -> bool:
     ``https`` or ``mailto`` (any case), or it has no scheme at all."""
     scheme = url_scheme(url)
     return scheme is None or scheme in SAFE_SCHEMES
+
+
+def is_safe_image_source(path: str) -> bool:
+    """Whether ``path`` may become an image ``src``: a safe URL
+    (``is_safe_url``) or an inline ``data:image/…`` URI."""
+    return is_safe_url(path) or _normalized(path).lower().startswith("data:image/")
