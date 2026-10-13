@@ -386,7 +386,9 @@ class _MarkdownWriter:
         opens or closes at the edge, or an escape; outside, it touches the
         characters around the piece in ``value``. A ``*`` opener never
         directly follows a ``*`` closer, since the two runs would merge
-        into one.
+        into one. A ``~~`` never touches another ``~``: a run of three
+        tildes or more does not delimit, and at the start of a line it
+        opens a code fence that swallows the blocks after it.
         """
         if not inner or (touches_star and delimiter.startswith("*")):
             return False
@@ -394,6 +396,8 @@ class _MarkdownWriter:
         prev = value[piece.start - 1] if piece.start > 0 else None
         first, last = inner[0], inner[-1]
         nxt = value[piece.end] if piece.end < len(value) else None
+        if delimiter.startswith("~") and "~" in (prev, first, last, nxt):
+            return False
         return _left_flanking(prev, first) and _right_flanking(last, nxt)
 
 

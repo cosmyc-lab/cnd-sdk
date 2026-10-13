@@ -355,3 +355,38 @@ class TestTextOnlySupSub:
     @pytest.mark.parametrize("kind", ["underline", "highlight"])
     def test_underline_and_highlight_stay_plain(self, kind: str) -> None:
         assert md(rt("ab", marks=[m(0, 1, kind)]), text_only=True) == "ab"
+
+
+class TestStrikeNeverMakesAFence:
+    """A "~~" next to another "~" makes a run of three or more tildes,
+    which opens a code fence at the start of a line."""
+
+    CASES = [
+        ("~ab\n\npara", [(0, 3, "strike")]),
+        ("ab~\n\npara", [(0, 3, "strike")]),
+        ("abcd\n\npara", [(0, 4, "strike"), (0, 2, "strike")]),
+        ("x\n~ab\n\npara", [(2, 5, "strike")]),
+    ]
+
+    @pytest.mark.parametrize(("value", "marks"), CASES)
+    @pytest.mark.parametrize("escape", [False, True])
+    def test_no_fence(self, value, marks, escape) -> None:
+        text = rt(value, marks=[m(*mark) for mark in marks])
+        out = md(text, escape=escape)
+        tokens = MarkdownIt("commonmark").enable("strikethrough").parse(out)
+        assert "fence" not in [t.type for t in tokens]
+        assert "para" in parsed(out)
+
+    @pytest.mark.parametrize(("value", "marks"), CASES)
+    def test_no_fence_under_text_only(self, value, marks) -> None:
+        text = rt(value, marks=[m(*mark) for mark in marks])
+        out = md(text, text_only=True)
+        tokens = MarkdownIt("commonmark").enable("strikethrough").parse(out)
+        assert "fence" not in [t.type for t in tokens]
+        assert "<" not in out
+
+    def test_falls_back_to_the_s_tag(self) -> None:
+        assert md(rt("~ab", marks=[m(0, 3, "strike")])) == "<s>~ab</s>"
+
+    def test_a_plain_strike_keeps_its_delimiters(self) -> None:
+        assert md(rt("ab", marks=[m(0, 2, "strike")])) == "~~ab~~"
