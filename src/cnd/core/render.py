@@ -26,7 +26,6 @@ from cnd.core.node_text import (
     NodeTextMode,
     format_figure_placeholder,
     header_row_text,
-    render_list_markdown,
     render_table_markdown,
     row_labels_text,
     table_node_placeholder,
