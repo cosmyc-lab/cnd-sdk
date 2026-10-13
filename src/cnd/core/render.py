@@ -32,11 +32,13 @@ from cnd.core.node_text import (
     table_shape,
 )
 from cnd.core.nodes import (
+    AdmonitionNode,
     CndNode,
     CodeNode,
     FigureNode,
     HeadingNode,
     ImageNode,
+    LayoutNode,
     ListNode,
     MathNode,
     ParagraphNode,
@@ -44,6 +46,7 @@ from cnd.core.nodes import (
     TableNode,
     TermsNode,
 )
+from cnd.core.text import RichText
 
 
 _BACKTICK_RUN = re.compile(r"`+")
@@ -83,7 +86,7 @@ def _fence_for(text: str) -> str:
 class NodeRenderer(ABC):
     """Renders any ``CndNode`` to text, one method per node type.
 
-    Subclasses implement every ``render_*`` method; ``render()`` is the
+    Subclasses implement every ``render_*`` method and ``render_text``; ``render()`` is the
     concrete entry point that dispatches on the node's type. The double
     lock: the ABC machinery rejects incomplete subclasses at runtime, and
     ``assert_never`` fails exhaustiveness at type-check when the union
@@ -113,8 +116,16 @@ class NodeRenderer(ABC):
                 return self.render_list(node)
             case TermsNode():
                 return self.render_terms(node)
+            case AdmonitionNode():
+                return self.render_admonition(node)
+            case LayoutNode():
+                return self.render_layout(node)
             case _:
                 assert_never(node)
+
+    @abstractmethod
+    def render_text(self, text: RichText) -> str:
+        """Render one rich text (a paragraph's text, a caption, a term…)."""
 
     @abstractmethod
     def render_heading(self, node: HeadingNode) -> str: ...
@@ -145,6 +156,12 @@ class NodeRenderer(ABC):
 
     @abstractmethod
     def render_terms(self, node: TermsNode) -> str: ...
+
+    @abstractmethod
+    def render_admonition(self, node: AdmonitionNode) -> str: ...
+
+    @abstractmethod
+    def render_layout(self, node: LayoutNode) -> str: ...
 
 
 _CLOSING_HASHES = re.compile(r"(?:^|(?<=[ \t]))(#+)[ \t]*$")
