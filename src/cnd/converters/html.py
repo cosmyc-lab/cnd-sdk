@@ -255,19 +255,22 @@ class HtmlConverter(CndConverter):
     Structure, all of it **non-normative** (spec §7):
 
     - ``<head>``: ``<title>`` and ``<meta>`` for authors, description,
-      keywords and date from ``cnd.doc``; ``cnd_version`` and
-      ``built_at`` as ``data-`` attributes on ``<html>``.
+      keywords, date, status, version and every ``doc.extra`` pair from
+      ``cnd.doc``; ``cnd_version`` and ``built_at`` as ``data-``
+      attributes on ``<html>``.
     - ``<article>``: the body, assembled by walking the tree in reading
-      order and delegating each node to the injected renderer. Figures
-      render once, from the wrapper node.
+      order and delegating each block to the injected renderer. A
+      container (figure, list, table, quote…) renders once, from the
+      container node; only headings are descended into.
     - ``<section class="cnd-footnotes">`` and
       ``<section class="cnd-bibliography">`` from the pools, in pool
-      order, each entry anchored on its label so markers link to it.
+      order, each entry anchored on its label so markers link to it. A
+      footnote's blocks render like body blocks.
     - Markers appended after each block in a ``<span class=
-      "cnd-markers">``, as real ``<a href="#label">`` links; a marker
-      whose label does not resolve degrades to a
-      ``<span class="cnd-unresolved">`` and is reported in
-      ``ConversionResult.warnings``.
+      "cnd-markers">``, as real ``<a href="#label">`` links, for the
+      edges of every text in the block; a marker whose label does not
+      resolve degrades to a ``<span class="cnd-unresolved">`` and is
+      reported in ``ConversionResult.warnings``.
 
     **Irreducibly dropped** — the same for every document
     (docs/proposals/0007):
@@ -285,8 +288,7 @@ class HtmlConverter(CndConverter):
       bibliography is emitted as reference strings, see
       ``format_bib_entry``.
     - ``RawSource`` survives only on a childless figure, as a ``<pre>``;
-      ``table.raw`` and ``math.raw`` are dropped in favour of the
-      structured content.
+      ``math.raw`` is dropped in favour of the structured content.
     - ``links`` — **not yet rendered by this converter**; unlike the rest
       of this list, this is a gap rather than an inherent limit: ``<a
       href>`` is native to HTML, so a future revision can render it
@@ -332,7 +334,7 @@ class HtmlConverter(CndConverter):
         lines.append("<article>")
         lines.extend(self._body(cnd, warnings))
         lines.append("</article>")
-        lines.extend(self._footnotes_section(cnd))
+        lines.extend(self._footnotes_section(cnd, warnings))
         lines.extend(self._bibliography_section(cnd, warnings))
         lines.append("</body>")
         lines.append("</html>")
@@ -357,20 +359,27 @@ class HtmlConverter(CndConverter):
             out.append(
                 f'<meta name="date" content="{format_date(doc.date)}">'
             )
+        pairs = [("status", doc.status), ("version", doc.version), *doc.extra.items()]
+        for name, value in pairs:
+            if value:
+                out.append(
+                    f'<meta name="{escape(name, quote=True)}" '
+                    f'content="{escape(value, quote=True)}">'
+                )
         return out
 
     # -- body -----------------------------------------------------------
 
     def _body(self, cnd: Cnd, warnings: list[str]) -> list[str]:
-        blocks: list[str] = []
-        for visit in iter_body(cnd):
-            rendered = self.renderer.render(visit.node)
-            markers = self._markers(cnd, visit.node, warnings)
-            if markers:
-                rendered = f"{rendered}\n{markers}"
-            if rendered:
-                blocks.append(rendered)
-        return blocks
+        blocks = [self._block(cnd, visit.node, warnings) for visit in iter_body(cnd)]
+        return [block for block in blocks if block]
+
+    def _block(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
+        rendered = self.renderer.render(node)
+        markers = self._markers(cnd, node, warnings)
+        if markers:
+            rendered = f"{rendered}\n{markers}"
+        return rendered
 
     def _markers(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
         rendered = [
@@ -384,6 +393,8 @@ class HtmlConverter(CndConverter):
 
     @staticmethod
     def _marker(marker: ResolvedMarker) -> str:
+        if marker.family == "links":
+            return ""  # not rendered yet: see the class docstring
         label = escape(marker.label)
         href = escape(marker.label, quote=True)
         if marker.family == "cites" and getattr(marker.link, "form", None) == "none":
@@ -401,13 +412,14 @@ class HtmlConverter(CndConverter):
 
     # -- pools ----------------------------------------------------------
 
-    def _footnotes_section(self, cnd: Cnd) -> list[str]:
+    def _footnotes_section(self, cnd: Cnd, warnings: list[str]) -> list[str]:
         if not cnd.footnotes:
             return []
         out = ['<section class="cnd-footnotes">', f"<h2>{escape(self.footnotes_title)}</h2>", "<ol>"]
         for note in cnd.footnotes:
             anchor = escape(note.label, quote=True)
-            out.append(f'<li id="{anchor}">{escape(note.text)}</li>')
+            body = "".join(self._block(cnd, child, warnings) for child in note.children)
+            out.append(f'<li id="{anchor}">{body}</li>')
         out.extend(["</ol>", "</section>"])
         return out
 
@@ -424,7 +436,6 @@ class HtmlConverter(CndConverter):
             if warning:
                 warnings.append(warning)
             anchor = escape(entry.label, quote=True)
-            out.append(f'<li id="{anchor}">{escape(reference)}</li>')
+            out.append(f'<li id="{anchor}">{self.renderer.render_text(reference)}</li>')
         out.extend(["</ul>", "</section>"])
         return out
-

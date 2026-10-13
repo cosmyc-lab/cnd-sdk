@@ -10,7 +10,7 @@ from markdown_it import MarkdownIt
 
 from factories import cell, item, para, rt
 
-from cnd.converters import MarkdownConverter, iter_body, resolve_markers
+from cnd.converters import HtmlConverter, MarkdownConverter, iter_body, resolve_markers
 from cnd.converters.markdown import format_bib_entry
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
 from cnd.core.nodes import (
@@ -53,7 +53,7 @@ def _containers() -> list:
 
 
 class TestRenderOnce:
-    @pytest.mark.parametrize("converter_cls", [MarkdownConverter])
+    @pytest.mark.parametrize("converter_cls", [MarkdownConverter, HtmlConverter])
     def test_nested_content_renders_once(self, converter_cls) -> None:
         text = converter_cls().convert(_cnd([_heading(*_containers())])).text
         for phrase in ("in a list", "in a cell", "in a quote"):
@@ -208,3 +208,39 @@ def test_explicit_defaults_twin_converts_identically(elements_cnd_path) -> None:
     a = MarkdownConverter().convert(Cnd.model_validate_json(elements_cnd_path.read_text()))
     b = MarkdownConverter().convert(Cnd.model_validate_json(explicit.read_text()))
     assert a.text == b.text
+
+
+# -- HTML ---------------------------------------------------------------
+
+
+class TestHtml:
+    def test_links_are_not_rendered_as_unresolved(self) -> None:
+        node = para(rt("site", links=[LinkRef(href="https://example.com", text_span=[0, 4])]))
+        html = HtmlConverter().convert(_cnd([node])).text
+        assert 'class="cnd-unresolved"' not in html
+
+    def test_footnote_holds_its_blocks(self) -> None:
+        note = Footnote(id=uuid4(), label="fn", children=[para("First."), para("Second.")])
+        out = HtmlConverter().convert(_cnd([para("x")], footnotes=[note])).text
+        assert '<li id="fn"><p>First.</p><p>Second.</p></li>' in out
+
+    def test_formatted_reference_keeps_its_marks(self) -> None:
+        entry = BibEntry(
+            id=uuid4(), label="k",
+            formatted=rt("Knuth. The TeXbook.", marks=[Mark(start=7, end=18, kind="emph")]),
+        )
+        out = HtmlConverter().convert(_cnd([para("x")], bibliography=[entry])).text
+        assert '<li id="k">Knuth. <em>The TeXbook</em>.</li>' in out
+
+    def test_head_carries_status_version_and_extra(self) -> None:
+        doc = DocMetadata(title="Guide", status="Approved", version="1.2", extra={"client": "ACME"})
+        text = HtmlConverter().convert(_cnd([], doc=doc)).text
+        assert '<meta name="status" content="Approved">' in text
+        assert '<meta name="version" content="1.2">' in text
+        assert '<meta name="client" content="ACME">' in text
+
+    def test_explicit_defaults_twin_converts_identically(self, elements_cnd_path) -> None:
+        explicit = elements_cnd_path.with_name("elements_explicit.cnd")
+        a = HtmlConverter().convert(Cnd.model_validate_json(elements_cnd_path.read_text()))
+        b = HtmlConverter().convert(Cnd.model_validate_json(explicit.read_text()))
+        assert a.text == b.text
