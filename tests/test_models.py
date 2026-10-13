@@ -115,3 +115,23 @@ def test_mutable_defaults_are_not_shared_between_instances() -> None:
     a, b = RichText(value="a"), RichText(value="b")
     a.marks.append(Mark(start=0, end=1, kind="strong"))
     assert b.marks == []
+
+
+@pytest.mark.parametrize("field", ["rowspan", "colspan"])
+@pytest.mark.parametrize("value", [0, -1])
+def test_a_cell_spans_at_least_one_row_and_column(field: str, value: int) -> None:
+    from cnd.core.nodes import Cell
+
+    with pytest.raises(ValidationError):
+        Cell(row=0, col=0, **{field: value})
+    assert getattr(Cell(row=0, col=0, **{field: 1}), field) == 1
+
+
+def test_the_schema_states_the_span_minimum() -> None:
+    import json
+    from pathlib import Path
+
+    schema = json.loads((Path(__file__).parent.parent / "schema" / "cnd.schema.json").read_text())
+    cell = schema["$defs"]["Cell"]["properties"]
+    assert cell["rowspan"] == {"default": 1, "minimum": 1, "title": "Rowspan", "type": "integer"}
+    assert cell["colspan"] == {"default": 1, "minimum": 1, "title": "Colspan", "type": "integer"}

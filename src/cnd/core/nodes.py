@@ -170,8 +170,8 @@ class Cell(BaseModel):
 
     row: int
     col: int
-    rowspan: int = 1
-    colspan: int = 1
+    rowspan: int = Field(default=1, ge=1)
+    colspan: int = Field(default=1, ge=1)
     is_header: bool = False
     children: list["CndNode"] = Field(default=[])
 

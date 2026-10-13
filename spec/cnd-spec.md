@@ -624,8 +624,8 @@ A `Cell`:
 |---|---|---|
 | `row` | int | Row coordinate. |
 | `col` | int | Column coordinate. |
-| `rowspan` | int | Rows covered. Defaults to 1. |
-| `colspan` | int | Columns covered. Defaults to 1. |
+| `rowspan` | int | Rows covered, at least 1. Defaults to 1. |
+| `colspan` | int | Columns covered, at least 1. Defaults to 1. |
 | `is_header` | bool | Header cell. Defaults to `false`. |
 | `children` | array of node | The cell's content: a text cell holds one paragraph; a cell may also hold an image, a list or several paragraphs. |
 
