@@ -350,7 +350,7 @@ class TestNestedHeadings:
 class TestFrontMatterScalars:
     CONTROLS = (
         [chr(c) for c in range(0x20) if chr(c) not in "\n\r\t"]
-        + ["\x7f", "\x85", " ", " "]
+        + ["\x7f", "\x85", "\u2028", "\u2029"]
     )
 
     @pytest.mark.parametrize("ch", CONTROLS)
@@ -363,14 +363,14 @@ class TestFrontMatterScalars:
 
     def test_front_matter_parses_back(self) -> None:
         yaml = pytest.importorskip("yaml")
-        nasty = "t\x00i\x1bt\x7fl\x85e x y \"q\" \\ \n\r\t"
-        doc = DocMetadata(title=nasty, extra={"k\x01": "v "})
+        nasty = "t\x00i\x1bt\x7fl\x85e\u2028x\u2029y \"q\" \\ \n\r\t"
+        doc = DocMetadata(title=nasty, extra={"k\x01": "v\u2028"})
         text = MarkdownConverter().convert(_cnd([para("x")], doc=doc)).text
         front = text.split("---\n")[1]
-        assert " " not in front and "\x85" not in front
+        assert "\u2028" not in front and "\x85" not in front
         data = yaml.safe_load(front)
         assert data["title"] == nasty
-        assert data["extra"] == {"k\x01": "v "}
+        assert data["extra"] == {"k\x01": "v\u2028"}
 
 
 class TestHtmlMetaExtra:
