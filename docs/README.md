@@ -23,7 +23,7 @@ conventions.
 | [0013](adr/0013-rename-link-span-to-text-span.md) | Rename the link-family `span` field to `text_span` | accepted |
 | [0014](adr/0014-relation-to-doclang.md) | CND's relation to DocLang — coexistence and interoperability, not convergence | accepted |
 | [0015](adr/0015-cnds-immutable-ids-not-durable.md) | CNDs are immutable build artifacts; node ids are not durable | accepted |
-| [0016](adr/0016-content-hashing.md) | Derived content hashing — canonical serialisation and excluded presentation state | accepted |
+| [0016](adr/0016-content-hashing.md) | Derived content hashing — canonical serialisation and excluded presentation state | superseded by 0028 |
 | [0017](adr/0017-cross-references-resolve-by-label.md) | Cross-references resolve by target label; drop the id from link families | accepted |
 | [0018](adr/0018-reconciliation-reference-algorithm.md) | Reconciliation (diff, id inheritance) is a versioned reference algorithm, not a format guarantee | accepted |
 | [0019](adr/0019-production-topology-two-doors.md) | Production topology — a declarative door and a direct door over one shared contract | accepted |
@@ -32,6 +32,10 @@ conventions.
 | [0022](adr/0022-rust-succession-plan.md) | Rust succession plan — Python is the reference until the format freezes | proposed |
 | [0023](adr/0023-pure-typst-authoring-package.md) | Pure-Typst authoring package for CND metadata | accepted |
 | [0024](adr/0024-hyperlinks-as-a-node-family.md) | Hyperlinks are a fourth forward family, href-keyed and outside label resolution | accepted |
+| [0025](adr/0025-inline-edges-belong-to-rich-text.md) | Inline edges belong to rich text, not to the node | accepted |
+| [0026](adr/0026-open-vocabularies.md) | Open vocabularies — known values, free values, a fallback per field | accepted |
+| [0027](adr/0027-no-compatibility-guarantee-before-1-0.md) | No compatibility guarantee before format 1.0.0 | accepted |
+| [0028](adr/0028-content-hashing-0-5.md) | Content hashing, 0.5 amendments — defaults dropped, nested nodes excluded, paths in the document hash | accepted |
 
 ## Proposals (docs/proposals/)
 
@@ -49,4 +53,4 @@ conventions.
 | [0010](proposals/0010-counter-label.md) | Capture the counter label as its own field, beside the number | implemented |
 | [0011](proposals/0011-decorative-content.md) | Content marked decorative is never emitted | implemented |
 | [0012](proposals/0012-placeholder-context.md) | Figure placeholders carry every piece of context the node holds | implemented |
-| [0013](proposals/0013-cnd-0.5.0-rich-text-and-block-containers.md) | CND 0.5.0 — rich text, block containers, and the elements a document actually uses | approved |
+| [0013](proposals/0013-cnd-0.5.0-rich-text-and-block-containers.md) | CND 0.5.0 — rich text, block containers, and the elements a document actually uses | approved (core implemented) |
