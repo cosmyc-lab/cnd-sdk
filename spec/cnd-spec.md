@@ -886,9 +886,11 @@ renders what it supports and leaves the text of anything else unchanged.
   lost. An image `src` follows the same URL rule, a `data:image/` URI
   aside.
 - **URL rule.** A renderer links to an href only when its scheme is
-  `http`, `https` or `mailto` (in any case, read as a browser reads it:
-  leading controls and spaces ignored, tabs and newlines removed), or
-  when it has no scheme (a relative path, a fragment). Anything else
+  `http`, `https` or `mailto` (in any case), or when it has no scheme
+  (a relative path, a fragment). The scheme is read as leniently as any
+  reader of the output reads it: leading controls and leading Unicode
+  whitespace ignored (a browser strips the first, a Markdown parser the
+  second), tabs and newlines removed anywhere. Anything else
   stays plain text: the spanned text without an anchor, the href as
   text in the marker line.
 - **Plain text** drops all marks; a `math` mark renders its `value`.

@@ -14,13 +14,16 @@ SAFE_SCHEMES = frozenset({"http", "https", "mailto"})
 """Schemes a renderer may link to; a URL without a scheme is relative."""
 
 _SCHEME = re.compile(r"([A-Za-z][A-Za-z0-9+.\-]*):")
-_LEADING = re.compile(r"^[\x00-\x20]+")
+_LEADING = re.compile(r"^[\s\x00-\x20\ufeff]+")
 _TAB_OR_NEWLINE = re.compile(r"[\t\n\r]")
 
 
 def _normalized(url: str) -> str:
-    """``url`` as a browser reads its scheme: leading C0 controls and
-    spaces stripped, every tab and newline removed (WHATWG URL)."""
+    """``url`` as its most lenient reader reads its scheme: leading C0
+    controls and every leading Unicode whitespace (and a BOM) stripped,
+    as a browser strips the first and a Markdown parser or a ``trim()``
+    the second; every tab and newline removed (WHATWG URL). Stripping
+    more than one reader does only makes the check stricter."""
     return _TAB_OR_NEWLINE.sub("", _LEADING.sub("", url))
 
 

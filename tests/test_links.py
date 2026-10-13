@@ -93,6 +93,13 @@ class TestIsSafeUrl:
         "data:image/png;base64,AAAA",
         "file:///etc/passwd",
         "ftp://example.com",
+        "\u00a0javascript:alert(1)",
+        "\u2003javascript:alert(1)",
+        "\u2028javascript:alert(1)",
+        "\u3000javascript:alert(1)",
+        "\u0085javascript:alert(1)",
+        "\ufeffjavascript:alert(1)",
+        "\x1c\u00a0 javascript:alert(1)",
     ])
     def test_unsafe(self, url: str) -> None:
         assert not is_safe_url(url)
