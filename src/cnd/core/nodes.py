@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 
 from pydantic import BaseModel, Field
 
+from cnd.core.text import CiteRef, FootnoteRef, LinkRef, NodeRef, RawSource  # noqa: F401
+
 
 class NodeLocation(BaseModel):
     """Layout facts the SDK cannot derive from the tree: the page where the
@@ -23,63 +25,6 @@ class NodeLocation(BaseModel):
     """
 
     page: int
-
-
-class RawSource(BaseModel):
-    """The producer's verbatim source for a node, with its language.
-
-    A bare string dropped the one thing a consumer needs to decide whether
-    to attempt a parse: which language the content is in. ``format`` is an
-    open string (``"typst"``, ``"latex"``, ``"mathml"``…), never a closed
-    enum — a new producer must not require a spec revision.
-    """
-
-    format: str
-    value: str
-
-
-class NodeRef(BaseModel):
-    """Forward cross-reference edge to another node.
-
-    An edge is ``{label, text_span?}``: it names its target by label and
-    resolves through the CND's label index (docs/adr/0017, superseding the
-    ``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the
-    reference marker sits in the containing node's rendered text, as a
-    ``[start, end)`` pair of Unicode code-point offsets (docs/adr/0013).
-    """
-
-    label: str
-    text_span: list[int] | None = None
-
-
-class CiteRef(BaseModel):
-    """Forward citation edge; ``label`` resolves in the CND ``bibliography`` pool."""
-
-    label: str
-    text_span: list[int] | None = None
-    form: Literal["normal", "prose", "full", "author", "year", "none"] | None = None
-    supplement: str | None = None
-
-
-class FootnoteRef(BaseModel):
-    """Forward footnote edge; ``label`` resolves in the CND ``footnotes`` pool."""
-
-    label: str
-    text_span: list[int] | None = None
-
-
-class LinkRef(BaseModel):
-    """Forward hyperlink edge; ``href`` resolves nowhere in the CND.
-
-    The fourth forward family and the only one not keyed by label: a
-    hyperlink's target is outside the document by definition, so it admits
-    no resolution domain and has no dangling state — a URL is a URL. The
-    scheme is a consumer's business (``https:``, ``doi:``, an application
-    scheme); the format only carries the string.
-    """
-
-    href: str
-    text_span: list[int] | None = None
 
 
 class NodeBase(BaseModel):

@@ -1186,7 +1186,7 @@
       "type": "object"
     },
     "NodeRef": {
-      "description": "Forward cross-reference edge to another node.\n\nAn edge is ``{label, text_span?}``: it names its target by label and\nresolves through the CND's label index (docs/adr/0017, superseding the\n``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the\nreference marker sits in the containing node's rendered text, as a\n``[start, end)`` pair of Unicode code-point offsets (docs/adr/0013).",
+      "description": "Forward cross-reference edge to another node.\n\nAn edge is ``{label, text_span?}``: it names its target by label and\nresolves through the CND's label index (docs/adr/0017, superseding the\n``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the\nreference marker sits in the ``value`` of the ``RichText`` that holds\nthe edge, as a\n``[start, end)`` pair of Unicode code-point offsets (docs/adr/0013).",
       "properties": {
         "label": {
           "title": "Label",
