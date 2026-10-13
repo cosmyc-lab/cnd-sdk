@@ -258,8 +258,9 @@ class MarkdownRenderer(NodeRenderer):
       it cannot start Markdown syntax. Code and math are never escaped.
     - ``heading_numbers`` — prefix each heading with its numbering
       (``name`` and ``value``, never escaped).
-    - ``text_only`` — no HTML in the output: the ``sup``, ``sub``,
-      ``underline`` and ``highlight`` marks render as plain text, a mark
+    - ``text_only`` — no HTML in the output: ``sup`` and ``sub`` render
+      as ``^x`` / ``_x`` (``^(text)`` / ``_(text)`` over several
+      characters), ``underline`` and ``highlight`` as plain text, a mark
       Markdown cannot delimit at its position is dropped instead of
       becoming an HTML tag, a table whose cells hold blocks becomes
       linearized rows instead of an HTML table, and a line break in a

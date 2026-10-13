@@ -55,8 +55,14 @@ MARKDOWN_DELIMITERS = {"strong": "**", "emph": "*", "strike": "~~"}
 atoms with their own syntax; the four others have no Markdown syntax."""
 
 HTML_ONLY_MARKS = frozenset({"sup", "sub", "underline", "highlight"})
-"""Marks Markdown can only show as inline HTML; the text-only option
-drops them to plain text."""
+"""Marks Markdown can only show as inline HTML. The text-only option
+writes ``sup`` and ``sub`` as ``^`` and ``_`` (``TEXT_ONLY_PREFIXES``)
+and drops the other two to plain text."""
+
+TEXT_ONLY_PREFIXES = {"sup": "^", "sub": "_"}
+"""What the text-only option writes before a ``sup`` or a ``sub``: the
+covered text follows as is when it is one character, in parentheses
+otherwise (``10^3``, ``x_(n+1)``)."""
 
 
 @dataclass(eq=False)
@@ -97,8 +103,10 @@ def render_inline(
       element; ``math`` becomes ``<code class="math">`` holding its source.
     - ``"markdown"`` follows spec §7. ``escape`` escapes the plain
       segments (never code or math) with ``escape_block``. ``text_only``
-      drops ``sup``, ``sub``, ``underline`` and ``highlight`` to plain
-      text and never falls back to an HTML tag.
+      never writes an HTML tag: ``sup`` and ``sub`` become ``^x`` and
+      ``_x`` (``^(text)``, ``_(text)`` over several characters; the
+      ``_`` written ``\\_`` under ``escape``), ``underline`` and
+      ``highlight`` plain text.
 
     ``edge_wrap``, when given, wraps the span of every edge with a
     ``text_span`` in the strings it returns; edge spans nest and split
@@ -152,8 +160,7 @@ def _spans(text: RichText, dialect: InlineDialect, text_only: bool) -> list[_Spa
         supported = set(HTML_TAGS) | {"math"}
     else:
         supported = set(MARKDOWN_DELIMITERS) | ATOMIC_MARK_KINDS
-        if not text_only:
-            supported |= HTML_ONLY_MARKS
+        supported |= set(TEXT_ONLY_PREFIXES) if text_only else HTML_ONLY_MARKS
     value = text.value
     spans: list[_Span] = []
     for mark in text.marks:
@@ -311,7 +318,15 @@ class _MarkdownWriter:
         if delimiter is not None and self._can_delimit(piece, inner, delimiter, touches_star):
             return f"{delimiter}{inner}{delimiter}", delimiter
         if self.text_only:
-            return inner, ""
+            prefix = TEXT_ONLY_PREFIXES.get(span.kind)
+            if prefix is None:
+                return inner, ""
+            if prefix == "_" and self.escape:
+                # A bare "_" could open or close emphasis.
+                prefix = "\\_"
+            if len(covered) != 1:
+                inner = f"({inner})"
+            return f"{prefix}{inner}", ""
         tag = HTML_TAGS[span.kind]
         return f"<{tag}>{inner}</{tag}>", "<"
 

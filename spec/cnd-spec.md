@@ -847,8 +847,12 @@ renders what it supports and leaves the text of anything else unchanged.
 - **Markdown.** `strong`, `emph`, `code` and `strike` render as `**…**`,
   `*…*`, `` `…` `` and `~~…~~`; `math` as `$…$`. The four marks without
   CommonMark or GFM syntax — `sup`, `sub`, `underline`, `highlight` —
-  render as inline HTML (`<sup>`, `<sub>`, `<u>`, `<mark>`) by default; a
-  text-only option drops them to plain text. A mark Markdown cannot
+  render as inline HTML (`<sup>`, `<sub>`, `<u>`, `<mark>`) by default.
+  A text-only option writes no HTML: `sup` becomes `^x` over one
+  character and `^(text)` over several, `sub` likewise `_x` and
+  `_(text)` (with the `_` escaped where free text is escaped, so it
+  never opens emphasis), and `underline` and `highlight` drop to plain
+  text. A mark Markdown cannot
   delimit where it sits (a closing `**` between punctuation and a letter,
   say) renders as its HTML tag, or as plain text under the text-only
   option. Where two marks cross, one

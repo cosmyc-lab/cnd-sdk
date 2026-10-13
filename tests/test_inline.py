@@ -47,7 +47,7 @@ class TestMarkdownMarks:
     def test_every_kind(self, kind: str, expected: str) -> None:
         assert md(rt("a bc d", marks=[m(2, 4, kind)])) == expected
 
-    @pytest.mark.parametrize("kind", ["sup", "sub", "underline", "highlight"])
+    @pytest.mark.parametrize("kind", ["underline", "highlight"])
     def test_text_only_drops_the_html_marks(self, kind: str) -> None:
         assert md(rt("a bc d", marks=[m(2, 4, kind)]), text_only=True) == "a bc d"
 
@@ -256,3 +256,48 @@ class TestFlankingOnTheRenderedEdge:
         out = md(text, text_only=True)
         assert out == "abc*de*fgh"
         assert parsed(out) == "<p>abc<em>de</em>fgh</p>"
+
+
+class TestTextOnlySupSub:
+    @pytest.mark.parametrize(("kind", "escape", "expected"), [
+        ("sup", False, "10^3"),
+        ("sup", True, "10^3"),
+        ("sub", False, "10_3"),
+        ("sub", True, "10\\_3"),
+    ])
+    def test_one_character(self, kind: str, escape: bool, expected: str) -> None:
+        out = md(rt("103", marks=[m(2, 3, kind)]), text_only=True, escape=escape)
+        assert out == expected
+
+    @pytest.mark.parametrize(("kind", "escape", "expected"), [
+        ("sup", False, "x^(n+1)"),
+        ("sup", True, "x^(n+1)"),
+        ("sub", False, "x_(n+1)"),
+        ("sub", True, "x\\_(n+1)"),
+    ])
+    def test_several_characters(self, kind: str, escape: bool, expected: str) -> None:
+        out = md(rt("xn+1", marks=[m(1, 4, kind)]), text_only=True, escape=escape)
+        assert out == expected
+
+    def test_nested_marks_stay_inside_the_parentheses(self) -> None:
+        text = rt("xab", marks=[m(1, 3, "sup"), m(1, 2, "strong")])
+        assert md(text, text_only=True) == "x^(**a**b)"
+
+    @pytest.mark.parametrize(("value", "marks", "plain"), [
+        ("H2O", [(1, 2, "sub")], "H_2O"),
+        ("103", [(2, 3, "sup")], "10^3"),
+        ("a_1 and b_2", [], "a_1 and b_2"),
+        ("xi and yj", [(1, 2, "sub"), (8, 9, "sub")], "x_i and y_j"),
+    ])
+    def test_parses_as_plain_text(self, value, marks, plain) -> None:
+        text = rt(value, marks=[m(*mark) for mark in marks])
+        out = md(text, text_only=True, escape=True)
+        assert parsed(out) == f"<p>{plain}</p>"
+
+    def test_the_default_keeps_the_html_tags(self) -> None:
+        assert md(rt("H2O", marks=[m(1, 2, "sub")])) == "H<sub>2</sub>O"
+        assert render_inline(rt("H2O", marks=[m(1, 2, "sub")]), "html") == "H<sub>2</sub>O"
+
+    @pytest.mark.parametrize("kind", ["underline", "highlight"])
+    def test_underline_and_highlight_stay_plain(self, kind: str) -> None:
+        assert md(rt("ab", marks=[m(0, 1, kind)]), text_only=True) == "ab"

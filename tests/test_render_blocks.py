@@ -48,7 +48,7 @@ class TestParagraphMarks:
 
     def test_text_only_renders_no_html(self) -> None:
         text = rt("x 103 y", marks=[Mark(start=4, end=5, kind="sup")])
-        assert MarkdownRenderer(text_only=True).render(para(text)) == "x 103 y"
+        assert MarkdownRenderer(text_only=True).render(para(text)) == "x 10^3 y"
 
     def test_escape_skips_code_marks(self) -> None:
         text = rt("use *a* or *b*", marks=[Mark(start=4, end=7, kind="code")])
