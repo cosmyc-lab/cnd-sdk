@@ -38,7 +38,7 @@ conventions.
 | # | Title | Status |
 |---|---|---|
 | [0001](proposals/0001-configurable-table-figure-rendering.md) | Configurable table/figure rendering in `to_text()` | implemented, superseded by 0006 |
-| [0002](proposals/0002-table-content-kind-auto-classification.md) | Automatic classification for `TableNode.content_kind` | draft |
+| [0002](proposals/0002-table-content-kind-auto-classification.md) | Automatic classification for `TableNode.content_kind` | superseded by 0013 |
 | [0003](proposals/0003-cross-document-references.md) | Cross-document references | draft |
 | [0004](proposals/0004-terms-footnote-citation-bibliography-nodes.md) | Terms nodes; footnote and bibliography pools; typed citation edges | implemented |
 | [0005](proposals/0005-figure-wrapper-image-node.md) | Figure as a wrapper node; new `ImageNode`; `TableNode` loses its caption | implemented |
@@ -49,3 +49,4 @@ conventions.
 | [0010](proposals/0010-counter-label.md) | Capture the counter label as its own field, beside the number | implemented |
 | [0011](proposals/0011-decorative-content.md) | Content marked decorative is never emitted | implemented |
 | [0012](proposals/0012-placeholder-context.md) | Figure placeholders carry every piece of context the node holds | implemented |
+| [0013](proposals/0013-cnd-0.5.0-rich-text-and-block-containers.md) | CND 0.5.0 — rich text, block containers, and the elements a document actually uses | approved |

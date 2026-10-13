@@ -1,10 +1,10 @@
 ---
 title: Automatic classification for TableNode.content_kind
-status: draft
+status: superseded
 date: 2026-07-14
 tags: [rendering, to_text, tables, config]
 related: [0001]
-superseded-by: null
+superseded-by: 0013
 ---
 
 # Proposal — Automatic classification for `TableNode.content_kind`
