@@ -76,6 +76,13 @@ def _link_wrap(edge: Edge) -> tuple[str, str] | None:
     return f'<a class="cnd-link" href="{escape(edge.href, quote=True)}">', "</a>"
 
 
+_RESERVED_META = frozenset(
+    {"author", "description", "keywords", "date", "status", "version", "viewport"}
+)
+"""The ``<meta name>`` values the converter writes from the document
+itself; a ``doc.extra`` key equal to one (in any case) is skipped."""
+
+
 def _anchor(node: NodeBase) -> str:
     """``id="<label>"`` for a labelled node, nothing for an unlabelled one."""
     return f' id="{escape(node.label, quote=True)}"' if node.label else ""
@@ -279,7 +286,8 @@ class HtmlConverter(CndConverter):
 
     - ``<head>``: ``<title>`` and ``<meta>`` for authors, description,
       keywords, date, status, version and every ``doc.extra`` pair from
-      ``cnd.doc``; ``cnd_version`` and ``built_at`` as ``data-``
+      ``cnd.doc``, except an ``extra`` key naming a meta element the
+      converter writes itself (skipped, with a warning); ``cnd_version`` and ``built_at`` as ``data-``
       attributes on ``<html>``.
     - ``<article>``: the body, assembled by walking the tree in reading
       order and delegating each block to the injected renderer. A
@@ -353,7 +361,7 @@ class HtmlConverter(CndConverter):
             '<meta name="viewport" content="width=device-width, initial-scale=1">',
             f"<title>{escape(cnd.doc.title)}</title>",
         ]
-        lines.extend(self._head_meta(cnd))
+        lines.extend(self._head_meta(cnd, warnings))
         lines.append(f"<style>\n{_STYLE}</style>")
         lines.append("</head>")
         lines.append("<body>")
@@ -368,7 +376,7 @@ class HtmlConverter(CndConverter):
 
     # -- head -----------------------------------------------------------
 
-    def _head_meta(self, cnd: Cnd) -> list[str]:
+    def _head_meta(self, cnd: Cnd, warnings: list[str]) -> list[str]:
         doc = cnd.doc
         out = []
         for author in doc.authors:
@@ -385,7 +393,15 @@ class HtmlConverter(CndConverter):
             out.append(
                 f'<meta name="date" content="{format_date(doc.date)}">'
             )
-        pairs = [("status", doc.status), ("version", doc.version), *doc.extra.items()]
+        pairs = [("status", doc.status), ("version", doc.version)]
+        for name, value in doc.extra.items():
+            if name.strip().lower() in _RESERVED_META:
+                warnings.append(
+                    f"doc.extra key {name!r} names a meta element the converter "
+                    f"writes itself; skipped"
+                )
+            else:
+                pairs.append((name, value))
         for name, value in pairs:
             if value:
                 out.append(

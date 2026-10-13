@@ -371,3 +371,22 @@ class TestFrontMatterScalars:
         data = yaml.safe_load(front)
         assert data["title"] == nasty
         assert data["extra"] == {"k\x01": "v "}
+
+
+class TestHtmlMetaExtra:
+    @pytest.mark.parametrize("key", [
+        "author", "description", "keywords", "date", "status", "version", "viewport",
+        "Author", " DESCRIPTION ",
+    ])
+    def test_a_key_the_converter_emits_is_skipped_with_a_warning(self, key: str) -> None:
+        doc = DocMetadata(title="T", description="real", extra={key: "spoof", "team": "core"})
+        result = HtmlConverter().convert(_cnd([para("x")], doc=doc))
+        assert "spoof" not in result.text
+        assert '<meta name="team" content="core">' in result.text
+        assert '<meta name="description" content="real">' in result.text
+        assert any(repr(key) in w and "extra" in w for w in result.warnings)
+
+    def test_other_keys_do_not_warn(self) -> None:
+        doc = DocMetadata(title="T", extra={"team": "core"})
+        result = HtmlConverter().convert(_cnd([para("x")], doc=doc))
+        assert result.warnings == ()
