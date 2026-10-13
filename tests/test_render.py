@@ -149,7 +149,7 @@ class TestTableRendering:
         cell(1, 0, "B"),
     ]
 
-    def test_placeholder_mode_ignores_content_kind(self) -> None:
+    def test_placeholder_mode_ignores_the_table_kind(self) -> None:
         node = TableNode(type="table", kind="content", cells=self._CELLS, **_base())
         assert MarkdownRenderer(tables="placeholder").render(node).startswith("[[figure:")
 
@@ -157,15 +157,15 @@ class TestTableRendering:
         node = TableNode(type="table", kind="content", cells=self._CELLS, **_base())
         assert MarkdownRenderer().render(node) == table_node_placeholder(node)
 
-    def test_inline_mode_renders_markdown_regardless_of_content_kind(self) -> None:
+    def test_inline_mode_renders_markdown_regardless_of_the_table_kind(self) -> None:
         node = TableNode(type="table", kind="data", cells=self._CELLS, **_base())
         assert MarkdownRenderer(tables="inline").render(node) == "| A |\n| --- |\n| B |"
 
-    def test_auto_mode_inlines_when_content_kind_is_content(self) -> None:
+    def test_auto_mode_inlines_when_the_table_kind_is_content(self) -> None:
         node = TableNode(type="table", kind="content", cells=self._CELLS, **_base())
         assert MarkdownRenderer(tables="auto").render(node) == "| A |\n| --- |\n| B |"
 
-    def test_auto_mode_placeholders_when_content_kind_is_data_or_unset(self) -> None:
+    def test_auto_mode_placeholders_when_the_table_kind_is_data_or_unset(self) -> None:
         renderer = MarkdownRenderer(tables="auto")
         data = TableNode(type="table", kind="data", cells=self._CELLS, **_base())
         unset = TableNode(type="table", kind=None, cells=self._CELLS, **_base())
