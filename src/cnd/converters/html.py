@@ -442,7 +442,7 @@ class HtmlConverter(CndConverter):
     def _markers(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
         inline = self._inline_link_ids(node)
         rendered = [
-            self._marker(marker, id(marker.link) in inline)
+            self._marker(marker, (marker.text_index, id(marker.link)) in inline)
             for marker in resolve_markers(cnd, node, warnings)
         ]
         parts = [part for part in rendered if part]
@@ -450,14 +450,20 @@ class HtmlConverter(CndConverter):
             return ""
         return '<span class="cnd-markers">' + " ".join(parts) + "</span>"
 
-    def _inline_link_ids(self, node: CndNode) -> set[int]:
-        """The ``id()`` of every link of the block the renderer already
-        renders as an anchor; a renderer without ``inline_links`` renders
-        none, so all its links go to the marker line."""
+    def _inline_link_ids(self, node: CndNode) -> set[tuple[int, int]]:
+        """``(text_index, id(link))`` for every link of the block the
+        renderer already renders as an anchor. Keyed per text: one
+        ``LinkRef`` object may sit in two texts and render inline in only
+        one. A renderer without ``inline_links`` renders none, so all its
+        links go to the marker line."""
         inline_links = getattr(self.renderer, "inline_links", None)
         if inline_links is None:
             return set()
-        return {id(link) for _, text in marker_texts(node) for link in inline_links(text)}
+        return {
+            (index, id(link))
+            for index, (_, text) in enumerate(marker_texts(node))
+            for link in inline_links(text)
+        }
 
     @staticmethod
     def _marker(marker: ResolvedMarker, inline: bool = False) -> str:

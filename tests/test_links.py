@@ -381,3 +381,23 @@ class TestLinkMarkerStaysOnItsLine:
         types = [t.type for t in self._tokens(md)]
         assert "link_open" not in types and "image" not in types
         assert "heading_open" not in types and "blockquote_open" not in types
+
+
+def test_one_link_object_in_two_texts_is_judged_per_text() -> None:
+    """A producer may share one LinkRef between texts: inline in one,
+    inside a code atom in the other, which must still reach the marker
+    line."""
+    from cnd.core.nodes import ListNode
+    from factories import item
+
+    link = LinkRef(href="https://shared.example/", text_span=[0, 4])
+    first = rt("link one", links=[link])
+    second = rt("code two", marks=[Mark(start=0, end=8, kind="code")], links=[link])
+    lst = ListNode(type="list", id=para().id, items=[item(para(first)), item(para(second))])
+    assert lst.items[0].children[0].text.links[0] is lst.items[1].children[0].text.links[0]
+    html = HtmlConverter().convert(_cnd([lst])).text
+    assert '<a class="cnd-link" href="https://shared.example/">link</a> one' in html
+    assert (
+        '<span class="cnd-markers"><a class="cnd-link" href="https://shared.example/">'
+        "https://shared.example/</a></span>"
+    ) in html
