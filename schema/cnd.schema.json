@@ -1,5 +1,131 @@
 {
   "$defs": {
+    "AdmonitionNode": {
+      "description": "A callout (\"Note\", \"Warning\"). ``kind`` is an open vocabulary; the\nknown values are ``KNOWN_ADMONITION_KINDS``.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "type": {
+          "const": "admonition",
+          "title": "Type",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RichText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "children": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "admonition": "#/$defs/AdmonitionNode",
+                "code": "#/$defs/CodeNode",
+                "figure": "#/$defs/FigureNode",
+                "heading": "#/$defs/HeadingNode",
+                "image": "#/$defs/ImageNode",
+                "layout": "#/$defs/LayoutNode",
+                "list": "#/$defs/ListNode",
+                "math": "#/$defs/MathNode",
+                "paragraph": "#/$defs/ParagraphNode",
+                "quote": "#/$defs/QuoteNode",
+                "table": "#/$defs/TableNode",
+                "terms": "#/$defs/TermsNode"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/HeadingNode"
+              },
+              {
+                "$ref": "#/$defs/ParagraphNode"
+              },
+              {
+                "$ref": "#/$defs/QuoteNode"
+              },
+              {
+                "$ref": "#/$defs/CodeNode"
+              },
+              {
+                "$ref": "#/$defs/MathNode"
+              },
+              {
+                "$ref": "#/$defs/ImageNode"
+              },
+              {
+                "$ref": "#/$defs/FigureNode"
+              },
+              {
+                "$ref": "#/$defs/AdmonitionNode"
+              },
+              {
+                "$ref": "#/$defs/ListNode"
+              },
+              {
+                "$ref": "#/$defs/TermsNode"
+              },
+              {
+                "$ref": "#/$defs/TableNode"
+              },
+              {
+                "$ref": "#/$defs/LayoutNode"
+              }
+            ]
+          },
+          "title": "Children",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "kind"
+      ],
+      "title": "AdmonitionNode",
+      "type": "object"
+    },
     "BibEntry": {
       "description": "Bibliography pool entry \u2014 target of ``cites`` edges.\n\n``formatted`` is the reference string as displayed in the built\ndocument (the faithful capture). It is nullable because requiring it\npresupposes a style engine ran, which a hand author or a markdown\nproducer has no reason to have. A curated typed subset of common\nbibliographic fields is lifted alongside it; the full source entry\n(e.g. Hayagriva) is carried losslessly as structured JSON in ``fields``.\n\nAn entry must carry ``formatted``, structured fields, or both \u2014 never an\nempty, unconsumable entry. That floor is a validator rule, not a shape\nthe type system can express.",
       "properties": {
@@ -15,14 +141,13 @@
         "formatted": {
           "anyOf": [
             {
-              "type": "string"
+              "$ref": "#/$defs/RichText"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Formatted"
+          "default": null
         },
         "type": {
           "anyOf": [
@@ -116,6 +241,101 @@
       "title": "BibEntry",
       "type": "object"
     },
+    "Cell": {
+      "description": "One cell of a ``table`` or a ``layout``; content is block nodes.",
+      "properties": {
+        "row": {
+          "title": "Row",
+          "type": "integer"
+        },
+        "col": {
+          "title": "Col",
+          "type": "integer"
+        },
+        "rowspan": {
+          "default": 1,
+          "title": "Rowspan",
+          "type": "integer"
+        },
+        "colspan": {
+          "default": 1,
+          "title": "Colspan",
+          "type": "integer"
+        },
+        "is_header": {
+          "default": false,
+          "title": "Is Header",
+          "type": "boolean"
+        },
+        "children": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "admonition": "#/$defs/AdmonitionNode",
+                "code": "#/$defs/CodeNode",
+                "figure": "#/$defs/FigureNode",
+                "heading": "#/$defs/HeadingNode",
+                "image": "#/$defs/ImageNode",
+                "layout": "#/$defs/LayoutNode",
+                "list": "#/$defs/ListNode",
+                "math": "#/$defs/MathNode",
+                "paragraph": "#/$defs/ParagraphNode",
+                "quote": "#/$defs/QuoteNode",
+                "table": "#/$defs/TableNode",
+                "terms": "#/$defs/TermsNode"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/HeadingNode"
+              },
+              {
+                "$ref": "#/$defs/ParagraphNode"
+              },
+              {
+                "$ref": "#/$defs/QuoteNode"
+              },
+              {
+                "$ref": "#/$defs/CodeNode"
+              },
+              {
+                "$ref": "#/$defs/MathNode"
+              },
+              {
+                "$ref": "#/$defs/ImageNode"
+              },
+              {
+                "$ref": "#/$defs/FigureNode"
+              },
+              {
+                "$ref": "#/$defs/AdmonitionNode"
+              },
+              {
+                "$ref": "#/$defs/ListNode"
+              },
+              {
+                "$ref": "#/$defs/TermsNode"
+              },
+              {
+                "$ref": "#/$defs/TableNode"
+              },
+              {
+                "$ref": "#/$defs/LayoutNode"
+              }
+            ]
+          },
+          "title": "Children",
+          "type": "array"
+        }
+      },
+      "required": [
+        "row",
+        "col"
+      ],
+      "title": "Cell",
+      "type": "object"
+    },
     "CiteRef": {
       "description": "Forward citation edge; ``label`` resolves in the CND ``bibliography`` pool.",
       "properties": {
@@ -178,7 +398,7 @@
       "type": "object"
     },
     "CodeNode": {
-      "description": "Raw code block, preserved verbatim with its language tag.",
+      "description": "Code block, verbatim. Inline code is a ``code`` mark. ``title`` is\nthe label an author gives a listing, typically a file name.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -196,34 +416,6 @@
           ],
           "default": null,
           "title": "Label"
-        },
-        "refs": {
-          "items": {
-            "$ref": "#/$defs/NodeRef"
-          },
-          "title": "Refs",
-          "type": "array"
-        },
-        "cites": {
-          "items": {
-            "$ref": "#/$defs/CiteRef"
-          },
-          "title": "Cites",
-          "type": "array"
-        },
-        "footnotes": {
-          "items": {
-            "$ref": "#/$defs/FootnoteRef"
-          },
-          "title": "Footnotes",
-          "type": "array"
-        },
-        "links": {
-          "items": {
-            "$ref": "#/$defs/LinkRef"
-          },
-          "title": "Links",
-          "type": "array"
         },
         "state_metadata": {
           "additionalProperties": true,
@@ -262,10 +454,17 @@
           "default": null,
           "title": "Lang"
         },
-        "block": {
-          "default": true,
-          "title": "Block",
-          "type": "boolean"
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
         }
       },
       "required": [
@@ -315,7 +514,7 @@
       "type": "object"
     },
     "DocMetadata": {
-      "description": "Bibliographic metadata for the work the CND represents.\n\nThis identifies the *work* \u2014 title, authors, date. The input artifact it\nwas built from is ``Cnd.source``, deliberately separate: the same work\ncan be built from a Typst source and later re-imported from another\nformat (docs/proposals/0008).",
+      "description": "Bibliographic metadata for the work the CND represents.\n\nThis identifies the *work* \u2014 title, authors, date. The input artifact it\nwas built from is ``Cnd.source``, deliberately separate: the same work\ncan be built from a Typst source and later re-imported from another\nformat (docs/proposals/0008).\n\n``status`` and ``version`` are the values the author declares on the\ndocument, unrelated to ``cnd_version`` and to any build history. ``extra``\nholds any other title-page metadata; its keys never repeat a field name\n(validation, docs/proposals/0013).",
       "properties": {
         "title": {
           "title": "Title",
@@ -369,6 +568,37 @@
           ],
           "default": null,
           "title": "Lang"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        },
+        "extra": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Extra",
+          "type": "object"
         }
       },
       "required": [
@@ -378,7 +608,7 @@
       "type": "object"
     },
     "FigureNode": {
-      "description": "Captioned/numbered float wrapper \u2014 never a content carrier.\n\nThe wrapped content (image, table, code, \u2026) lives in ``children`` and\nkeeps its own node type and ``location``. ``kind`` is the counter/label\nselector of the figure (\"image\", \"table\", or an author-custom kind like\n\"atom\") \u2014 an open string, never a content discriminator. Nested figures\n(subfigures) are allowed. An unconvertible body yields ``children=[]``\nwith ``raw`` filled.",
+      "description": "Captioned/numbered wrapper; content keeps its own node type in\n``children``. ``kind`` is the figure's category (open vocabulary),\nuseful above all for author-defined categories ``children`` cannot\nreveal. ``description`` is the text equivalent of the visual. An\nunconvertible body (a drawing) yields ``children=[]`` with ``raw``.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -396,34 +626,6 @@
           ],
           "default": null,
           "title": "Label"
-        },
-        "refs": {
-          "items": {
-            "$ref": "#/$defs/NodeRef"
-          },
-          "title": "Refs",
-          "type": "array"
-        },
-        "cites": {
-          "items": {
-            "$ref": "#/$defs/CiteRef"
-          },
-          "title": "Cites",
-          "type": "array"
-        },
-        "footnotes": {
-          "items": {
-            "$ref": "#/$defs/FootnoteRef"
-          },
-          "title": "Footnotes",
-          "type": "array"
-        },
-        "links": {
-          "items": {
-            "$ref": "#/$defs/LinkRef"
-          },
-          "title": "Links",
-          "type": "array"
         },
         "state_metadata": {
           "additionalProperties": true,
@@ -461,47 +663,46 @@
         "caption": {
           "anyOf": [
             {
-              "type": "string"
+              "$ref": "#/$defs/RichText"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Caption"
+          "default": null
         },
-        "number": {
+        "description": {
           "anyOf": [
             {
-              "type": "string"
+              "$ref": "#/$defs/RichText"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Number"
+          "default": null
         },
-        "counter_label": {
+        "numbering": {
           "anyOf": [
             {
-              "type": "string"
+              "$ref": "#/$defs/Numbering"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Counter Label"
+          "default": null
         },
         "children": {
           "items": {
             "discriminator": {
               "mapping": {
+                "admonition": "#/$defs/AdmonitionNode",
                 "code": "#/$defs/CodeNode",
                 "figure": "#/$defs/FigureNode",
                 "heading": "#/$defs/HeadingNode",
                 "image": "#/$defs/ImageNode",
+                "layout": "#/$defs/LayoutNode",
                 "list": "#/$defs/ListNode",
                 "math": "#/$defs/MathNode",
                 "paragraph": "#/$defs/ParagraphNode",
@@ -519,9 +720,6 @@
                 "$ref": "#/$defs/ParagraphNode"
               },
               {
-                "$ref": "#/$defs/TableNode"
-              },
-              {
                 "$ref": "#/$defs/QuoteNode"
               },
               {
@@ -531,16 +729,25 @@
                 "$ref": "#/$defs/MathNode"
               },
               {
+                "$ref": "#/$defs/ImageNode"
+              },
+              {
                 "$ref": "#/$defs/FigureNode"
               },
               {
-                "$ref": "#/$defs/ImageNode"
+                "$ref": "#/$defs/AdmonitionNode"
               },
               {
                 "$ref": "#/$defs/ListNode"
               },
               {
                 "$ref": "#/$defs/TermsNode"
+              },
+              {
+                "$ref": "#/$defs/TableNode"
+              },
+              {
+                "$ref": "#/$defs/LayoutNode"
               }
             ]
           },
@@ -567,7 +774,7 @@
       "type": "object"
     },
     "Footnote": {
-      "description": "Footnote pool entry \u2014 target of ``footnotes`` edges. Flat text.",
+      "description": "Footnote pool entry \u2014 target of ``footnotes`` edges. Its content is\nblock nodes: real nodes (global id/label uniqueness, location rule)\nkept out of the body walk (docs/proposals/0013).",
       "properties": {
         "id": {
           "format": "uuid",
@@ -578,15 +785,71 @@
           "title": "Label",
           "type": "string"
         },
-        "text": {
-          "title": "Text",
-          "type": "string"
+        "children": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "admonition": "#/$defs/AdmonitionNode",
+                "code": "#/$defs/CodeNode",
+                "figure": "#/$defs/FigureNode",
+                "heading": "#/$defs/HeadingNode",
+                "image": "#/$defs/ImageNode",
+                "layout": "#/$defs/LayoutNode",
+                "list": "#/$defs/ListNode",
+                "math": "#/$defs/MathNode",
+                "paragraph": "#/$defs/ParagraphNode",
+                "quote": "#/$defs/QuoteNode",
+                "table": "#/$defs/TableNode",
+                "terms": "#/$defs/TermsNode"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/HeadingNode"
+              },
+              {
+                "$ref": "#/$defs/ParagraphNode"
+              },
+              {
+                "$ref": "#/$defs/QuoteNode"
+              },
+              {
+                "$ref": "#/$defs/CodeNode"
+              },
+              {
+                "$ref": "#/$defs/MathNode"
+              },
+              {
+                "$ref": "#/$defs/ImageNode"
+              },
+              {
+                "$ref": "#/$defs/FigureNode"
+              },
+              {
+                "$ref": "#/$defs/AdmonitionNode"
+              },
+              {
+                "$ref": "#/$defs/ListNode"
+              },
+              {
+                "$ref": "#/$defs/TermsNode"
+              },
+              {
+                "$ref": "#/$defs/TableNode"
+              },
+              {
+                "$ref": "#/$defs/LayoutNode"
+              }
+            ]
+          },
+          "title": "Children",
+          "type": "array"
         }
       },
       "required": [
         "id",
-        "label",
-        "text"
+        "label"
       ],
       "title": "Footnote",
       "type": "object"
@@ -621,7 +884,7 @@
       "type": "object"
     },
     "HeadingNode": {
-      "description": "Section heading with nested section content in ``children``.\n\n``number`` \u2014 shared in shape with ``MathNode`` and ``FigureNode`` \u2014 is\nthe counter value **as resolved and displayed** (``\"2.1.1\"``, ``\"(1)\"``,\n``\"3\"``), never the pattern that produced it: a consumer cannot replay a\ncounter engine, so only the resolved value is usable.\n\n``counter_label`` is the word displayed in front of it (``\"Figure\"``,\n``\"Tabelle\"``), kept in its own field rather than fused into ``number``\n(docs/proposals/0008, 0010). Fusing them was the defect; carrying the\nword is not. It is not always derivable \u2014 for a custom ``kind`` the\nauthor supplies it and nothing else in the CND encodes it.",
+      "description": "Section heading; the section's content is in ``children``.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -639,34 +902,6 @@
           ],
           "default": null,
           "title": "Label"
-        },
-        "refs": {
-          "items": {
-            "$ref": "#/$defs/NodeRef"
-          },
-          "title": "Refs",
-          "type": "array"
-        },
-        "cites": {
-          "items": {
-            "$ref": "#/$defs/CiteRef"
-          },
-          "title": "Cites",
-          "type": "array"
-        },
-        "footnotes": {
-          "items": {
-            "$ref": "#/$defs/FootnoteRef"
-          },
-          "title": "Footnotes",
-          "type": "array"
-        },
-        "links": {
-          "items": {
-            "$ref": "#/$defs/LinkRef"
-          },
-          "title": "Links",
-          "type": "array"
         },
         "state_metadata": {
           "additionalProperties": true,
@@ -693,33 +928,19 @@
           "title": "Level",
           "type": "integer"
         },
-        "number": {
+        "numbering": {
           "anyOf": [
             {
-              "type": "string"
+              "$ref": "#/$defs/Numbering"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Number"
-        },
-        "counter_label": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Counter Label"
+          "default": null
         },
         "text": {
-          "title": "Text",
-          "type": "string"
+          "$ref": "#/$defs/RichText"
         },
         "heading_path": {
           "items": {
@@ -732,10 +953,12 @@
           "items": {
             "discriminator": {
               "mapping": {
+                "admonition": "#/$defs/AdmonitionNode",
                 "code": "#/$defs/CodeNode",
                 "figure": "#/$defs/FigureNode",
                 "heading": "#/$defs/HeadingNode",
                 "image": "#/$defs/ImageNode",
+                "layout": "#/$defs/LayoutNode",
                 "list": "#/$defs/ListNode",
                 "math": "#/$defs/MathNode",
                 "paragraph": "#/$defs/ParagraphNode",
@@ -753,9 +976,6 @@
                 "$ref": "#/$defs/ParagraphNode"
               },
               {
-                "$ref": "#/$defs/TableNode"
-              },
-              {
                 "$ref": "#/$defs/QuoteNode"
               },
               {
@@ -765,16 +985,25 @@
                 "$ref": "#/$defs/MathNode"
               },
               {
+                "$ref": "#/$defs/ImageNode"
+              },
+              {
                 "$ref": "#/$defs/FigureNode"
               },
               {
-                "$ref": "#/$defs/ImageNode"
+                "$ref": "#/$defs/AdmonitionNode"
               },
               {
                 "$ref": "#/$defs/ListNode"
               },
               {
                 "$ref": "#/$defs/TermsNode"
+              },
+              {
+                "$ref": "#/$defs/TableNode"
+              },
+              {
+                "$ref": "#/$defs/LayoutNode"
               }
             ]
           },
@@ -793,7 +1022,7 @@
       "type": "object"
     },
     "ImageNode": {
-      "description": "Leaf image content. A bare image outside any figure is an ``ImageNode``\nwith no wrapper; a captioned image is an ``ImageNode`` inside a\n``FigureNode``.",
+      "description": "Leaf image content.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -811,34 +1040,6 @@
           ],
           "default": null,
           "title": "Label"
-        },
-        "refs": {
-          "items": {
-            "$ref": "#/$defs/NodeRef"
-          },
-          "title": "Refs",
-          "type": "array"
-        },
-        "cites": {
-          "items": {
-            "$ref": "#/$defs/CiteRef"
-          },
-          "title": "Cites",
-          "type": "array"
-        },
-        "footnotes": {
-          "items": {
-            "$ref": "#/$defs/FootnoteRef"
-          },
-          "title": "Footnotes",
-          "type": "array"
-        },
-        "links": {
-          "items": {
-            "$ref": "#/$defs/LinkRef"
-          },
-          "title": "Links",
-          "type": "array"
         },
         "state_metadata": {
           "additionalProperties": true,
@@ -893,6 +1094,62 @@
       "title": "ImageNode",
       "type": "object"
     },
+    "LayoutNode": {
+      "description": "A grid used for arrangement only; position carries no relation.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "type": {
+          "const": "layout",
+          "title": "Type",
+          "type": "string"
+        },
+        "cells": {
+          "items": {
+            "$ref": "#/$defs/Cell"
+          },
+          "title": "Cells",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "LayoutNode",
+      "type": "object"
+    },
     "LinkRef": {
       "description": "Forward hyperlink edge; ``href`` resolves nowhere in the CND.\n\nThe fourth forward family and the only one not keyed by label: a\nhyperlink's target is outside the document by definition, so it admits\nno resolution domain and has no dangling state \u2014 a URL is a URL. The\nscheme is a consumer's business (``https:``, ``doi:``, an application\nscheme); the format only carries the string.",
       "properties": {
@@ -923,12 +1180,8 @@
       "type": "object"
     },
     "ListItem": {
-      "description": "Single item of a bullet or numbered list.",
+      "description": "One list entry. Its content is block nodes; a nested list is a\n``list`` node with its own ``ordered``. ``checked`` is ``None`` for an\nitem that is not a task-list checkbox.",
       "properties": {
-        "text": {
-          "title": "Text",
-          "type": "string"
-        },
         "number": {
           "anyOf": [
             {
@@ -941,22 +1194,85 @@
           "default": null,
           "title": "Number"
         },
+        "checked": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checked"
+        },
         "children": {
           "items": {
-            "$ref": "#/$defs/ListItem"
+            "discriminator": {
+              "mapping": {
+                "admonition": "#/$defs/AdmonitionNode",
+                "code": "#/$defs/CodeNode",
+                "figure": "#/$defs/FigureNode",
+                "heading": "#/$defs/HeadingNode",
+                "image": "#/$defs/ImageNode",
+                "layout": "#/$defs/LayoutNode",
+                "list": "#/$defs/ListNode",
+                "math": "#/$defs/MathNode",
+                "paragraph": "#/$defs/ParagraphNode",
+                "quote": "#/$defs/QuoteNode",
+                "table": "#/$defs/TableNode",
+                "terms": "#/$defs/TermsNode"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/HeadingNode"
+              },
+              {
+                "$ref": "#/$defs/ParagraphNode"
+              },
+              {
+                "$ref": "#/$defs/QuoteNode"
+              },
+              {
+                "$ref": "#/$defs/CodeNode"
+              },
+              {
+                "$ref": "#/$defs/MathNode"
+              },
+              {
+                "$ref": "#/$defs/ImageNode"
+              },
+              {
+                "$ref": "#/$defs/FigureNode"
+              },
+              {
+                "$ref": "#/$defs/AdmonitionNode"
+              },
+              {
+                "$ref": "#/$defs/ListNode"
+              },
+              {
+                "$ref": "#/$defs/TermsNode"
+              },
+              {
+                "$ref": "#/$defs/TableNode"
+              },
+              {
+                "$ref": "#/$defs/LayoutNode"
+              }
+            ]
           },
           "title": "Children",
           "type": "array"
         }
       },
-      "required": [
-        "text"
-      ],
       "title": "ListItem",
       "type": "object"
     },
     "ListNode": {
-      "description": "Bullet (`ordered=False`) or numbered (`ordered=True`) list.",
+      "description": "Bullet (``ordered=False``) or numbered (``ordered=True``) list.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -974,34 +1290,6 @@
           ],
           "default": null,
           "title": "Label"
-        },
-        "refs": {
-          "items": {
-            "$ref": "#/$defs/NodeRef"
-          },
-          "title": "Refs",
-          "type": "array"
-        },
-        "cites": {
-          "items": {
-            "$ref": "#/$defs/CiteRef"
-          },
-          "title": "Cites",
-          "type": "array"
-        },
-        "footnotes": {
-          "items": {
-            "$ref": "#/$defs/FootnoteRef"
-          },
-          "title": "Footnotes",
-          "type": "array"
-        },
-        "links": {
-          "items": {
-            "$ref": "#/$defs/LinkRef"
-          },
-          "title": "Links",
-          "type": "array"
         },
         "state_metadata": {
           "additionalProperties": true,
@@ -1029,11 +1317,6 @@
           "title": "Ordered",
           "type": "boolean"
         },
-        "tight": {
-          "default": true,
-          "title": "Tight",
-          "type": "boolean"
-        },
         "items": {
           "items": {
             "$ref": "#/$defs/ListItem"
@@ -1049,8 +1332,43 @@
       "title": "ListNode",
       "type": "object"
     },
+    "Mark": {
+      "description": "A standoff span of inline formatting inside a ``RichText.value``.\n\n``raw`` is the source of the covered text, used by ``math`` (the\nreadable linear form lives in ``value``, the formula here).",
+      "properties": {
+        "start": {
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "title": "End",
+          "type": "integer"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "raw": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RawSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "kind"
+      ],
+      "title": "Mark",
+      "type": "object"
+    },
     "MathNode": {
-      "description": "Block-level equation.",
+      "description": "Block equation. Inline math is a ``math`` mark.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -1068,34 +1386,6 @@
           ],
           "default": null,
           "title": "Label"
-        },
-        "refs": {
-          "items": {
-            "$ref": "#/$defs/NodeRef"
-          },
-          "title": "Refs",
-          "type": "array"
-        },
-        "cites": {
-          "items": {
-            "$ref": "#/$defs/CiteRef"
-          },
-          "title": "Cites",
-          "type": "array"
-        },
-        "footnotes": {
-          "items": {
-            "$ref": "#/$defs/FootnoteRef"
-          },
-          "title": "Footnotes",
-          "type": "array"
-        },
-        "links": {
-          "items": {
-            "$ref": "#/$defs/LinkRef"
-          },
-          "title": "Links",
-          "type": "array"
         },
         "state_metadata": {
           "additionalProperties": true,
@@ -1133,34 +1423,16 @@
           ],
           "default": null
         },
-        "number": {
+        "numbering": {
           "anyOf": [
             {
-              "type": "string"
+              "$ref": "#/$defs/Numbering"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Number"
-        },
-        "counter_label": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Counter Label"
-        },
-        "block": {
-          "default": true,
-          "title": "Block",
-          "type": "boolean"
+          "default": null
         }
       },
       "required": [
@@ -1214,8 +1486,34 @@
       "title": "NodeRef",
       "type": "object"
     },
+    "Numbering": {
+      "description": "A resolved counter as displayed: ``value`` (\"3\", \"2.1.1\", \"(1)\")\nand the counter word in the document's language (``name``, \"Figure\").\n\nReplaces the flat ``number`` + ``counter_label`` pair, so a word\nwithout a number can no longer be written (docs/proposals/0013).",
+      "properties": {
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "Numbering",
+      "type": "object"
+    },
     "ParagraphNode": {
-      "description": "Plain text paragraph.",
+      "description": "A paragraph: the leaf that carries prose.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -1233,34 +1531,6 @@
           ],
           "default": null,
           "title": "Label"
-        },
-        "refs": {
-          "items": {
-            "$ref": "#/$defs/NodeRef"
-          },
-          "title": "Refs",
-          "type": "array"
-        },
-        "cites": {
-          "items": {
-            "$ref": "#/$defs/CiteRef"
-          },
-          "title": "Cites",
-          "type": "array"
-        },
-        "footnotes": {
-          "items": {
-            "$ref": "#/$defs/FootnoteRef"
-          },
-          "title": "Footnotes",
-          "type": "array"
-        },
-        "links": {
-          "items": {
-            "$ref": "#/$defs/LinkRef"
-          },
-          "title": "Links",
-          "type": "array"
         },
         "state_metadata": {
           "additionalProperties": true,
@@ -1284,20 +1554,7 @@
           "type": "string"
         },
         "text": {
-          "title": "Text",
-          "type": "string"
-        },
-        "lang": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Lang"
+          "$ref": "#/$defs/RichText"
         }
       },
       "required": [
@@ -1309,7 +1566,7 @@
       "type": "object"
     },
     "QuoteNode": {
-      "description": "Block quotation with optional attribution (author or source).",
+      "description": "Block quotation. An inline quotation stays text in its paragraph.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -1327,6 +1584,152 @@
           ],
           "default": null,
           "title": "Label"
+        },
+        "state_metadata": {
+          "additionalProperties": true,
+          "title": "State Metadata",
+          "type": "object"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "type": {
+          "const": "quote",
+          "title": "Type",
+          "type": "string"
+        },
+        "attribution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RichText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "children": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "admonition": "#/$defs/AdmonitionNode",
+                "code": "#/$defs/CodeNode",
+                "figure": "#/$defs/FigureNode",
+                "heading": "#/$defs/HeadingNode",
+                "image": "#/$defs/ImageNode",
+                "layout": "#/$defs/LayoutNode",
+                "list": "#/$defs/ListNode",
+                "math": "#/$defs/MathNode",
+                "paragraph": "#/$defs/ParagraphNode",
+                "quote": "#/$defs/QuoteNode",
+                "table": "#/$defs/TableNode",
+                "terms": "#/$defs/TermsNode"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/HeadingNode"
+              },
+              {
+                "$ref": "#/$defs/ParagraphNode"
+              },
+              {
+                "$ref": "#/$defs/QuoteNode"
+              },
+              {
+                "$ref": "#/$defs/CodeNode"
+              },
+              {
+                "$ref": "#/$defs/MathNode"
+              },
+              {
+                "$ref": "#/$defs/ImageNode"
+              },
+              {
+                "$ref": "#/$defs/FigureNode"
+              },
+              {
+                "$ref": "#/$defs/AdmonitionNode"
+              },
+              {
+                "$ref": "#/$defs/ListNode"
+              },
+              {
+                "$ref": "#/$defs/TermsNode"
+              },
+              {
+                "$ref": "#/$defs/TableNode"
+              },
+              {
+                "$ref": "#/$defs/LayoutNode"
+              }
+            ]
+          },
+          "title": "Children",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "QuoteNode",
+      "type": "object"
+    },
+    "RawSource": {
+      "description": "The producer's verbatim source for a node, with its language.\n\nA bare string dropped the one thing a consumer needs to decide whether\nto attempt a parse: which language the content is in. ``format`` is an\nopen string (``\"typst\"``, ``\"latex\"``, ``\"mathml\"``\u2026), never a closed\nenum \u2014 a new producer must not require a spec revision.",
+      "properties": {
+        "format": {
+          "title": "Format",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "format",
+        "value"
+      ],
+      "title": "RawSource",
+      "type": "object"
+    },
+    "RichText": {
+      "description": "Prose: a text, its language, its marks and its forward edges.\n\nAn edge belongs to the text in which its marker opens; its owning\nnode is the nearest node holding the text. Every list defaults to\nempty and may be omitted, so ``{\"value\": \"\u2026\"}`` is a complete text.\n``lang`` null inherits from the enclosing text, then the node chain,\nthen ``doc.lang``.",
+      "properties": {
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "lang": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lang"
+        },
+        "marks": {
+          "items": {
+            "$ref": "#/$defs/Mark"
+          },
+          "title": "Marks",
+          "type": "array"
         },
         "refs": {
           "items": {
@@ -1355,87 +1758,12 @@
           },
           "title": "Links",
           "type": "array"
-        },
-        "state_metadata": {
-          "additionalProperties": true,
-          "title": "State Metadata",
-          "type": "object"
-        },
-        "location": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/NodeLocation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "type": {
-          "const": "quote",
-          "title": "Type",
-          "type": "string"
-        },
-        "text": {
-          "title": "Text",
-          "type": "string"
-        },
-        "attribution": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Attribution"
-        },
-        "block": {
-          "default": true,
-          "title": "Block",
-          "type": "boolean"
-        },
-        "lang": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Lang"
         }
       },
       "required": [
-        "id",
-        "type",
-        "text"
-      ],
-      "title": "QuoteNode",
-      "type": "object"
-    },
-    "RawSource": {
-      "description": "The producer's verbatim source for a node, with its language.\n\nA bare string dropped the one thing a consumer needs to decide whether\nto attempt a parse: which language the content is in. ``format`` is an\nopen string (``\"typst\"``, ``\"latex\"``, ``\"mathml\"``\u2026), never a closed\nenum \u2014 a new producer must not require a spec revision.",
-      "properties": {
-        "format": {
-          "title": "Format",
-          "type": "string"
-        },
-        "value": {
-          "title": "Value",
-          "type": "string"
-        }
-      },
-      "required": [
-        "format",
         "value"
       ],
-      "title": "RawSource",
+      "title": "RichText",
       "type": "object"
     },
     "SourceInfo": {
@@ -1469,47 +1797,8 @@
       "title": "SourceInfo",
       "type": "object"
     },
-    "TableCell": {
-      "description": "Single cell inside a table node.",
-      "properties": {
-        "row": {
-          "title": "Row",
-          "type": "integer"
-        },
-        "col": {
-          "title": "Col",
-          "type": "integer"
-        },
-        "rowspan": {
-          "default": 1,
-          "title": "Rowspan",
-          "type": "integer"
-        },
-        "colspan": {
-          "default": 1,
-          "title": "Colspan",
-          "type": "integer"
-        },
-        "is_header": {
-          "default": false,
-          "title": "Is Header",
-          "type": "boolean"
-        },
-        "text": {
-          "title": "Text",
-          "type": "string"
-        }
-      },
-      "required": [
-        "row",
-        "col",
-        "text"
-      ],
-      "title": "TableCell",
-      "type": "object"
-    },
     "TableNode": {
-      "description": "Structured table with typed cells.\n\n``kind`` distinguishes a semantic ``table`` from a layout ``grid``: both\nshare the same cell model, but a grid carries no tabular semantics.\n\nA table has no caption of its own \u2014 a captioned/numbered table is a\n``TableNode`` wrapped in a ``FigureNode``, which carries the caption.",
+      "description": "A table whose rows and columns carry meaning. ``kind`` states what\nit is: ``\"data\"`` (a dataset of records), ``\"content\"`` (cells to\nread), ``None`` (unstated). Open vocabulary; never guessed by a\nproducer. A captioned table is wrapped in a ``FigureNode``.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -1527,34 +1816,6 @@
           ],
           "default": null,
           "title": "Label"
-        },
-        "refs": {
-          "items": {
-            "$ref": "#/$defs/NodeRef"
-          },
-          "title": "Refs",
-          "type": "array"
-        },
-        "cites": {
-          "items": {
-            "$ref": "#/$defs/CiteRef"
-          },
-          "title": "Cites",
-          "type": "array"
-        },
-        "footnotes": {
-          "items": {
-            "$ref": "#/$defs/FootnoteRef"
-          },
-          "title": "Footnotes",
-          "type": "array"
-        },
-        "links": {
-          "items": {
-            "$ref": "#/$defs/LinkRef"
-          },
-          "title": "Links",
-          "type": "array"
         },
         "state_metadata": {
           "additionalProperties": true,
@@ -1578,21 +1839,8 @@
           "type": "string"
         },
         "kind": {
-          "default": "table",
-          "enum": [
-            "table",
-            "grid"
-          ],
-          "title": "Kind",
-          "type": "string"
-        },
-        "content_kind": {
           "anyOf": [
             {
-              "enum": [
-                "data",
-                "content"
-              ],
               "type": "string"
             },
             {
@@ -1600,25 +1848,14 @@
             }
           ],
           "default": null,
-          "title": "Content Kind"
+          "title": "Kind"
         },
         "cells": {
           "items": {
-            "$ref": "#/$defs/TableCell"
+            "$ref": "#/$defs/Cell"
           },
           "title": "Cells",
           "type": "array"
-        },
-        "raw": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/RawSource"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
         }
       },
       "required": [
@@ -1629,26 +1866,81 @@
       "type": "object"
     },
     "TermItem": {
-      "description": "Single term/description pair of a definition list.",
+      "description": "One term and its definition (block nodes in ``children``).",
       "properties": {
         "term": {
-          "title": "Term",
-          "type": "string"
+          "$ref": "#/$defs/RichText"
         },
-        "description": {
-          "title": "Description",
-          "type": "string"
+        "children": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "admonition": "#/$defs/AdmonitionNode",
+                "code": "#/$defs/CodeNode",
+                "figure": "#/$defs/FigureNode",
+                "heading": "#/$defs/HeadingNode",
+                "image": "#/$defs/ImageNode",
+                "layout": "#/$defs/LayoutNode",
+                "list": "#/$defs/ListNode",
+                "math": "#/$defs/MathNode",
+                "paragraph": "#/$defs/ParagraphNode",
+                "quote": "#/$defs/QuoteNode",
+                "table": "#/$defs/TableNode",
+                "terms": "#/$defs/TermsNode"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/HeadingNode"
+              },
+              {
+                "$ref": "#/$defs/ParagraphNode"
+              },
+              {
+                "$ref": "#/$defs/QuoteNode"
+              },
+              {
+                "$ref": "#/$defs/CodeNode"
+              },
+              {
+                "$ref": "#/$defs/MathNode"
+              },
+              {
+                "$ref": "#/$defs/ImageNode"
+              },
+              {
+                "$ref": "#/$defs/FigureNode"
+              },
+              {
+                "$ref": "#/$defs/AdmonitionNode"
+              },
+              {
+                "$ref": "#/$defs/ListNode"
+              },
+              {
+                "$ref": "#/$defs/TermsNode"
+              },
+              {
+                "$ref": "#/$defs/TableNode"
+              },
+              {
+                "$ref": "#/$defs/LayoutNode"
+              }
+            ]
+          },
+          "title": "Children",
+          "type": "array"
         }
       },
       "required": [
-        "term",
-        "description"
+        "term"
       ],
       "title": "TermItem",
       "type": "object"
     },
     "TermsNode": {
-      "description": "Definition list (Typst ``/ term: description`` items).",
+      "description": "Definition list.",
       "properties": {
         "id": {
           "format": "uuid",
@@ -1666,34 +1958,6 @@
           ],
           "default": null,
           "title": "Label"
-        },
-        "refs": {
-          "items": {
-            "$ref": "#/$defs/NodeRef"
-          },
-          "title": "Refs",
-          "type": "array"
-        },
-        "cites": {
-          "items": {
-            "$ref": "#/$defs/CiteRef"
-          },
-          "title": "Cites",
-          "type": "array"
-        },
-        "footnotes": {
-          "items": {
-            "$ref": "#/$defs/FootnoteRef"
-          },
-          "title": "Footnotes",
-          "type": "array"
-        },
-        "links": {
-          "items": {
-            "$ref": "#/$defs/LinkRef"
-          },
-          "title": "Links",
-          "type": "array"
         },
         "state_metadata": {
           "additionalProperties": true,
@@ -1715,11 +1979,6 @@
           "const": "terms",
           "title": "Type",
           "type": "string"
-        },
-        "tight": {
-          "default": true,
-          "title": "Tight",
-          "type": "boolean"
         },
         "items": {
           "items": {
@@ -1771,10 +2030,12 @@
       "items": {
         "discriminator": {
           "mapping": {
+            "admonition": "#/$defs/AdmonitionNode",
             "code": "#/$defs/CodeNode",
             "figure": "#/$defs/FigureNode",
             "heading": "#/$defs/HeadingNode",
             "image": "#/$defs/ImageNode",
+            "layout": "#/$defs/LayoutNode",
             "list": "#/$defs/ListNode",
             "math": "#/$defs/MathNode",
             "paragraph": "#/$defs/ParagraphNode",
@@ -1792,9 +2053,6 @@
             "$ref": "#/$defs/ParagraphNode"
           },
           {
-            "$ref": "#/$defs/TableNode"
-          },
-          {
             "$ref": "#/$defs/QuoteNode"
           },
           {
@@ -1804,16 +2062,25 @@
             "$ref": "#/$defs/MathNode"
           },
           {
+            "$ref": "#/$defs/ImageNode"
+          },
+          {
             "$ref": "#/$defs/FigureNode"
           },
           {
-            "$ref": "#/$defs/ImageNode"
+            "$ref": "#/$defs/AdmonitionNode"
           },
           {
             "$ref": "#/$defs/ListNode"
           },
           {
             "$ref": "#/$defs/TermsNode"
+          },
+          {
+            "$ref": "#/$defs/TableNode"
+          },
+          {
+            "$ref": "#/$defs/LayoutNode"
           }
         ]
       },

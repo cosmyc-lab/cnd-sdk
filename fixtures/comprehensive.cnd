@@ -1,5 +1,5 @@
 {
-  "cnd_version": "0.3.0",
+  "cnd_version": "0.5.0",
   "built_at": "2026-06-06T12:00:00Z",
   "source": {
     "type": "typst",
@@ -30,229 +30,355 @@
     {
       "id": "00000000-0000-4000-b000-000000000001",
       "type": "paragraph",
-      "text": "Résumé exécutif placé avant le premier titre. Ce paragraphe doit produire un chunk isolé avec un heading_path vide.",
-      "lang": "fr",
       "location": {
         "page": 1
+      },
+      "text": {
+        "value": "Résumé exécutif placé avant le premier titre. Ce paragraphe doit produire un chunk isolé avec un heading_path vide.",
+        "lang": "fr"
       }
     },
     {
       "id": "00000000-0000-4000-b000-000000000002",
       "type": "heading",
-      "level": 1,
-      "text": "Architecture générale",
-      "heading_path": [
-        "1 Architecture générale"
-      ],
       "label": "ch-architecture",
       "location": {
         "page": 1
       },
+      "level": 1,
+      "numbering": {
+        "value": "1"
+      },
+      "text": {
+        "value": "Architecture générale"
+      },
+      "heading_path": [
+        "1 Architecture générale"
+      ],
       "children": [
         {
           "id": "00000000-0000-4000-b000-000000000003",
           "type": "paragraph",
-          "text": "Le système DCS repose sur trois couches fonctionnelles : acquisition, traitement et supervision.",
-          "lang": "fr",
           "state_metadata": {
             "revision": "4.2",
             "status": "approved"
           },
           "location": {
             "page": 1
+          },
+          "text": {
+            "value": "Le système DCS repose sur trois couches fonctionnelles : acquisition, traitement et supervision.",
+            "lang": "fr"
           }
         },
         {
           "id": "00000000-0000-4000-b000-000000000004",
           "type": "heading",
-          "level": 2,
-          "text": "Couche d'acquisition",
-          "heading_path": [
-            "1 Architecture générale",
-            "1.1 Couche d'acquisition"
-          ],
           "label": "sec-acquisition",
           "location": {
             "page": 2
           },
+          "level": 2,
+          "numbering": {
+            "value": "1.1"
+          },
+          "text": {
+            "value": "Couche d'acquisition",
+            "refs": [
+              {
+                "label": "tab-plages-mesure"
+              }
+            ]
+          },
+          "heading_path": [
+            "1 Architecture générale",
+            "1.1 Couche d'acquisition"
+          ],
           "children": [
             {
               "id": "00000000-0000-4000-b000-000000000005",
               "type": "paragraph",
-              "text": "Les capteurs analogiques et numériques sont regroupés par bus de terrain. Voir le tableau des plages de mesure.",
-              "lang": "fr",
               "location": {
                 "page": 2
               },
-              "refs": [
-                {
-                  "label": "tab-plages-mesure"
-                }
-              ]
+              "text": {
+                "value": "Les capteurs analogiques et numériques sont regroupés par bus de terrain. Voir le tableau des plages de mesure.",
+                "lang": "fr",
+                "refs": [
+                  {
+                    "label": "tab-plages-mesure"
+                  }
+                ]
+              }
             },
             {
               "id": "00000000-0000-4000-b000-000000000006",
               "type": "paragraph",
-              "text": "La fréquence d'échantillonnage nominale est de 10 Hz pour les boucles rapides.",
-              "lang": "fr",
               "location": {
                 "page": 2
+              },
+              "text": {
+                "value": "La fréquence d'échantillonnage nominale est de 10 Hz pour les boucles rapides.",
+                "lang": "fr"
               }
             },
             {
               "id": "00000000-0000-4000-c000-000000000001",
               "type": "figure",
-              "kind": "table",
-              "caption": "Plages de mesure des capteurs de terrain.",
               "location": {
                 "page": 2
+              },
+              "kind": "table",
+              "caption": {
+                "value": "Plages de mesure des capteurs de terrain."
+              },
+              "numbering": {
+                "value": "1",
+                "name": "Table"
               },
               "children": [
                 {
                   "id": "00000000-0000-4000-b000-000000000007",
                   "type": "table",
-                  "content_kind": "content",
                   "label": "tab-plages-mesure",
                   "location": {
                     "page": 2
                   },
+                  "kind": "content",
                   "cells": [
                     {
                       "row": 0,
                       "col": 0,
-                      "rowspan": 1,
                       "colspan": 2,
                       "is_header": true,
-                      "text": "Capteur"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000005",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Capteur"
+                          },
+                          "location": {
+                            "page": 2
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 0,
                       "col": 2,
-                      "rowspan": 1,
-                      "colspan": 1,
                       "is_header": true,
-                      "text": "Plage"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000006",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Plage"
+                          },
+                          "location": {
+                            "page": 2
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 1,
                       "col": 0,
                       "rowspan": 2,
-                      "colspan": 1,
-                      "is_header": false,
-                      "text": "Pression"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000007",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Pression"
+                          },
+                          "location": {
+                            "page": 2
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 1,
                       "col": 1,
-                      "rowspan": 1,
-                      "colspan": 1,
-                      "is_header": false,
-                      "text": "PT-101"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000008",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "PT-101"
+                          },
+                          "location": {
+                            "page": 2
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 1,
                       "col": 2,
-                      "rowspan": 1,
-                      "colspan": 1,
-                      "is_header": false,
-                      "text": "0–16 bar"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000009",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "0–16 bar"
+                          },
+                          "location": {
+                            "page": 2
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 2,
                       "col": 1,
-                      "rowspan": 1,
-                      "colspan": 1,
-                      "is_header": false,
-                      "text": "PT-102"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000010",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "PT-102"
+                          },
+                          "location": {
+                            "page": 2
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 2,
                       "col": 2,
-                      "rowspan": 1,
-                      "colspan": 1,
-                      "is_header": false,
-                      "text": "0–25 bar"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000011",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "0–25 bar"
+                          },
+                          "location": {
+                            "page": 2
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 3,
                       "col": 0,
-                      "rowspan": 1,
-                      "colspan": 1,
-                      "is_header": false,
-                      "text": "Débit"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000012",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Débit"
+                          },
+                          "location": {
+                            "page": 2
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 3,
                       "col": 1,
-                      "rowspan": 1,
-                      "colspan": 1,
-                      "is_header": false,
-                      "text": "FT-201"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000013",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "FT-201"
+                          },
+                          "location": {
+                            "page": 2
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 3,
                       "col": 2,
-                      "rowspan": 1,
-                      "colspan": 1,
-                      "is_header": false,
-                      "text": "0–500 L/min"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000014",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "0–500 L/min"
+                          },
+                          "location": {
+                            "page": 2
+                          }
+                        }
+                      ]
                     }
-                  ],
-                  "raw": {
-                    "format": "typst",
-                    "value": "table(columns: (auto, auto, auto), ..)"
-                  }
+                  ]
                 }
               ],
-              "number": "1",
-              "counter_label": "Table"
+              "raw": {
+                "format": "typst",
+                "value": "table(columns: (auto, auto, auto), ..)"
+              }
             }
-          ],
-          "refs": [
-            {
-              "label": "tab-plages-mesure"
-            }
-          ],
-          "number": "1.1"
+          ]
         },
         {
           "id": "00000000-0000-4000-b000-000000000008",
           "type": "heading",
-          "level": 2,
-          "text": "Couche de traitement",
-          "heading_path": [
-            "1 Architecture générale",
-            "1.2 Couche de traitement"
-          ],
           "label": "sec-traitement",
           "location": {
             "page": 3
           },
+          "level": 2,
+          "numbering": {
+            "value": "1.2"
+          },
+          "text": {
+            "value": "Couche de traitement",
+            "refs": [
+              {
+                "label": "tab-plages-mesure"
+              },
+              {
+                "label": "tab-recap-signaux"
+              }
+            ]
+          },
+          "heading_path": [
+            "1 Architecture générale",
+            "1.2 Couche de traitement"
+          ],
           "children": [
             {
               "id": "00000000-0000-4000-b000-000000000009",
               "type": "paragraph",
-              "text": "Les algorithmes de régulation s'exécutent sur le contrôleur redondant. Les plages capteurs (Table 1) et le récapitulatif annexe (Table 4) doivent rester cohérents.",
-              "lang": "fr",
               "location": {
                 "page": 3
               },
-              "refs": [
-                {
-                  "label": "tab-plages-mesure"
-                },
-                {
-                  "label": "tab-recap-signaux"
-                }
-              ]
+              "text": {
+                "value": "Les algorithmes de régulation s'exécutent sur le contrôleur redondant. Les plages capteurs (Table 1) et le récapitulatif annexe (Table 4) doivent rester cohérents.",
+                "lang": "fr",
+                "refs": [
+                  {
+                    "label": "tab-plages-mesure"
+                  },
+                  {
+                    "label": "tab-recap-signaux"
+                  }
+                ]
+              }
             },
             {
               "id": "00000000-0000-4000-c000-000000000002",
               "type": "figure",
-              "kind": "table",
-              "caption": "Boucles de régulation PID actives.",
               "location": {
                 "page": 3
+              },
+              "kind": "table",
+              "caption": {
+                "value": "Boucles de régulation PID actives."
+              },
+              "numbering": {
+                "value": "2",
+                "name": "Table"
               },
               "children": [
                 {
@@ -267,147 +393,258 @@
                       "row": 0,
                       "col": 0,
                       "is_header": true,
-                      "text": "Boucle"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000015",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Boucle"
+                          },
+                          "location": {
+                            "page": 3
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 0,
                       "col": 1,
                       "is_header": true,
-                      "text": "Mode"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000016",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Mode"
+                          },
+                          "location": {
+                            "page": 3
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 0,
                       "col": 2,
                       "is_header": true,
-                      "text": "Kp"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000017",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Kp"
+                          },
+                          "location": {
+                            "page": 3
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 1,
                       "col": 0,
-                      "is_header": false,
-                      "text": "LC-101"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000018",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "LC-101"
+                          },
+                          "location": {
+                            "page": 3
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 1,
                       "col": 1,
-                      "is_header": false,
-                      "text": "AUTO"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000019",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "AUTO"
+                          },
+                          "location": {
+                            "page": 3
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 1,
                       "col": 2,
-                      "is_header": false,
-                      "text": "1.25"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000020",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "1.25"
+                          },
+                          "location": {
+                            "page": 3
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 2,
                       "col": 0,
-                      "is_header": false,
-                      "text": "FC-202"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000021",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "FC-202"
+                          },
+                          "location": {
+                            "page": 3
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 2,
                       "col": 1,
-                      "is_header": false,
-                      "text": "CASCADE"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000022",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "CASCADE"
+                          },
+                          "location": {
+                            "page": 3
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 2,
                       "col": 2,
-                      "is_header": false,
-                      "text": "0.80"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000023",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "0.80"
+                          },
+                          "location": {
+                            "page": 3
+                          }
+                        }
+                      ]
                     }
                   ]
                 }
-              ],
-              "number": "2",
-              "counter_label": "Table"
+              ]
             }
-          ],
-          "refs": [
-            {
-              "label": "tab-plages-mesure"
-            },
-            {
-              "label": "tab-recap-signaux"
-            }
-          ],
-          "number": "1.2"
+          ]
         }
-      ],
-      "number": "1"
+      ]
     },
     {
       "id": "00000000-0000-4000-b000-000000000011",
       "type": "heading",
-      "level": 1,
-      "text": "Exploitation",
-      "heading_path": [
-        "2 Exploitation"
-      ],
       "label": "ch-exploitation",
       "location": {
         "page": 4
       },
+      "level": 1,
+      "numbering": {
+        "value": "2"
+      },
+      "text": {
+        "value": "Exploitation"
+      },
+      "heading_path": [
+        "2 Exploitation"
+      ],
       "children": [
         {
           "id": "00000000-0000-4000-b000-000000000012",
           "type": "heading",
+          "location": {
+            "page": 4
+          },
           "level": 2,
-          "text": "Surveillance opérateur",
+          "numbering": {
+            "value": "2.1"
+          },
+          "text": {
+            "value": "Surveillance opérateur"
+          },
           "heading_path": [
             "2 Exploitation",
             "2.1 Surveillance opérateur"
           ],
-          "location": {
-            "page": 4
-          },
           "children": [
             {
               "id": "00000000-0000-4000-b000-000000000013",
               "type": "heading",
+              "label": "sec-alarmes",
+              "location": {
+                "page": 4
+              },
               "level": 3,
-              "text": "Gestion des alarmes",
+              "numbering": {
+                "value": "2.1.1"
+              },
+              "text": {
+                "value": "Gestion des alarmes",
+                "refs": [
+                  {
+                    "label": "tab-delais-alarmes"
+                  }
+                ]
+              },
               "heading_path": [
                 "2 Exploitation",
                 "2.1 Surveillance opérateur",
                 "2.1.1 Gestion des alarmes"
               ],
-              "label": "sec-alarmes",
-              "location": {
-                "page": 4
-              },
               "children": [
                 {
                   "id": "00000000-0000-4000-b000-000000000014",
                   "type": "paragraph",
-                  "text": "Les alarmes sont classées en quatre niveaux de criticité : info, avertissement, alarme, critique.",
-                  "lang": "fr",
                   "location": {
                     "page": 4
+                  },
+                  "text": {
+                    "value": "Les alarmes sont classées en quatre niveaux de criticité : info, avertissement, alarme, critique.",
+                    "lang": "fr"
                   }
                 },
                 {
                   "id": "00000000-0000-4000-b000-000000000015",
                   "type": "paragraph",
-                  "text": "Le délai d'acquittement maximal est défini par la politique site. Consulter la matrice des délais.",
-                  "lang": "fr",
                   "location": {
                     "page": 5
                   },
-                  "refs": [
-                    {
-                      "label": "tab-delais-alarmes"
-                    }
-                  ]
+                  "text": {
+                    "value": "Le délai d'acquittement maximal est défini par la politique site. Consulter la matrice des délais.",
+                    "lang": "fr",
+                    "refs": [
+                      {
+                        "label": "tab-delais-alarmes"
+                      }
+                    ]
+                  }
                 },
                 {
                   "id": "00000000-0000-4000-c000-000000000003",
                   "type": "figure",
-                  "kind": "table",
-                  "caption": "Délais d'acquittement par niveau de criticité.",
                   "location": {
                     "page": 5
+                  },
+                  "kind": "table",
+                  "caption": {
+                    "value": "Délais d'acquittement par niveau de criticité."
+                  },
+                  "numbering": {
+                    "value": "3",
+                    "name": "Table"
                   },
                   "children": [
                     {
@@ -423,116 +660,205 @@
                           "col": 0,
                           "colspan": 2,
                           "is_header": true,
-                          "text": "Niveau"
+                          "children": [
+                            {
+                              "id": "00000000-0000-4000-c000-000000000024",
+                              "type": "paragraph",
+                              "text": {
+                                "value": "Niveau"
+                              },
+                              "location": {
+                                "page": 5
+                              }
+                            }
+                          ]
                         },
                         {
                           "row": 0,
                           "col": 2,
                           "is_header": true,
-                          "text": "Délai max"
+                          "children": [
+                            {
+                              "id": "00000000-0000-4000-c000-000000000025",
+                              "type": "paragraph",
+                              "text": {
+                                "value": "Délai max"
+                              },
+                              "location": {
+                                "page": 5
+                              }
+                            }
+                          ]
                         },
                         {
                           "row": 1,
                           "col": 0,
-                          "is_header": false,
-                          "text": "Info"
+                          "children": [
+                            {
+                              "id": "00000000-0000-4000-c000-000000000026",
+                              "type": "paragraph",
+                              "text": {
+                                "value": "Info"
+                              },
+                              "location": {
+                                "page": 5
+                              }
+                            }
+                          ]
                         },
                         {
                           "row": 1,
                           "col": 1,
-                          "is_header": false,
-                          "text": "—"
+                          "children": [
+                            {
+                              "id": "00000000-0000-4000-c000-000000000027",
+                              "type": "paragraph",
+                              "text": {
+                                "value": "—"
+                              },
+                              "location": {
+                                "page": 5
+                              }
+                            }
+                          ]
                         },
                         {
                           "row": 1,
                           "col": 2,
-                          "is_header": false,
-                          "text": "24 h"
+                          "children": [
+                            {
+                              "id": "00000000-0000-4000-c000-000000000028",
+                              "type": "paragraph",
+                              "text": {
+                                "value": "24 h"
+                              },
+                              "location": {
+                                "page": 5
+                              }
+                            }
+                          ]
                         },
                         {
                           "row": 2,
                           "col": 0,
-                          "is_header": false,
-                          "text": "Critique"
+                          "children": [
+                            {
+                              "id": "00000000-0000-4000-c000-000000000029",
+                              "type": "paragraph",
+                              "text": {
+                                "value": "Critique"
+                              },
+                              "location": {
+                                "page": 5
+                              }
+                            }
+                          ]
                         },
                         {
                           "row": 2,
                           "col": 1,
-                          "is_header": false,
-                          "text": "P1"
+                          "children": [
+                            {
+                              "id": "00000000-0000-4000-c000-000000000030",
+                              "type": "paragraph",
+                              "text": {
+                                "value": "P1"
+                              },
+                              "location": {
+                                "page": 5
+                              }
+                            }
+                          ]
                         },
                         {
                           "row": 2,
                           "col": 2,
-                          "is_header": false,
-                          "text": "5 min"
+                          "children": [
+                            {
+                              "id": "00000000-0000-4000-c000-000000000031",
+                              "type": "paragraph",
+                              "text": {
+                                "value": "5 min"
+                              },
+                              "location": {
+                                "page": 5
+                              }
+                            }
+                          ]
                         }
                       ]
                     }
-                  ],
-                  "number": "3",
-                  "counter_label": "Table"
+                  ]
                 }
-              ],
-              "refs": [
-                {
-                  "label": "tab-delais-alarmes"
-                }
-              ],
-              "number": "2.1.1"
+              ]
             }
-          ],
-          "number": "2.1"
+          ]
         },
         {
           "id": "00000000-0000-4000-b000-000000000017",
           "type": "heading",
-          "level": 2,
-          "text": "Maintenance préventive",
-          "heading_path": [
-            "2 Exploitation",
-            "2.2 Maintenance préventive"
-          ],
           "label": "sec-maintenance",
           "location": {
             "page": 5
           },
+          "level": 2,
+          "numbering": {
+            "value": "2.2"
+          },
+          "text": {
+            "value": "Maintenance préventive"
+          },
+          "heading_path": [
+            "2 Exploitation",
+            "2.2 Maintenance préventive"
+          ],
           "children": [
             {
               "id": "00000000-0000-4000-b000-000000000018",
               "type": "paragraph",
-              "text": "Les interventions planifiées suivent le calendrier OEM. Aucune table n'est associée à cette section.",
-              "lang": "fr",
               "location": {
                 "page": 5
+              },
+              "text": {
+                "value": "Les interventions planifiées suivent le calendrier OEM. Aucune table n'est associée à cette section.",
+                "lang": "fr"
               }
             }
-          ],
-          "number": "2.2"
+          ]
         }
-      ],
-      "number": "2"
+      ]
     },
     {
       "id": "00000000-0000-4000-b000-000000000019",
       "type": "heading",
-      "level": 1,
-      "text": "Annexes",
-      "heading_path": [
-        "3 Annexes"
-      ],
       "label": "ch-annexes",
       "location": {
         "page": 6
       },
+      "level": 1,
+      "numbering": {
+        "value": "3"
+      },
+      "text": {
+        "value": "Annexes"
+      },
+      "heading_path": [
+        "3 Annexes"
+      ],
       "children": [
         {
           "id": "00000000-0000-4000-c000-000000000004",
           "type": "figure",
-          "kind": "table",
-          "caption": "Récapitulatif des signaux instrumentés.",
           "location": {
             "page": 6
+          },
+          "kind": "table",
+          "caption": {
+            "value": "Récapitulatif des signaux instrumentés."
+          },
+          "numbering": {
+            "value": "4",
+            "name": "Table"
           },
           "children": [
             {
@@ -547,64 +873,154 @@
                   "row": 0,
                   "col": 0,
                   "is_header": true,
-                  "text": "Tag"
+                  "children": [
+                    {
+                      "id": "00000000-0000-4000-c000-000000000032",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "Tag"
+                      },
+                      "location": {
+                        "page": 6
+                      }
+                    }
+                  ]
                 },
                 {
                   "row": 0,
                   "col": 1,
                   "is_header": true,
-                  "text": "Unité"
+                  "children": [
+                    {
+                      "id": "00000000-0000-4000-c000-000000000033",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "Unité"
+                      },
+                      "location": {
+                        "page": 6
+                      }
+                    }
+                  ]
                 },
                 {
                   "row": 0,
                   "col": 2,
                   "is_header": true,
-                  "text": "Bus"
+                  "children": [
+                    {
+                      "id": "00000000-0000-4000-c000-000000000034",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "Bus"
+                      },
+                      "location": {
+                        "page": 6
+                      }
+                    }
+                  ]
                 },
                 {
                   "row": 1,
                   "col": 0,
-                  "is_header": false,
-                  "text": "PT-101"
+                  "children": [
+                    {
+                      "id": "00000000-0000-4000-c000-000000000035",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "PT-101"
+                      },
+                      "location": {
+                        "page": 6
+                      }
+                    }
+                  ]
                 },
                 {
                   "row": 1,
                   "col": 1,
-                  "is_header": false,
-                  "text": "bar"
+                  "children": [
+                    {
+                      "id": "00000000-0000-4000-c000-000000000036",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "bar"
+                      },
+                      "location": {
+                        "page": 6
+                      }
+                    }
+                  ]
                 },
                 {
                   "row": 1,
                   "col": 2,
-                  "is_header": false,
-                  "text": "Profibus"
+                  "children": [
+                    {
+                      "id": "00000000-0000-4000-c000-000000000037",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "Profibus"
+                      },
+                      "location": {
+                        "page": 6
+                      }
+                    }
+                  ]
                 },
                 {
                   "row": 2,
                   "col": 0,
-                  "is_header": false,
-                  "text": "FT-201"
+                  "children": [
+                    {
+                      "id": "00000000-0000-4000-c000-000000000038",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "FT-201"
+                      },
+                      "location": {
+                        "page": 6
+                      }
+                    }
+                  ]
                 },
                 {
                   "row": 2,
                   "col": 1,
-                  "is_header": false,
-                  "text": "L/min"
+                  "children": [
+                    {
+                      "id": "00000000-0000-4000-c000-000000000039",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "L/min"
+                      },
+                      "location": {
+                        "page": 6
+                      }
+                    }
+                  ]
                 },
                 {
                   "row": 2,
                   "col": 2,
-                  "is_header": false,
-                  "text": "Modbus"
+                  "children": [
+                    {
+                      "id": "00000000-0000-4000-c000-000000000040",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "Modbus"
+                      },
+                      "location": {
+                        "page": 6
+                      }
+                    }
+                  ]
                 }
               ]
             }
-          ],
-          "number": "4",
-          "counter_label": "Table"
+          ]
         }
-      ],
-      "number": "3"
+      ]
     }
   ],
   "bibliography": [],

@@ -1,5 +1,5 @@
 {
-  "cnd_version": "0.3.0",
+  "cnd_version": "0.5.0",
   "built_at": "2026-05-20T10:00:00Z",
   "source": {
     "type": "typst",
@@ -27,23 +27,29 @@
     {
       "id": "550e8400-e29b-41d4-a716-446655440001",
       "type": "heading",
-      "level": 1,
-      "number": "1",
-      "text": "Introduction",
-      "heading_path": [
-        "1 Introduction"
-      ],
       "location": {
         "page": 1
       },
+      "level": 1,
+      "numbering": {
+        "value": "1"
+      },
+      "text": {
+        "value": "Introduction"
+      },
+      "heading_path": [
+        "1 Introduction"
+      ],
       "children": [
         {
           "id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "paragraph",
-          "text": "Premier paragraphe du document.",
-          "lang": "fr",
           "location": {
             "page": 1
+          },
+          "text": {
+            "value": "Premier paragraphe du document.",
+            "lang": "fr"
           }
         }
       ]

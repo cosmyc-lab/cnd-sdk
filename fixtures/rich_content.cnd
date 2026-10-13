@@ -1,5 +1,5 @@
 {
-  "cnd_version": "0.3.0",
+  "cnd_version": "0.5.0",
   "built_at": "2026-07-01T09:00:00Z",
   "source": {
     "type": "typst",
@@ -29,130 +29,168 @@
     {
       "id": "00000000-0000-4000-d000-000000000001",
       "type": "heading",
-      "level": 1,
-      "text": "Interfaces",
-      "heading_path": [
-        "1 Interfaces"
-      ],
       "label": "ch-interfaces",
       "location": {
         "page": 1
       },
+      "level": 1,
+      "numbering": {
+        "value": "1"
+      },
+      "text": {
+        "value": "Interfaces"
+      },
+      "heading_path": [
+        "1 Interfaces"
+      ],
       "children": [
         {
           "id": "00000000-0000-4000-d000-000000000002",
           "type": "paragraph",
-          "text": "Selon Smith et al., l'interface expose un point d'accès REST documenté dans le listing 1.",
-          "lang": "fr",
-          "refs": [
-            {
-              "label": "lst-api",
-              "text_span": [
-                77,
-                88
-              ]
-            }
-          ],
-          "cites": [
-            {
-              "label": "smith2024",
-              "text_span": [
-                6,
-                18
-              ],
-              "form": "prose",
-              "supplement": "p. 12"
-            }
-          ],
-          "footnotes": [
-            {
-              "label": "fn-rest",
-              "text_span": [
-                57,
-                61
-              ]
-            }
-          ],
           "location": {
             "page": 1
+          },
+          "text": {
+            "value": "Selon Smith et al., l'interface expose un point d'accès REST documenté dans le listing 1.",
+            "lang": "fr",
+            "refs": [
+              {
+                "label": "lst-api",
+                "text_span": [
+                  77,
+                  88
+                ]
+              }
+            ],
+            "cites": [
+              {
+                "label": "smith2024",
+                "text_span": [
+                  6,
+                  18
+                ],
+                "form": "prose",
+                "supplement": "p. 12"
+              }
+            ],
+            "footnotes": [
+              {
+                "label": "fn-rest",
+                "text_span": [
+                  57,
+                  61
+                ]
+              }
+            ]
           }
         },
         {
           "id": "00000000-0000-4000-d000-000000000003",
           "type": "terms",
-          "tight": true,
-          "items": [
-            {
-              "term": "Endpoint",
-              "description": "URL stable exposée par le serveur."
-            },
-            {
-              "term": "Jeton",
-              "description": "Secret porteur transmis dans l'en-tête Authorization."
-            }
-          ],
           "location": {
             "page": 1
-          }
+          },
+          "items": [
+            {
+              "term": {
+                "value": "Endpoint"
+              },
+              "children": [
+                {
+                  "id": "00000000-0000-4000-c000-000000000001",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "URL stable exposée par le serveur."
+                  },
+                  "location": {
+                    "page": 1
+                  }
+                }
+              ]
+            },
+            {
+              "term": {
+                "value": "Jeton"
+              },
+              "children": [
+                {
+                  "id": "00000000-0000-4000-c000-000000000002",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Secret porteur transmis dans l'en-tête Authorization."
+                  },
+                  "location": {
+                    "page": 1
+                  }
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "00000000-0000-4000-d000-000000000004",
           "type": "figure",
-          "kind": "listing",
           "label": "lst-api",
-          "caption": "Appel du point d'accès de santé.",
           "location": {
             "page": 2
+          },
+          "kind": "listing",
+          "caption": {
+            "value": "Appel du point d'accès de santé."
+          },
+          "numbering": {
+            "value": "1",
+            "name": "Listing"
           },
           "children": [
             {
               "id": "00000000-0000-4000-d000-000000000005",
               "type": "code",
-              "text": "curl -s https://api.example.com/health",
-              "lang": "bash",
-              "block": true,
               "location": {
                 "page": 2
-              }
+              },
+              "text": "curl -s https://api.example.com/health",
+              "lang": "bash"
             }
-          ],
-          "number": "1",
-          "counter_label": "Listing"
+          ]
         },
         {
           "id": "00000000-0000-4000-d000-000000000006",
           "type": "image",
-          "path": "figures/architecture.png",
-          "alt": "Schéma d'architecture des interfaces",
           "location": {
             "page": 2
-          }
+          },
+          "path": "figures/architecture.png",
+          "alt": "Schéma d'architecture des interfaces"
         },
         {
           "id": "00000000-0000-4000-d000-000000000007",
           "type": "figure",
-          "kind": "image",
           "label": "fig-flux",
-          "caption": "Flux d'authentification.",
           "location": {
             "page": 3
+          },
+          "kind": "image",
+          "caption": {
+            "value": "Flux d'authentification."
+          },
+          "numbering": {
+            "value": "1",
+            "name": "Figure"
           },
           "children": [
             {
               "id": "00000000-0000-4000-d000-000000000008",
               "type": "image",
-              "path": "figures/auth-flow.png",
-              "alt": "Diagramme de séquence du flux d'authentification",
               "location": {
                 "page": 3
-              }
+              },
+              "path": "figures/auth-flow.png",
+              "alt": "Diagramme de séquence du flux d'authentification"
             }
-          ],
-          "number": "1",
-          "counter_label": "Figure"
+          ]
         }
-      ],
-      "number": "1"
+      ]
     }
   ],
   "bibliography": [
@@ -169,7 +207,9 @@
       "container": "Journal of Systems Integration",
       "doi": "10.1000/jsi.2024.12345",
       "url": "https://example.org/jsi/12345",
-      "formatted": "Smith, J., & Doe, A. (2024). Designing resilient REST interfaces. Journal of Systems Integration, 12(3), 45–58.",
+      "formatted": {
+        "value": "Smith, J., & Doe, A. (2024). Designing resilient REST interfaces. Journal of Systems Integration, 12(3), 45–58."
+      },
       "fields": {
         "type": "article",
         "title": "Designing resilient REST interfaces",
@@ -195,7 +235,18 @@
     {
       "id": "00000000-0000-4000-d000-000000000200",
       "label": "fn-rest",
-      "text": "REST : Representational State Transfer."
+      "children": [
+        {
+          "id": "00000000-0000-4000-c000-000000000003",
+          "type": "paragraph",
+          "text": {
+            "value": "REST : Representational State Transfer."
+          },
+          "location": {
+            "page": 1
+          }
+        }
+      ]
     }
   ]
 }
