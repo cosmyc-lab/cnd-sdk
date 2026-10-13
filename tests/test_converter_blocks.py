@@ -345,3 +345,29 @@ class TestNestedHeadings:
         quote = QuoteNode(type="quote", id=uuid4(), children=[outer])
         out = MarkdownRenderer().render(quote)
         assert out == "> ### Outer\n>\n> #### Deep\n>\n> DEEP-TEXT\n>\n> AFTER-DEEP"
+
+
+class TestFrontMatterScalars:
+    CONTROLS = (
+        [chr(c) for c in range(0x20) if chr(c) not in "\n\r\t"]
+        + ["\x7f", "\x85", " ", " "]
+    )
+
+    @pytest.mark.parametrize("ch", CONTROLS)
+    def test_a_control_character_is_escaped(self, ch: str) -> None:
+        from cnd.converters.markdown import _yaml_scalar
+
+        out = _yaml_scalar(f"a{ch}b")
+        assert out == f'"a\\u{ord(ch):04x}b"'
+        assert ch not in out
+
+    def test_front_matter_parses_back(self) -> None:
+        yaml = pytest.importorskip("yaml")
+        nasty = "t\x00i\x1bt\x7fl\x85e x y \"q\" \\ \n\r\t"
+        doc = DocMetadata(title=nasty, extra={"k\x01": "v "})
+        text = MarkdownConverter().convert(_cnd([para("x")], doc=doc)).text
+        front = text.split("---\n")[1]
+        assert " " not in front and "\x85" not in front
+        data = yaml.safe_load(front)
+        assert data["title"] == nasty
+        assert data["extra"] == {"k\x01": "v "}

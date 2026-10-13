@@ -4,6 +4,8 @@ Target 1 of docs/proposals/0007, built directly on
 ``cnd.core.render.MarkdownRenderer``.
 """
 
+import re
+
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
 from cnd.core.markdown_escape import escape_destination, escape_inline
 from cnd.core.nodes import CndNode, HeadingNode, ParagraphNode
@@ -290,8 +292,16 @@ def _yaml_scalar(value: str) -> str:
 
     Quoting unconditionally sidesteps the whole plain-scalar minefield
     (leading ``@``, a colon, ``yes``/``no``) without pulling in a YAML
-    library — the SDK's dependency floor is deliberate.
+    library — the SDK's dependency floor is deliberate. Every control
+    character and Unicode line break is written as an escape.
     """
     escaped = value.replace("\\", "\\\\").replace('"', '\\"')
     escaped = escaped.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+    escaped = _YAML_UNPRINTABLE.sub(lambda m: f"\\u{ord(m.group()):04x}", escaped)
     return f'"{escaped}"'
+
+
+_YAML_UNPRINTABLE = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\x85\u2028\u2029]")
+"""What YAML forbids or reads as a line break inside a scalar: the C0
+controls other than tab and the two newlines (escaped by name), DEL, NEL
+and the Unicode line and paragraph separators."""
