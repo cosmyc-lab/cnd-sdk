@@ -48,7 +48,7 @@ class TestParagraphMarks:
 
     def test_text_only_renders_no_html(self) -> None:
         text = rt("x 103 y", marks=[Mark(start=4, end=5, kind="sup")])
-        assert MarkdownRenderer(text_only=True).render(para(text)) == "x 103 y"
+        assert MarkdownRenderer(text_only=True).render(para(text)) == "x 10^3 y"
 
     def test_escape_skips_code_marks(self) -> None:
         text = rt("use *a* or *b*", marks=[Mark(start=4, end=7, kind="code")])
@@ -419,3 +419,248 @@ class TestPrefixBeforeABlock:
         items = [t for t in tokens if t.type == "list_item_open" and t.level == 1]
         assert len(items) == 2
         assert any(t.type == "inline" and t.content == "nxt" for t in tokens)
+
+
+class TestMathBlock:
+    @staticmethod
+    def _math(text: str = "E = mc^2", **kwargs):
+        from cnd.core.nodes import MathNode
+
+        return MathNode(type="math", text=text, **kwargs, **_id())
+
+    def test_math_is_a_math_fence(self) -> None:
+        out = R.render(self._math("a * b_1"))
+        assert out == "```math\na * b_1\n```"
+        tokens = _parse(out)
+        assert [t.type for t in tokens] == ["fence"]
+        assert tokens[0].info == "math" and tokens[0].content == "a * b_1\n"
+
+    @pytest.mark.parametrize("fmt", ["latex", "LaTeX", "LATEX"])
+    def test_latex_source_wins_over_text(self, fmt: str) -> None:
+        from cnd.core.text import RawSource
+
+        node = self._math("E = mc2", raw=RawSource(format=fmt, value="E = mc^2\n"))
+        assert R.render(node) == "```math\nE = mc^2\n```"
+
+    @pytest.mark.parametrize("fmt", ["typst", "mathml", "tex-ish"])
+    def test_other_source_formats_render_the_text(self, fmt: str) -> None:
+        from cnd.core.text import RawSource
+
+        node = self._math("E = mc2", raw=RawSource(format=fmt, value="$ E = m c^2 $"))
+        assert R.render(node) == "```math\nE = mc2\n```"
+
+    def test_fence_outgrows_backticks_in_the_source(self) -> None:
+        out = R.render(self._math("x ```` y"))
+        assert out.startswith("`````math\n") and out.endswith("\n`````")
+        assert [t.type for t in _parse(out)] == ["fence"]
+
+    def test_numbering_value_follows_the_fence(self) -> None:
+        node = self._math(numbering=Numbering(name="Equation", value="3"))
+        out = MarkdownRenderer(escape=True).render(node)
+        assert out == "```math\nE = mc^2\n```\n(3)"
+        types = [t.type for t in _parse(out)]
+        assert types == ["fence", "paragraph_open", "inline", "paragraph_close"]
+
+    def test_a_parenthesized_value_is_not_wrapped_twice(self) -> None:
+        node = self._math(numbering=Numbering(value="(2)"))
+        assert R.render(node) == "```math\nE = mc^2\n```\n(2)"
+
+    def test_an_empty_value_adds_no_line(self) -> None:
+        node = self._math(numbering=Numbering(value=""))
+        assert R.render(node) == "```math\nE = mc^2\n```"
+
+    def test_text_only_is_the_same(self) -> None:
+        node = self._math(numbering=Numbering(value="1"))
+        assert MarkdownRenderer(text_only=True).render(node) == R.render(node)
+
+
+class TestBlockAfterANestedList:
+    @staticmethod
+    def _node():
+        return _list(item(para("parent"), _list(item("child")), para("after")), item("next"))
+
+    def test_markdown_list_is_loose(self) -> None:
+        out = R.render(self._node())
+        tokens = _parse(out)
+        after = next(i for i, t in enumerate(tokens) if t.type == "inline" and t.content == "after")
+        # The paragraph belongs to the outer item, not the nested one's.
+        assert tokens[after - 1].type == "paragraph_open"
+        outer_items = [t for t in tokens if t.type == "list_item_open" and t.level == 1]
+        assert len(outer_items) == 2
+        nested_close = next(i for i, t in enumerate(tokens) if t.type == "bullet_list_close" and t.level == 2)
+        assert nested_close < after
+        assert not tokens[after - 1].hidden  # loose: a real paragraph
+
+    def test_list_first_then_paragraph(self) -> None:
+        node = _list(item(_list(item("child")), para("after")))
+        tokens = _parse(R.render(node))
+        after = next(i for i, t in enumerate(tokens) if t.type == "inline" and t.content == "after")
+        nested_close = next(i for i, t in enumerate(tokens) if t.type == "bullet_list_close" and t.level == 2)
+        assert nested_close < after
+
+    def test_a_trailing_nested_list_stays_tight(self) -> None:
+        node = _list(item(para("parent"), _list(item("child"))), item("next"))
+        assert R.render(node) == "- parent\n  - child\n- next"
+
+    def test_html_item_wraps_its_paragraphs(self) -> None:
+        from cnd.converters.html import HtmlNodeRenderer
+
+        node = _list(item(_list(item("child")), para("after")))
+        assert HtmlNodeRenderer().render(node) == (
+            "<ul><li><ul><li>child</li></ul><p>after</p></li></ul>"
+        )
+
+    def test_html_trailing_nested_list_stays_tight(self) -> None:
+        from cnd.converters.html import HtmlNodeRenderer
+
+        node = _list(item(para("parent"), _list(item("child"))))
+        assert HtmlNodeRenderer().render(node) == "<ul><li>parent<ul><li>child</li></ul></li></ul>"
+
+
+class TestMarkdownImageSource:
+    @staticmethod
+    def _tokens(md: str) -> list:
+        tokens = MarkdownIt("commonmark").parse(md)
+        flat = list(tokens)
+        for token in tokens:
+            flat.extend(token.children or [])
+        return flat
+
+    @pytest.mark.parametrize("path", [
+        "javascript:alert(1)",
+        " javascript:alert(1)",
+        "vbscript:x",
+        "data:text/html,<script>alert(1)</script>",
+        "file:///etc/passwd",
+    ])
+    def test_unsafe_source_is_the_placeholder(self, path: str) -> None:
+        node = ImageNode(type="image", path=path, alt="A cat", **_id())
+        out = R.render(node)
+        assert out == f'[[image:{node.id} alt="A cat"]]'
+        assert "image" not in [t.type for t in self._tokens(out)]
+
+    @pytest.mark.parametrize("path", [
+        "javascript&colon;alert(1)",
+        "javascript&#58;alert(1)",
+        "javascript\\:alert(1)",
+        "a&amp;b.png",
+        "dir\\x.png",
+    ])
+    def test_destination_parses_back_to_the_checked_path(self, path: str) -> None:
+        from urllib.parse import unquote
+
+        node = ImageNode(type="image", path=path, alt="A", **_id())
+        images = [t for t in self._tokens(R.render(node)) if t.type == "image"]
+        assert len(images) == 1
+        assert unquote(images[0].attrs["src"]) == path
+
+    @pytest.mark.parametrize("path", [
+        "a\n\n![t](https://t/p.gif)",
+        "a\n# [x](intent:e)",
+        "a\r> q",
+    ])
+    def test_a_line_ending_in_the_path_stays_inside(self, path: str) -> None:
+        node = ImageNode(type="image", path=path, alt="A", **_id())
+        types = [t.type for t in self._tokens(R.render(node))]
+        assert types.count("image") == 1
+        assert "heading_open" not in types and "blockquote_open" not in types
+        assert "link_open" not in types
+
+    @pytest.mark.parametrize("alt", ["a\n\n# h", "a\r> q", "a\n\n![t](https://t/p.gif)"])
+    def test_a_line_ending_in_the_alt_stays_inside(self, alt: str) -> None:
+        node = ImageNode(type="image", path="a.png", alt=alt, **_id())
+        types = [t.type for t in self._tokens(R.render(node))]
+        assert types.count("image") == 1
+        assert "heading_open" not in types and "blockquote_open" not in types
+
+    def test_a_line_ending_in_a_placeholder_alt_stays_on_its_line(self) -> None:
+        node = ImageNode(type="image", path="javascript:x", alt="a\n\n# h", **_id())
+        out = R.render(node)
+        assert "\n" not in out
+        node = ImageNode(type="image", alt="a\r\n# h", **_id())
+        assert "\n" not in R.render(node) and "\r" not in R.render(node)
+
+    def test_data_image_is_kept(self) -> None:
+        node = ImageNode(type="image", path="data:image/png;base64,AAAA", alt="A", **_id())
+        assert R.render(node) == "![A](data:image/png;base64,AAAA)"
+
+
+HOSTILE = [
+    'x <img src=x onerror=alert(1)>',
+    'x](ms-msdt:e)',
+    '"](ms-msdt:e) [y',
+    'a <img src=x onerror=alert(1)>\n\n[x](ms-msdt:e)\r# h\u0085> q',
+    'x <https://t.example/p> ![t](https://t/p.gif) &lt;b&gt; ]] [[',
+]
+FORBIDDEN = {"html_inline", "html_block", "link_open", "image", "heading_open", "blockquote_open"}
+
+
+def _all_tokens(markdown: str) -> list:
+    tokens = MarkdownIt("commonmark").parse(markdown)
+    flat = list(tokens)
+    for token in tokens:
+        flat.extend(token.children or [])
+    return flat
+
+
+class TestPlaceholdersAreInert:
+    """Text a placeholder carries cannot become Markdown structure."""
+
+    @pytest.mark.parametrize("alt", HOSTILE)
+    @pytest.mark.parametrize("path", [None, "javascript:z"])
+    @pytest.mark.parametrize("text_only", [False, True])
+    def test_image_placeholder(self, alt, path, text_only) -> None:
+        node = ImageNode(type="image", path=path, alt=alt, **_id())
+        out = MarkdownRenderer(escape=True, text_only=text_only).render(node)
+        assert out.startswith(f"[[image:{node.id} alt=") and "\n" not in out
+        assert not FORBIDDEN & {t.type for t in _all_tokens(out)}
+
+    def test_image_placeholder_alt_is_quoted(self) -> None:
+        node = ImageNode(type="image", alt='say "hi"', **_id())
+        assert MarkdownRenderer().render(node) == f'[[image:{node.id} alt="say \\"hi\\""]]'
+
+    @pytest.mark.parametrize("hostile", HOSTILE)
+    def test_figure_placeholder(self, hostile) -> None:
+        from cnd.core.text import RawSource
+
+        node = FigureNode(
+            type="figure", kind=hostile, caption=rt(hostile), description=rt(hostile),
+            numbering=Numbering(value=hostile, name=hostile),
+            raw=RawSource(format="typst", value="#x"), **_id(),
+        )
+        out = MarkdownRenderer(escape=True, figures="inline").render(node)
+        assert out.startswith(f"[[figure:{node.id} ")
+        assert not FORBIDDEN & {t.type for t in _all_tokens(out)}
+
+    @pytest.mark.parametrize("hostile", HOSTILE)
+    def test_table_placeholder(self, hostile) -> None:
+        node = TableNode(type="table", kind=hostile, cells=[
+            cell(0, 0, hostile, is_header=True), cell(1, 0, hostile),
+        ], **_id())
+        out = MarkdownRenderer(escape=True, tables="placeholder").render(node)
+        assert out.startswith(f"[[figure:{node.id} ")
+        assert not FORBIDDEN & {t.type for t in _all_tokens(out)}
+
+    @pytest.mark.parametrize("hostile", HOSTILE)
+    def test_heading_numbering(self, hostile) -> None:
+        from cnd.core.nodes import HeadingNode
+
+        node = HeadingNode(type="heading", level=2, text=rt("T"), heading_path=["T"],
+                           numbering=Numbering(value=hostile, name=hostile), **_id())
+        out = MarkdownRenderer(escape=True, heading_numbers=True).render(node)
+        types = [t.type for t in _all_tokens(out)]
+        assert types.count("heading_open") == 1
+        assert not (FORBIDDEN - {"heading_open"}) & set(types)
+
+    def test_without_escape_placeholders_stay_verbatim(self) -> None:
+        node = ImageNode(type="image", alt="a [b] <c>", **_id())
+        assert MarkdownRenderer().render(node) == f'[[image:{node.id} alt="a [b] <c>"]]'
+
+
+@pytest.mark.parametrize("alt", ["a ``` x", "a `", "<https://t.example/p", '<span title="'])
+@pytest.mark.parametrize("path", ["a\n```\n[x](ms-msdt:e)", 'b.png ">', "c.png"])
+def test_an_image_alt_cannot_reach_into_its_destination(alt, path) -> None:
+    node = ImageNode(type="image", path=path, alt=alt, **_id())
+    types = [t.type for t in _all_tokens(R.render(node))]
+    assert types.count("image") == 1
+    assert not {"link_open", "code_inline", "html_inline", "html_block"} & set(types)

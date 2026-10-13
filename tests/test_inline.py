@@ -6,7 +6,7 @@ from markdown_it import MarkdownIt
 
 from factories import rt
 
-from cnd.core.inline import concat_texts, render_inline, with_whole_mark
+from cnd.core.inline import concat_texts, render_inline, with_whole_mark, wrapped_edges
 from cnd.core.text import LinkRef, Mark, NodeRef, RawSource
 
 
@@ -47,7 +47,7 @@ class TestMarkdownMarks:
     def test_every_kind(self, kind: str, expected: str) -> None:
         assert md(rt("a bc d", marks=[m(2, 4, kind)])) == expected
 
-    @pytest.mark.parametrize("kind", ["sup", "sub", "underline", "highlight"])
+    @pytest.mark.parametrize("kind", ["underline", "highlight"])
     def test_text_only_drops_the_html_marks(self, kind: str) -> None:
         assert md(rt("a bc d", marks=[m(2, 4, kind)]), text_only=True) == "a bc d"
 
@@ -194,6 +194,60 @@ class TestEdges:
         text = rt("abc", refs=[NodeRef(label="x", text_span=[0, 3])])
         assert render_inline(text, "html", edge_wrap=lambda e: None) == "abc"
 
+    def test_an_edge_inside_another_is_dropped(self) -> None:
+        outer, inner = LinkRef(href="o", text_span=[0, 6]), LinkRef(href="i", text_span=[2, 4])
+        text = rt("abcdef", links=[inner, outer])
+        out = render_inline(text, "html", edge_wrap=self._anchor)
+        assert out == '<a href="o">abcdef</a>'
+        assert wrapped_edges(text, self._anchor) == [outer]
+
+    def test_of_two_crossing_edges_the_first_wins(self) -> None:
+        first, second = LinkRef(href="1", text_span=[0, 4]), LinkRef(href="2", text_span=[2, 6])
+        text = rt("abcdef", links=[second, first])
+        out = render_inline(text, "html", edge_wrap=self._anchor)
+        assert out == '<a href="1">abcd</a>ef'
+        assert wrapped_edges(text, self._anchor) == [first]
+
+    def test_of_two_equal_spans_the_first_listed_wins(self) -> None:
+        a, b = LinkRef(href="a", text_span=[0, 2]), LinkRef(href="b", text_span=[0, 2])
+        text = rt("ab", links=[a, b])
+        assert render_inline(text, "html", edge_wrap=self._anchor) == '<a href="a">ab</a>'
+        assert wrapped_edges(text, self._anchor) == [a]
+
+    def test_an_unwrapped_edge_does_not_block_another(self) -> None:
+        outer, inner = LinkRef(href="bad", text_span=[0, 6]), LinkRef(href="i", text_span=[2, 4])
+        wrap = lambda e: None if e.href == "bad" else self._anchor(e)  # noqa: E731
+        text = rt("abcdef", links=[outer, inner])
+        assert render_inline(text, "html", edge_wrap=wrap) == 'ab<a href="i">cd</a>ef'
+        assert wrapped_edges(text, wrap) == [inner]
+
+    def test_adjacent_edges_both_render(self) -> None:
+        a, b = LinkRef(href="a", text_span=[0, 2]), LinkRef(href="b", text_span=[2, 4])
+        text = rt("abcd", links=[a, b])
+        assert wrapped_edges(text, self._anchor) == [a, b]
+
+    @pytest.mark.parametrize("span", [[1, 1], [5, 9], [3, 2], [1]])
+    def test_an_empty_or_malformed_span_is_not_wrapped(self, span) -> None:
+        link = LinkRef(href="u", text_span=span)
+        text = rt("abcd", links=[link])
+        assert render_inline(text, "html", edge_wrap=self._anchor) == "abcd"
+        assert wrapped_edges(text, self._anchor) == []
+
+    @pytest.mark.parametrize("kind", ["code", "math"])
+    def test_an_edge_inside_an_atom_is_not_wrapped(self, kind) -> None:
+        link = LinkRef(href="u", text_span=[2, 4])
+        text = rt("abcdef", marks=[m(1, 5, kind)], links=[link])
+        assert 'href="u"' not in render_inline(text, "html", edge_wrap=self._anchor)
+        assert wrapped_edges(text, self._anchor) == []
+
+    def test_an_edge_reaching_into_an_atom_is_wrapped_outside_it(self) -> None:
+        link = LinkRef(href="u", text_span=[0, 3])
+        text = rt("abcdef", marks=[m(2, 5, "code")], links=[link])
+        assert render_inline(text, "html", edge_wrap=self._anchor) == (
+            '<a href="u">ab</a><code>cde</code>f'
+        )
+        assert wrapped_edges(text, self._anchor) == [link]
+
 
 class TestComposition:
     def test_concat_shifts_marks(self) -> None:
@@ -256,3 +310,83 @@ class TestFlankingOnTheRenderedEdge:
         out = md(text, text_only=True)
         assert out == "abc*de*fgh"
         assert parsed(out) == "<p>abc<em>de</em>fgh</p>"
+
+
+class TestTextOnlySupSub:
+    @pytest.mark.parametrize(("kind", "escape", "expected"), [
+        ("sup", False, "10^3"),
+        ("sup", True, "10^3"),
+        ("sub", False, "10_3"),
+        ("sub", True, "10\\_3"),
+    ])
+    def test_one_character(self, kind: str, escape: bool, expected: str) -> None:
+        out = md(rt("103", marks=[m(2, 3, kind)]), text_only=True, escape=escape)
+        assert out == expected
+
+    @pytest.mark.parametrize(("kind", "escape", "expected"), [
+        ("sup", False, "x^(n+1)"),
+        ("sup", True, "x^(n+1)"),
+        ("sub", False, "x_(n+1)"),
+        ("sub", True, "x\\_(n+1)"),
+    ])
+    def test_several_characters(self, kind: str, escape: bool, expected: str) -> None:
+        out = md(rt("xn+1", marks=[m(1, 4, kind)]), text_only=True, escape=escape)
+        assert out == expected
+
+    def test_nested_marks_stay_inside_the_parentheses(self) -> None:
+        text = rt("xab", marks=[m(1, 3, "sup"), m(1, 2, "strong")])
+        assert md(text, text_only=True) == "x^(**a**b)"
+
+    @pytest.mark.parametrize(("value", "marks", "plain"), [
+        ("H2O", [(1, 2, "sub")], "H_2O"),
+        ("103", [(2, 3, "sup")], "10^3"),
+        ("a_1 and b_2", [], "a_1 and b_2"),
+        ("xi and yj", [(1, 2, "sub"), (8, 9, "sub")], "x_i and y_j"),
+    ])
+    def test_parses_as_plain_text(self, value, marks, plain) -> None:
+        text = rt(value, marks=[m(*mark) for mark in marks])
+        out = md(text, text_only=True, escape=True)
+        assert parsed(out) == f"<p>{plain}</p>"
+
+    def test_the_default_keeps_the_html_tags(self) -> None:
+        assert md(rt("H2O", marks=[m(1, 2, "sub")])) == "H<sub>2</sub>O"
+        assert render_inline(rt("H2O", marks=[m(1, 2, "sub")]), "html") == "H<sub>2</sub>O"
+
+    @pytest.mark.parametrize("kind", ["underline", "highlight"])
+    def test_underline_and_highlight_stay_plain(self, kind: str) -> None:
+        assert md(rt("ab", marks=[m(0, 1, kind)]), text_only=True) == "ab"
+
+
+class TestStrikeNeverMakesAFence:
+    """A "~~" next to another "~" makes a run of three or more tildes,
+    which opens a code fence at the start of a line."""
+
+    CASES = [
+        ("~ab\n\npara", [(0, 3, "strike")]),
+        ("ab~\n\npara", [(0, 3, "strike")]),
+        ("abcd\n\npara", [(0, 4, "strike"), (0, 2, "strike")]),
+        ("x\n~ab\n\npara", [(2, 5, "strike")]),
+    ]
+
+    @pytest.mark.parametrize(("value", "marks"), CASES)
+    @pytest.mark.parametrize("escape", [False, True])
+    def test_no_fence(self, value, marks, escape) -> None:
+        text = rt(value, marks=[m(*mark) for mark in marks])
+        out = md(text, escape=escape)
+        tokens = MarkdownIt("commonmark").enable("strikethrough").parse(out)
+        assert "fence" not in [t.type for t in tokens]
+        assert "para" in parsed(out)
+
+    @pytest.mark.parametrize(("value", "marks"), CASES)
+    def test_no_fence_under_text_only(self, value, marks) -> None:
+        text = rt(value, marks=[m(*mark) for mark in marks])
+        out = md(text, text_only=True)
+        tokens = MarkdownIt("commonmark").enable("strikethrough").parse(out)
+        assert "fence" not in [t.type for t in tokens]
+        assert "<" not in out
+
+    def test_falls_back_to_the_s_tag(self) -> None:
+        assert md(rt("~ab", marks=[m(0, 3, "strike")])) == "<s>~ab</s>"
+
+    def test_a_plain_strike_keeps_its_delimiters(self) -> None:
+        assert md(rt("ab", marks=[m(0, 2, "strike")])) == "~~ab~~"

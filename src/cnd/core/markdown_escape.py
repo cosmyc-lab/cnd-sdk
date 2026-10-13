@@ -67,3 +67,24 @@ def escape_block(text: str) -> str:
     """``escape_inline`` plus a block marker at the start of any line."""
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     return "\n".join(_escape_line_start(line) for line in escape_inline(text).split("\n"))
+
+
+_DESTINATION_NEEDS_BRACKETS = re.compile(r"[\x00-\x20()<>\x7f]")
+
+
+def escape_destination(url: str) -> str:
+    """``url`` as a link destination that parses back to ``url`` (a few
+    characters percent-encoded).
+
+    CommonMark decodes backslash escapes and entities inside a
+    destination, so ``\\`` and ``&`` are escaped: ``javascript&colon;``
+    must not become ``javascript:`` once parsed. A destination holding a
+    space, a control character, a parenthesis or an angle bracket is
+    wrapped in ``<…>``; a line ending, which no destination may hold, is
+    percent-encoded.
+    """
+    escaped = url.replace("\\", "\\\\").replace("&", "\\&")
+    escaped = escaped.replace("\r", "%0D").replace("\n", "%0A")
+    if _DESTINATION_NEEDS_BRACKETS.search(escaped):
+        return "<" + escaped.replace("<", "%3C").replace(">", "%3E") + ">"
+    return escaped

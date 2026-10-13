@@ -2,6 +2,8 @@
 
 from uuid import uuid4
 
+import pytest
+
 from factories import cell, item, para, rt
 
 from cnd.converters.html import HtmlNodeRenderer
@@ -146,3 +148,46 @@ def test_figure_caption_then_description() -> None:
         '<figure data-kind="chart"><img src="a.png" alt="A">'
         '<figcaption>Figure 2: Rates<p class="cnd-description">Bars rise.</p></figcaption></figure>'
     )
+
+
+class TestImageSource:
+    @staticmethod
+    def _image(path: str, alt: str | None = "A cat") -> ImageNode:
+        return ImageNode(type="image", path=path, alt=alt, **_id())
+
+    @pytest.mark.parametrize("path", [
+        "figures/cat.png",
+        "https://example.com/cat.png",
+        "data:image/png;base64,iVBORw0KGgo=",
+        "DATA:IMAGE/svg+xml;utf8,<svg/>",
+    ])
+    def test_safe_source_is_emitted(self, path: str) -> None:
+        out = H.render(self._image(path))
+        assert out.startswith("<img ") and 'alt="A cat"' in out
+
+    @pytest.mark.parametrize("path", [
+        "javascript:alert(1)",
+        "java\tscript:alert(1)",
+        "data:text/html,<script>alert(1)</script>",
+        "vbscript:x",
+    ])
+    def test_unsafe_source_is_the_missing_image_span(self, path: str) -> None:
+        out = H.render(self._image(path))
+        assert out == '<span class="cnd-missing-image">A cat</span>'
+
+    def test_unsafe_source_without_alt(self) -> None:
+        out = H.render(self._image("javascript:x", alt=None))
+        assert out == '<span class="cnd-missing-image">image</span>'
+
+
+@pytest.mark.parametrize("kind", ["", "   ", "\t\n"])
+def test_a_blank_admonition_kind_has_no_kind_class(kind: str) -> None:
+    node = AdmonitionNode(type="admonition", kind=kind, title=rt("T"), children=[], **_id())
+    out = H.render(node)
+    assert out.startswith('<aside class="cnd-admonition">')
+    assert "cnd-admonition-\"" not in out and "cnd-admonition- " not in out
+
+
+def test_an_admonition_kind_is_one_class_token() -> None:
+    node = AdmonitionNode(type="admonition", kind=" my kind ", children=[], **_id())
+    assert H.render(node).startswith('<aside class="cnd-admonition cnd-admonition-my-kind">')

@@ -345,3 +345,64 @@ class TestNestedHeadings:
         quote = QuoteNode(type="quote", id=uuid4(), children=[outer])
         out = MarkdownRenderer().render(quote)
         assert out == "> ### Outer\n>\n> #### Deep\n>\n> DEEP-TEXT\n>\n> AFTER-DEEP"
+
+
+class TestFrontMatterScalars:
+    CONTROLS = (
+        [chr(c) for c in range(0x20) if chr(c) not in "\n\r\t"]
+        + [chr(c) for c in range(0x7F, 0xA0)]
+        + ["\u2028", "\u2029", "\ud800", "\udfff", "\ufffe", "\uffff"]
+    )
+
+    @pytest.mark.parametrize("ch", CONTROLS)
+    def test_a_control_character_is_escaped(self, ch: str) -> None:
+        from cnd.converters.markdown import _yaml_scalar
+
+        out = _yaml_scalar(f"a{ch}b")
+        assert out == f'"a\\u{ord(ch):04x}b"'
+        assert ch not in out
+
+    def test_front_matter_parses_back(self) -> None:
+        yaml = pytest.importorskip("yaml")
+        nasty = "t\x00i\x1bt\x7fl\x85e\u2028x\u2029y \"q\" \\ \n\r\t"
+        doc = DocMetadata(title=nasty, extra={"k\x01": "v\u2028"})
+        text = MarkdownConverter().convert(_cnd([para("x")], doc=doc)).text
+        front = text.split("---\n")[1]
+        assert "\u2028" not in front and "\x85" not in front
+        data = yaml.safe_load(front)
+        assert data["title"] == nasty
+        assert data["extra"] == {"k\x01": "v\u2028"}
+
+
+class TestHtmlMetaExtra:
+    @pytest.mark.parametrize("key", [
+        "author", "description", "keywords", "date", "status", "version", "viewport",
+        "Author", " DESCRIPTION ",
+    ])
+    def test_a_key_the_converter_emits_is_skipped_with_a_warning(self, key: str) -> None:
+        doc = DocMetadata(title="T", description="real", extra={key: "spoof", "team": "core"})
+        result = HtmlConverter().convert(_cnd([para("x")], doc=doc))
+        assert "spoof" not in result.text
+        assert '<meta name="team" content="core">' in result.text
+        assert '<meta name="description" content="real">' in result.text
+        assert any(repr(key) in w and "extra" in w for w in result.warnings)
+
+    def test_other_keys_do_not_warn(self) -> None:
+        doc = DocMetadata(title="T", extra={"team": "core"})
+        result = HtmlConverter().convert(_cnd([para("x")], doc=doc))
+        assert result.warnings == ()
+
+
+def test_a_cp1252_style_title_round_trips() -> None:
+    """Text decoded as Latin-1 instead of cp1252 carries C1 controls
+    (U+0080-U+009F) where the quotes and dashes were."""
+    yaml = pytest.importorskip("yaml")
+    title = "\x93Quoted\x94 \x96 dash\x85 \x80uro\x9f \ufffe\uffff"
+    doc = DocMetadata(title=title, authors=["\x8aimon"], extra={"k\x9d": "v\x81"})
+    text = MarkdownConverter().convert(_cnd([para("x")], doc=doc)).text
+    front = text.split("---\n")[1]
+    assert not any(0x80 <= ord(ch) <= 0x9F or ch in "\ufffe\uffff" for ch in front)
+    data = yaml.safe_load(front)
+    assert data["title"] == title
+    assert data["authors"] == ["\x8aimon"]
+    assert data["extra"] == {"k\x9d": "v\x81"}

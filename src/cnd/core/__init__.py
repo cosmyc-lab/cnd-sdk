@@ -53,7 +53,7 @@ from cnd.core.text import (
     Numbering,
     RichText,
 )
-from cnd.core.render import MarkdownRenderer, NodeRenderer
+from cnd.core.render import MarkdownRenderer, NodeRenderer, expand_headings
 from cnd.core.validate import Violation, validate
 
 __all__ = [
@@ -106,6 +106,7 @@ __all__ = [
     "child_slots",
     "content_hash",
     "edges_of",
+    "expand_headings",
     "iter_nodes",
     "node_hash",
     "pool_entry_hash",

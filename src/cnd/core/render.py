@@ -1,8 +1,9 @@
 """Node renderers (docs/adr — rendering as an SDK renderer hierarchy).
 
-Nodes are pure data: no node has a rendering method. Rendering a node to
-text is done by a ``NodeRenderer`` — one abstract method per node type plus
-a single concrete ``render()`` dispatch over the discriminated union.
+Nodes are pure data: no node has a rendering method. Rendering a node
+to text is done by a ``NodeRenderer`` — one abstract method per node
+type plus a single concrete ``render()`` dispatch over the
+discriminated union.
 ``MarkdownRenderer`` is the concrete content renderer; verbosity for
 tables/figures is constructor configuration, orthogonal to the format.
 Every renderer renders the prose of a node (a ``RichText``) through
@@ -25,9 +26,10 @@ except ImportError:  # pragma: no cover — Python 3.10, via pydantic's typing-e
     from typing_extensions import assert_never
 
 from cnd.core.inline import concat_texts, render_inline, with_whole_mark
-from cnd.core.markdown_escape import escape_block
+from cnd.core.markdown_escape import escape_block, escape_destination, escape_inline
 from cnd.core.node_text import (
     NodeTextMode,
+    attr_value,
     cell_plain_text,
     format_figure_placeholder,
     header_row_text,
@@ -57,27 +59,29 @@ from cnd.core.nodes import (
     TermsNode,
 )
 from cnd.core.text import RichText
+from cnd.core.urls import is_safe_image_source
+
+__all__ = ["MarkdownRenderer", "NodeRenderer", "expand_headings", "holds_several_blocks"]
 
 
-_DEST_NEEDS_BRACKETS = re.compile(r"[ ()<>]")
-
-
-def _image_destination(path: str) -> str:
-    if _DEST_NEEDS_BRACKETS.search(path):
-        return "<" + path.replace("<", "%3C").replace(">", "%3E") + ">"
-    return path
+def _one_line(text: str) -> str:
+    """``text`` with every line ending (CR, LF, CRLF) made a space."""
+    return text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ")
 
 
 def _unix_newlines(text: str) -> str:
     return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
-_ALT_ESCAPE = re.compile(r"\\(?=[!-/:-@\[-`{-~]|\Z)|[\[\]]")
+_ALT_ESCAPE = re.compile(r"\\(?=[!-/:-@\[-`{-~]|\Z)|[\[\]`<]")
 
 
 def _escape_alt(alt: str) -> str:
-    """Escape ``[``/``]``; double a backslash only where it would escape
-    something (before ASCII punctuation or at the end), as escape_inline does."""
+    """Escape ``[``, ``]``, a backtick and ``<``; double a backslash only
+    where it would escape something (before ASCII punctuation or at the
+    end), as escape_inline does. A code span, an autolink or raw HTML
+    binds tighter than the image brackets, so an unescaped backtick or
+    ``<`` in the alt could reach into the destination."""
     return _ALT_ESCAPE.sub(lambda m: "\\\\" if m.group() == "\\" else "\\" + m.group(), alt)
 
 
@@ -138,14 +142,24 @@ def _is_one_inline_block(nodes: list[CndNode]) -> bool:
     )
 
 
+def holds_several_blocks(nodes: list[CndNode]) -> bool:
+    """Whether an item, a cell or a definition holding ``nodes`` needs
+    its blocks apart, as a loose list item does.
+
+    A nested list does not count: ``1. Parent`` over a nested list stays
+    tight, as in CommonMark (docs/proposals/0013, "Lists and terms hold
+    blocks"). A nested list followed by any other block does: tight, the
+    block's first line would continue the nested list's last item."""
+    expanded = expand_headings(nodes)
+    if any(isinstance(node, ListNode) for node in expanded[:-1]):
+        return True
+    return sum(not isinstance(node, ListNode) for node in expanded) > 1
+
+
 def _is_loose(blocks_per_item: list[list[CndNode]]) -> bool:
-    """A list is tight unless an item holds several blocks. A nested list
-    does not count: ``1. Parent`` over a nested list stays tight, as in
-    CommonMark (docs/proposals/0013, "Lists and terms hold blocks")."""
-    return any(
-        sum(not isinstance(node, ListNode) for node in expand_headings(nodes)) > 1
-        for nodes in blocks_per_item
-    )
+    """A list is tight unless one of its items holds several blocks
+    (``holds_several_blocks``)."""
+    return any(holds_several_blocks(nodes) for nodes in blocks_per_item)
 
 
 class NodeRenderer(ABC):
@@ -257,9 +271,10 @@ class MarkdownRenderer(NodeRenderer):
     - ``escape`` — escape free text (every rich text, image alt aside) so
       it cannot start Markdown syntax. Code and math are never escaped.
     - ``heading_numbers`` — prefix each heading with its numbering
-      (``name`` and ``value``, never escaped).
-    - ``text_only`` — no HTML in the output: the ``sup``, ``sub``,
-      ``underline`` and ``highlight`` marks render as plain text, a mark
+      (``name`` and ``value``, escaped under ``escape`` like free text).
+    - ``text_only`` — no HTML in the output: ``sup`` and ``sub`` render
+      as ``^x`` / ``_x`` (``^(text)`` / ``_(text)`` over several
+      characters), ``underline`` and ``highlight`` as plain text, a mark
       Markdown cannot delimit at its position is dropped instead of
       becoming an HTML tag, a table whose cells hold blocks becomes
       linearized rows instead of an HTML table, and a line break in a
@@ -292,6 +307,11 @@ class MarkdownRenderer(NodeRenderer):
     def _plain(self, text: str) -> str:
         """A plain string (a kind, a title, a column header) as Markdown."""
         return escape_block(text) if self.escape else text
+
+    def _quoted(self, value: str) -> str:
+        """A placeholder's quoted value as Markdown: escaped under
+        ``escape`` so that it cannot become a link, an image or HTML."""
+        return escape_inline(value) if self.escape else value
 
     def _blocks(self, nodes: list[CndNode], separator: str = "\n\n") -> str:
         rendered = (self.render(node).strip("\n") for node in expand_headings(nodes))
@@ -326,7 +346,8 @@ class MarkdownRenderer(NodeRenderer):
             text = f"{text[: m.start(1)]}\\{text[m.start(1):]}"
         if self.heading_numbers and node.numbering is not None:
             prefix = " ".join(p for p in (node.numbering.name, node.numbering.value) if p)
-            text = f"{prefix} {text}"
+            prefix = _one_line(prefix)
+            text = f"{escape_inline(prefix) if self.escape else prefix} {text}"
         return f"{'#' * node.level} {text}"
 
     def render_paragraph(self, node: ParagraphNode) -> str:
@@ -372,13 +393,35 @@ class MarkdownRenderer(NodeRenderer):
         return block
 
     def render_math(self, node: MathNode) -> str:
-        return node.text
+        """A fenced block with the info string ``math``, holding the
+        producer's source when it is LaTeX (``raw.format``, any case), else
+        ``text``: a ``math`` fence is read as LaTeX, so Typst or any other
+        source would display wrongly. The numbering ``value`` follows on
+        its own line, in parentheses."""
+        raw = node.raw
+        latex = raw is not None and raw.format.lower() == "latex"
+        source = raw.value if latex else node.text
+        source = source[:-1] if source.endswith("\n") else source
+        fence = _fence_for(source)
+        block = f"{fence}math\n{source}\n{fence}"
+        value = node.numbering.value if node.numbering is not None else ""
+        if not value:
+            return block
+        if not (value.startswith("(") and value.endswith(")")):
+            value = f"({value})"
+        return f"{block}\n{self._plain(value)}"
 
     def render_image(self, node: ImageNode) -> str:
-        if node.path:
-            return f"![{_escape_alt(node.alt or '')}]({_image_destination(node.path)})"
-        if node.alt:
-            return f'[[image:{node.id} alt="{node.alt}"]]'
+        """``![alt](path)`` when the path is a safe source
+        (``cnd.core.urls.is_safe_image_source``), else the
+        ``[[image:id alt="…"]]`` placeholder. A line ending in the alt
+        becomes a space, and the destination is escaped so it parses back
+        to the checked path: neither can start a block of its own."""
+        alt = _one_line(node.alt or "")
+        if node.path and is_safe_image_source(node.path):
+            return f"![{_escape_alt(alt)}]({escape_destination(node.path)})"
+        if alt:
+            return f'[[image:{node.id} alt="{self._quoted(attr_value(alt))}"]]'
         return f"[[image:{node.id}]]"
 
     def render_list(self, node: ListNode) -> str:
@@ -417,7 +460,7 @@ class MarkdownRenderer(NodeRenderer):
 
     def render_table(self, node: TableNode) -> str:
         if not wants_inline_table(node, self.tables) or not node.cells:
-            return table_node_placeholder(node)
+            return table_node_placeholder(node, escape=self._quoted)
         if all(is_inline_cell(cell) for cell in node.cells):
             return render_table_markdown(node, cell_text=self._gfm_cell, text_only=self.text_only)
         if self.text_only:
@@ -438,7 +481,8 @@ class MarkdownRenderer(NodeRenderer):
         """
         from cnd.converters.html import HtmlNodeRenderer
 
-        return HtmlNodeRenderer().render_table(node).replace("\n", "&#10;")
+        # The converter already appends every link to the marker line.
+        return HtmlNodeRenderer(links=False).render_table(node).replace("\n", "&#10;")
 
     def _linear_rows(self, node: TableNode) -> str:
         """Under ``text_only``, a table whose cells hold blocks becomes one
@@ -503,6 +547,7 @@ class MarkdownRenderer(NodeRenderer):
             shape=table_shape(table) if table else None,
             row_labels=row_labels_text(table) if table else None,
             summary=self._figure_summary(node),
+            escape=self._quoted,
         )
 
     def _figure_caption_parts(self, node: FigureNode) -> list[str]:

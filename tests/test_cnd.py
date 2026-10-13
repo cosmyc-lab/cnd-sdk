@@ -269,3 +269,14 @@ def test_the_vocabulary_and_slot_helpers_are_exported() -> None:
         assert name in cnd.__all__ and name in cnd.core.__all__
     assert cnd.__all__ == sorted(cnd.__all__)
     assert cnd.core.__all__ == sorted(cnd.core.__all__)
+
+
+def test_expand_headings_is_exported() -> None:
+    import cnd
+    import cnd.core
+    import cnd.core.render
+
+    assert "expand_headings" in cnd.core.render.__all__
+    assert cnd.expand_headings is cnd.core.expand_headings is cnd.core.render.expand_headings
+    assert "expand_headings" in cnd.__all__ and "expand_headings" in cnd.core.__all__
+    assert cnd.core.render.__all__ == sorted(cnd.core.render.__all__)

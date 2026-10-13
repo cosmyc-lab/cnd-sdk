@@ -258,11 +258,13 @@
         },
         "rowspan": {
           "default": 1,
+          "minimum": 1,
           "title": "Rowspan",
           "type": "integer"
         },
         "colspan": {
           "default": 1,
+          "minimum": 1,
           "title": "Colspan",
           "type": "integer"
         },

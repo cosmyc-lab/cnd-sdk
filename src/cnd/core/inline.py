@@ -9,9 +9,11 @@ It cuts ``value`` at every mark boundary, and at every edge boundary
 when the caller asks for edges to be wrapped (``edge_wrap``), and builds
 a tree of nested spans. Where two spans cross, the one that ends first
 closes and the other is reopened after it, as text editors do, so the
-output always nests. The converters shipped today append their markers
-after the block (see ``cnd.converters.base``) and pass no ``edge_wrap``:
-an edge cut that renders nothing would only split marks for no reason.
+output always nests. The HTML renderer wraps the ``links`` edges (the
+linked text becomes an ``<a>``) and returns ``None`` for every other
+edge; every other marker is appended after its block (see
+``cnd.converters.base``), so no edge cut that renders nothing splits a
+mark for no reason.
 
 Policy (spec §7): a dialect renders the marks it supports and leaves the
 text of any other mark unchanged. ``value`` is always the plain text, so
@@ -53,8 +55,14 @@ MARKDOWN_DELIMITERS = {"strong": "**", "emph": "*", "strike": "~~"}
 atoms with their own syntax; the four others have no Markdown syntax."""
 
 HTML_ONLY_MARKS = frozenset({"sup", "sub", "underline", "highlight"})
-"""Marks Markdown can only show as inline HTML; the text-only option
-drops them to plain text."""
+"""Marks Markdown can only show as inline HTML. The text-only option
+writes ``sup`` and ``sub`` as ``^`` and ``_`` (``TEXT_ONLY_PREFIXES``)
+and drops the other two to plain text."""
+
+TEXT_ONLY_PREFIXES = {"sup": "^", "sub": "_"}
+"""What the text-only option writes before a ``sup`` or a ``sub``: the
+covered text follows as is when it is one character, in parentheses
+otherwise (``10^3``, ``x_(n+1)``)."""
 
 
 @dataclass(eq=False)
@@ -66,6 +74,7 @@ class _Span:
     kind: str
     mark: Mark | None = None
     wrap: tuple[str, str] = ("", "")
+    edge: Edge | None = None
 
 
 @dataclass
@@ -95,23 +104,63 @@ def render_inline(
       element; ``math`` becomes ``<code class="math">`` holding its source.
     - ``"markdown"`` follows spec §7. ``escape`` escapes the plain
       segments (never code or math) with ``escape_block``. ``text_only``
-      drops ``sup``, ``sub``, ``underline`` and ``highlight`` to plain
-      text and never falls back to an HTML tag.
+      never writes an HTML tag: ``sup`` and ``sub`` become ``^x`` and
+      ``_x`` (``^(text)``, ``_(text)`` over several characters; the
+      ``_`` written ``\\_`` under ``escape``), ``underline`` and
+      ``highlight`` plain text.
 
     ``edge_wrap``, when given, wraps the span of every edge with a
-    ``text_span`` in the strings it returns; edge spans nest and split
-    like marks. ``"plain"`` ignores it.
+    ``text_span`` in the strings it returns; edge spans split around
+    marks like marks do. Wrapped edges never nest in one another: an
+    edge whose span overlaps the span of a wrapped edge that starts
+    before it (or at the same offset and ends later, or is listed first
+    on an equal span) is left out, so the outer or first edge wins. An
+    edge inside a ``code`` or ``math`` atom is left out too. Which edges
+    end up wrapped is ``wrapped_edges``. ``"plain"`` ignores it.
 
     Unknown mark kinds render their covered text unchanged. Bounds are
     clamped, so an unvalidated text with a stray mark never raises.
     """
     if dialect == "plain":
         return text.value
-    spans = _spans(text, dialect, text_only) + _edge_spans(text, edge_wrap)
-    root = _tree(text.value, spans)
+    root = _layout(text, dialect, text_only, edge_wrap)
     if dialect == "html":
         return _render_html(text.value, root)
     return _MarkdownWriter(text.value, escape=escape, text_only=text_only).render(root)
+
+
+def wrapped_edges(
+    text: RichText,
+    edge_wrap: EdgeWrap,
+    dialect: Literal["markdown", "html"] = "html",
+    *,
+    text_only: bool = False,
+) -> list[Edge]:
+    """The edges of ``text`` that ``render_inline`` with the same
+    arguments wraps, in the order of ``text.edges()``: an edge left out (no span, an empty
+    span, inside an atom, inside or across an edge that wins, ``None``
+    from ``edge_wrap``) is not in the list. A caller that must not lose
+    an edge renders the others some other way."""
+    root = _layout(text, dialect, text_only, edge_wrap)
+    seen: list[Edge] = []
+    pieces = [root]
+    while pieces:
+        piece = pieces.pop()
+        span = piece.span
+        if span is not None and span.edge is not None and not any(
+            e is span.edge for e in seen
+        ):
+            seen.append(span.edge)
+        pieces.extend(c for c in piece.children if isinstance(c, _Piece))
+    order = text.edges()
+    return sorted(seen, key=lambda e: next(i for i, x in enumerate(order) if x is e))
+
+
+def _layout(
+    text: RichText, dialect: InlineDialect, text_only: bool, edge_wrap: EdgeWrap | None
+) -> _Piece:
+    spans = _spans(text, dialect, text_only) + _edge_spans(text, edge_wrap)
+    return _tree(text.value, spans)
 
 
 def concat_texts(*parts: "str | RichText | None") -> RichText:
@@ -150,8 +199,7 @@ def _spans(text: RichText, dialect: InlineDialect, text_only: bool) -> list[_Spa
         supported = set(HTML_TAGS) | {"math"}
     else:
         supported = set(MARKDOWN_DELIMITERS) | ATOMIC_MARK_KINDS
-        if not text_only:
-            supported |= HTML_ONLY_MARKS
+        supported |= set(TEXT_ONLY_PREFIXES) if text_only else HTML_ONLY_MARKS
     value = text.value
     spans: list[_Span] = []
     for mark in text.marks:
@@ -173,7 +221,7 @@ def _spans(text: RichText, dialect: InlineDialect, text_only: bool) -> list[_Spa
 def _edge_spans(text: RichText, edge_wrap: EdgeWrap | None) -> list[_Span]:
     if edge_wrap is None:
         return []
-    spans: list[_Span] = []
+    candidates: list[_Span] = []
     for edge in text.edges():
         if not edge.text_span or len(edge.text_span) != 2:
             continue
@@ -181,7 +229,13 @@ def _edge_spans(text: RichText, edge_wrap: EdgeWrap | None) -> list[_Span]:
         end = min(edge.text_span[1], len(text.value))
         wrap = edge_wrap(edge)
         if wrap is not None and start < end:
-            spans.append(_Span(start, end, _EDGE, wrap=wrap))
+            candidates.append(_Span(start, end, _EDGE, wrap=wrap, edge=edge))
+    # Wrapped edges never nest: the outer or first one wins (a stable
+    # sort keeps list order on equal spans).
+    spans: list[_Span] = []
+    for span in sorted(candidates, key=lambda s: (s.start, -s.end)):
+        if not spans or span.start >= max(s.end for s in spans):
+            spans.append(span)
     return spans
 
 
@@ -309,7 +363,15 @@ class _MarkdownWriter:
         if delimiter is not None and self._can_delimit(piece, inner, delimiter, touches_star):
             return f"{delimiter}{inner}{delimiter}", delimiter
         if self.text_only:
-            return inner, ""
+            prefix = TEXT_ONLY_PREFIXES.get(span.kind)
+            if prefix is None:
+                return inner, ""
+            if prefix == "_" and self.escape:
+                # A bare "_" could open or close emphasis.
+                prefix = "\\_"
+            if len(covered) != 1:
+                inner = f"({inner})"
+            return f"{prefix}{inner}", ""
         tag = HTML_TAGS[span.kind]
         return f"<{tag}>{inner}</{tag}>", "<"
 
@@ -324,7 +386,9 @@ class _MarkdownWriter:
         opens or closes at the edge, or an escape; outside, it touches the
         characters around the piece in ``value``. A ``*`` opener never
         directly follows a ``*`` closer, since the two runs would merge
-        into one.
+        into one. A ``~~`` never touches another ``~``: a run of three
+        tildes or more does not delimit, and at the start of a line it
+        opens a code fence that swallows the blocks after it.
         """
         if not inner or (touches_star and delimiter.startswith("*")):
             return False
@@ -332,6 +396,8 @@ class _MarkdownWriter:
         prev = value[piece.start - 1] if piece.start > 0 else None
         first, last = inner[0], inner[-1]
         nxt = value[piece.end] if piece.end < len(value) else None
+        if delimiter.startswith("~") and "~" in (prev, first, last, nxt):
+            return False
         return _left_flanking(prev, first) and _right_flanking(last, nxt)
 
 

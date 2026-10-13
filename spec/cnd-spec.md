@@ -624,8 +624,8 @@ A `Cell`:
 |---|---|---|
 | `row` | int | Row coordinate. |
 | `col` | int | Column coordinate. |
-| `rowspan` | int | Rows covered. Defaults to 1. |
-| `colspan` | int | Columns covered. Defaults to 1. |
+| `rowspan` | int | Rows covered, at least 1. Defaults to 1. |
+| `colspan` | int | Columns covered, at least 1. Defaults to 1. |
 | `is_header` | bool | Header cell. Defaults to `false`. |
 | `children` | array of node | The cell's content: a text cell holds one paragraph; a cell may also hold an image, a list or several paragraphs. |
 
@@ -847,8 +847,12 @@ renders what it supports and leaves the text of anything else unchanged.
 - **Markdown.** `strong`, `emph`, `code` and `strike` render as `**…**`,
   `*…*`, `` `…` `` and `~~…~~`; `math` as `$…$`. The four marks without
   CommonMark or GFM syntax — `sup`, `sub`, `underline`, `highlight` —
-  render as inline HTML (`<sup>`, `<sub>`, `<u>`, `<mark>`) by default; a
-  text-only option drops them to plain text. A mark Markdown cannot
+  render as inline HTML (`<sup>`, `<sub>`, `<u>`, `<mark>`) by default.
+  A text-only option writes no HTML: `sup` becomes `^x` over one
+  character and `^(text)` over several, `sub` likewise `_x` and
+  `_(text)` (with the `_` escaped where free text is escaped, so it
+  never opens emphasis), and `underline` and `highlight` drop to plain
+  text. A mark Markdown cannot
   delimit where it sits (a closing `**` between punctuation and a letter,
   say) renders as its HTML tag, or as plain text under the text-only
   option. Where two marks cross, one
@@ -861,12 +865,34 @@ renders what it supports and leaves the text of anything else unchanged.
   every cell holds inline-renderable content (one paragraph, or an
   image), otherwise as an HTML table, or as linearized rows under the
   text-only option. A `layout` is flattened: cell contents in reading
-  order, row by row. `doc.status`, `doc.version` and `doc.extra` render
-  wherever the other document metadata does.
+  order, row by row. A `math` block renders as a fenced block with the
+  info string `math`, holding its source when that source is LaTeX and
+  its `text` otherwise. `doc.status`, `doc.version` and `doc.extra`
+  render wherever the other document metadata does. A `links` edge
+  renders as a marker after its block, `[href](href)`, its text and
+  destination escaped so that the destination parses back to the href;
+  an href that fails the URL rule below is written as escaped plain
+  text, never as a link.
 - **HTML.** Marks map to `<strong>`, `<em>`, `<code>`, `<s>`, `<sup>`,
   `<sub>`, `<u>`, `<mark>`; a `math` mark keeps its source in a
   `<code class="math">` element. An `admonition` maps to an `<aside>`
-  with a kind class, and a `layout` to a CSS grid.
+  with a kind class, and a `layout` to a CSS grid. A `links` edge with a
+  `text_span` makes the text it spans an `<a class="cnd-link">` anchor;
+  anchors never nest, so of two links whose spans overlap the outer or
+  first one wins. Every link that does not render inline — no span, a
+  span that is empty or lies inside a `code` or `math` atom, a link
+  that loses to an overlapping one — goes to the marker line after its
+  block, as `<a class="cnd-link" href="…">href</a>`, so no link is
+  lost. An image `src` follows the same URL rule, a `data:image/` URI
+  aside.
+- **URL rule.** A renderer links to an href only when its scheme is
+  `http`, `https` or `mailto` (in any case), or when it has no scheme
+  (a relative path, a fragment). The scheme is read as leniently as any
+  reader of the output reads it: leading controls and leading Unicode
+  whitespace ignored (a browser strips the first, a Markdown parser the
+  second), tabs and newlines removed anywhere. Anything else
+  stays plain text: the spanned text without an anchor, the href as
+  text in the marker line.
 - **Plain text** drops all marks; a `math` mark renders its `value`.
 
 The exact Markdown produced is **not normative** — no consumer may rely on

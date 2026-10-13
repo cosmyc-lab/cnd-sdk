@@ -43,6 +43,7 @@ def format_figure_placeholder(
     row_labels: str | None = None,
     description: str | None = None,
     table_kind: str | None = None,
+    escape: Callable[[str], str] | None = None,
 ) -> str:
     """Build a parseable figure placeholder for chunk content.
 
@@ -52,7 +53,9 @@ def format_figure_placeholder(
     summary. Every value is plain text (marks dropped). Attribute values
     are quoted, with ``\\`` and ``"`` backslash-escaped, line breaks folded
     to spaces and ``]]`` split, so the placeholder is always one line
-    ending at its first ``]]``.
+    ending at its first ``]]``. ``escape``, when given, is applied to
+    every quoted value afterwards (a Markdown renderer passes its
+    free-text escaping, so a value cannot become Markdown syntax).
     """
     attrs: dict[str, str] = {"kind": kind}
     if counter_label:
@@ -73,11 +76,17 @@ def format_figure_placeholder(
         attrs["row_labels"] = row_labels
     if summary:
         attrs["summary"] = summary
-    formatted = " ".join(f'{key}="{_attr_value(value)}"' for key, value in attrs.items())
+    quote = escape or (lambda value: value)
+    formatted = " ".join(
+        f'{key}="{quote(attr_value(value))}"' for key, value in attrs.items()
+    )
     return f"[[figure:{figure_id} {formatted}]]"
 
 
-def _attr_value(value: str) -> str:
+def attr_value(value: str) -> str:
+    """A placeholder attribute value: ``\\`` and ``"`` backslash-escaped,
+    whitespace runs (line breaks included) folded to one space, ``]]``
+    split."""
     value = value.replace("\\", "\\\\").replace('"', '\\"')
     value = " ".join(value.split())
     while "]]" in value:
@@ -128,12 +137,14 @@ def header_row_text(node: TableNode) -> str | None:
     return " | ".join(texts) if texts else None
 
 
-def table_node_placeholder(node: TableNode) -> str:
+def table_node_placeholder(
+    node: TableNode, escape: Callable[[str], str] | None = None
+) -> str:
     """Placeholder string for a bare table node.
 
     Caption and number live on a wrapping ``FigureNode`` when present —
     a bare table placeholder carries its kind, header structure, size and
-    row labels.
+    row labels. ``escape`` is passed to ``format_figure_placeholder``.
     """
     return format_figure_placeholder(
         figure_id=node.id,
@@ -142,6 +153,7 @@ def table_node_placeholder(node: TableNode) -> str:
         header_row=header_row_text(node),
         shape=table_shape(node),
         row_labels=row_labels_text(node),
+        escape=escape,
     )
 
 

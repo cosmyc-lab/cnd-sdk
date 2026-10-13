@@ -4,10 +4,14 @@ Target 1 of docs/proposals/0007, built directly on
 ``cnd.core.render.MarkdownRenderer``.
 """
 
+import re
+
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
+from cnd.core.markdown_escape import escape_block, escape_destination, escape_inline
 from cnd.core.nodes import CndNode, HeadingNode, ParagraphNode
 from cnd.core.render import MarkdownRenderer, NodeRenderer, expand_headings
 from cnd.core.text import RichText
+from cnd.core.urls import is_safe_url
 
 from cnd.converters.base import (
     CndConverter,
@@ -18,7 +22,34 @@ from cnd.converters.base import (
     resolve_markers,
 )
 
-__all__ = ["MarkdownConverter", "format_bib_entry"]
+__all__ = ["MarkdownConverter", "format_bib_entry", "markdown_label"]
+
+
+_LABEL_SAFE_PUNCTUATION = frozenset("-._:")
+
+
+def markdown_label(label: str) -> str:
+    """``label`` as the converter writes it in Markdown: letters, digits
+    (any script) and ``-._:`` as they are, every other character
+    percent-encoded as UTF-8 (``%`` included).
+
+    A label is free text (spec §4), but a GFM footnote label stops at a
+    space or a ``]`` and a bracketed marker must not turn into a link or
+    HTML. The mapping is injective — ``urllib.parse.unquote`` undoes it —
+    so two labels never meet, and a footnote marker and its definition,
+    written through this one function, still match.
+    """
+    return "".join(
+        ch if ch.isalnum() or ch in _LABEL_SAFE_PUNCTUATION
+        else "".join(f"%{byte:02X}" for byte in ch.encode("utf-8", "surrogatepass"))
+        for ch in label
+    )
+
+
+def _label_text(label: str) -> str:
+    """A mapped label where Markdown parses inline syntax (a ref or cite
+    marker, the bibliography): an ``_`` cannot open emphasis there."""
+    return escape_inline(markdown_label(label))
 
 
 def format_bib_entry(entry: BibEntry) -> tuple[RichText, str | None]:
@@ -90,7 +121,13 @@ class MarkdownConverter(CndConverter):
       pandoc-style ``[@label]`` / ``@label`` for ``cites``, ``[^label]``
       for ``footnotes``, and ``[href](href)`` for ``links`` — the href is
       the only text a ``LinkRef`` carries, so it stands in for the display
-      text a Markdown link normally has. Markers are ordered text by text,
+      text a Markdown link normally has. An href whose scheme is not
+      ``http``, ``https`` or ``mailto`` (``cnd.core.urls.is_safe_url``)
+      is written as plain text, never as a link. A line ending in an
+      href becomes a space in the marker's text and is percent-encoded
+      in its destination, so the marker stays on its line. Every label
+      (markers, footnote definitions, bibliography) goes through
+      ``markdown_label``, and a cite supplement is escaped. Markers are ordered text by text,
       then by ``text_span`` where one exists, then by family (spec §8). A
       ``links`` marker is **appended**, like the other three families,
       never spliced into the text at its span: splicing would make marker
@@ -127,7 +164,8 @@ class MarkdownConverter(CndConverter):
     - ``RawSource`` (``raw`` on math, figure and a ``math`` mark) and
       ``BibEntry.fields``: the producer's verbatim source and the full
       structured bibliography entry have no Markdown target, except that
-      a ``math`` mark renders its source between ``$``.
+      a ``math`` mark renders its source between ``$`` and a ``math``
+      block its LaTeX source in a ``math`` fence.
     - Whatever the injected renderer itself drops.
 
     This conversion does **not** round-trip. Nothing reconstructs a CND
@@ -230,20 +268,26 @@ class MarkdownConverter(CndConverter):
     @staticmethod
     def _marker(marker: ResolvedMarker) -> str:
         if marker.family == "refs":
-            return f"[{marker.label}]"
+            return f"[{_label_text(marker.label)}]"
         if marker.family == "footnotes":
-            return f"[^{marker.label}]"
+            return f"[^{markdown_label(marker.label)}]"
         if marker.family == "links":
             href = marker.link.href
-            return f"[{href}]({href})"
+            # A line ending would let the rest of the href start a block.
+            text = _single_line(href)
+            if not is_safe_url(href):
+                return escape_block(text)
+            return f"[{escape_inline(text)}]({escape_destination(href)})"
         form = getattr(marker.link, "form", None)
         supplement = getattr(marker.link, "supplement", None)
+        if supplement:
+            supplement = escape_inline(_single_line(supplement))
         if form == "none":
             return ""
         if form in ("prose", "author", "year"):
-            base = f"@{marker.label}"
+            base = f"@{_label_text(marker.label)}"
             return f"{base} [{supplement}]" if supplement else base
-        inner = f"@{marker.label}"
+        inner = f"@{_label_text(marker.label)}"
         if supplement:
             inner = f"{inner}, {supplement}"
         return f"[{inner}]"
@@ -259,12 +303,13 @@ class MarkdownConverter(CndConverter):
 
     def _footnote_definition(self, cnd: Cnd, note: Footnote, warnings: list[str]) -> str:
         """``[^label]: first block``; every further line is indented four
-        spaces, so several blocks stay inside the one footnote."""
+        spaces, so several blocks stay inside the one footnote. The label
+        goes through ``markdown_label``, as the marker's does."""
         blocks = [self._block(cnd, child, warnings) for child in expand_headings(note.children)]
         body = "\n\n".join(block for block in blocks if block)
         lines = body.split("\n")
         rest = [f"    {line}" if line else "" for line in lines[1:]]
-        return "\n".join([f"[^{note.label}]: {lines[0]}".rstrip(), *rest])
+        return "\n".join([f"[^{markdown_label(note.label)}]: {lines[0]}".rstrip(), *rest])
 
     def _bibliography_section(self, cnd: Cnd, warnings: list[str]) -> str:
         if not cnd.bibliography:
@@ -274,8 +319,13 @@ class MarkdownConverter(CndConverter):
             reference, warning = format_bib_entry(entry)
             if warning:
                 warnings.append(warning)
-            lines.append(f"- **{entry.label}** — {self.renderer.render_text(reference)}")
+            lines.append(f"- **{_label_text(entry.label)}** — {self.renderer.render_text(reference)}")
         return "\n".join(lines)
+
+
+def _single_line(text: str) -> str:
+    """``text`` with every line ending (CR, LF, CRLF) made a space."""
+    return text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ")
 
 
 def _yaml_scalar(value: str) -> str:
@@ -283,8 +333,20 @@ def _yaml_scalar(value: str) -> str:
 
     Quoting unconditionally sidesteps the whole plain-scalar minefield
     (leading ``@``, a colon, ``yes``/``no``) without pulling in a YAML
-    library — the SDK's dependency floor is deliberate.
+    library — the SDK's dependency floor is deliberate. Every control
+    character and Unicode line break is written as an escape.
     """
     escaped = value.replace("\\", "\\\\").replace('"', '\\"')
     escaped = escaped.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+    escaped = _YAML_UNPRINTABLE.sub(lambda m: f"\\u{ord(m.group()):04x}", escaped)
     return f'"{escaped}"'
+
+
+_YAML_UNPRINTABLE = re.compile(
+    "[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\u2028\u2029\ud800-\udfff\ufffe\uffff]"
+)
+"""What YAML forbids or reads as a line break inside a scalar: the C0
+controls other than tab and the two newlines (escaped by name), DEL,
+the C1 controls (NEL among them), the Unicode line and paragraph
+separators, lone surrogates (no UTF-8 file can hold one) and the two
+noncharacters U+FFFE and U+FFFF."""
