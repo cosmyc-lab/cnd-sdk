@@ -134,7 +134,9 @@ def iter_body(cnd: Cnd) -> Iterator[NodeTraverse]:
     line for them. Every other container (figure, list, terms, table,
     layout, quote, admonition) renders its nested nodes itself
     (docs/adr/0010 for figures, docs/proposals/0013 for the rest), so its
-    subtree is pruned — descending would emit that content twice.
+    subtree is pruned — descending would emit that content twice. A
+    heading nested in such a container is rendered by the container with
+    its whole section (``cnd.core.render.expand_headings``).
 
     The pools do not enter reading order (spec §8) and are therefore not
     part of this walk; a converter emits them as its own sections.
@@ -150,7 +152,14 @@ def marker_texts(node: CndNode) -> list[tuple[CndNode, RichText]]:
     """The texts whose edges a block's marker line carries, in reading
     order, each with the node that holds it: the node's own texts, then —
     unless the node is a heading, whose content is emitted as blocks of
-    their own — every text of every nested node."""
+    their own — every text of every nested node.
+
+    The texts under a heading nested in a container are included: the
+    container renders that heading's section itself
+    (``cnd.core.render.expand_headings``), so their markers go under the
+    container with the text they belong to. A heading held by a footnote
+    is expanded by the converter into blocks of its own instead, each
+    with its own marker line."""
     texts = [(node, text) for text in texts_of(node)]
     if not isinstance(node, HeadingNode):
         texts.extend(_nested_texts(node))

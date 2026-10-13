@@ -6,7 +6,7 @@ Target 1 of docs/proposals/0007, built directly on
 
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
 from cnd.core.nodes import CndNode, HeadingNode, ParagraphNode
-from cnd.core.render import MarkdownRenderer, NodeRenderer
+from cnd.core.render import MarkdownRenderer, NodeRenderer, expand_headings
 from cnd.core.text import RichText
 
 from cnd.converters.base import (
@@ -260,7 +260,7 @@ class MarkdownConverter(CndConverter):
     def _footnote_definition(self, cnd: Cnd, note: Footnote, warnings: list[str]) -> str:
         """``[^label]: first block``; every further line is indented four
         spaces, so several blocks stay inside the one footnote."""
-        blocks = [self._block(cnd, child, warnings) for child in note.children]
+        blocks = [self._block(cnd, child, warnings) for child in expand_headings(note.children)]
         body = "\n\n".join(block for block in blocks if block)
         lines = body.split("\n")
         rest = [f"    {line}" if line else "" for line in lines[1:]]

@@ -32,7 +32,7 @@ from cnd.core.nodes import (
     TableNode,
     TermsNode,
 )
-from cnd.core.render import NodeRenderer
+from cnd.core.render import NodeRenderer, expand_headings
 from cnd.core.text import RichText
 
 from cnd.converters.base import (
@@ -98,14 +98,16 @@ class HtmlNodeRenderer(NodeRenderer):
         return render_inline(text, "html")
 
     def _blocks(self, nodes: list[CndNode]) -> str:
-        return "".join(self.render(node) for node in nodes)
+        return "".join(self.render(node) for node in expand_headings(nodes))
 
     def _flow(self, nodes: list[CndNode]) -> str:
         """The content of an item, a cell or a definition. Tight like
         Markdown: unless it holds several blocks (a nested list does not
-        count), a plain paragraph renders as bare text, without ``<p>``."""
+        count, a heading's section does), a plain paragraph renders as
+        bare text, without ``<p>``."""
+        nodes = expand_headings(nodes)
         if sum(not isinstance(node, ListNode) for node in nodes) > 1:
-            return self._blocks(nodes)
+            return "".join(self.render(node) for node in nodes)
         return "".join(
             self.render_text(node.text)
             if isinstance(node, ParagraphNode) and node.label is None and node.text.lang is None
@@ -192,7 +194,7 @@ class HtmlNodeRenderer(NodeRenderer):
         return f'<div{_anchor(node)} class="cnd-math-block">{inner}</div>'
 
     def render_figure(self, node: FigureNode) -> str:
-        parts = [self.render(child) for child in node.children]
+        parts = [self.render(child) for child in expand_headings(node.children)]
         if not node.children and node.raw is not None:
             parts.append(
                 f'<pre class="cnd-raw" data-format='
@@ -418,7 +420,9 @@ class HtmlConverter(CndConverter):
         out = ['<section class="cnd-footnotes">', f"<h2>{escape(self.footnotes_title)}</h2>", "<ol>"]
         for note in cnd.footnotes:
             anchor = escape(note.label, quote=True)
-            body = "".join(self._block(cnd, child, warnings) for child in note.children)
+            body = "".join(
+                self._block(cnd, child, warnings) for child in expand_headings(note.children)
+            )
             out.append(f'<li id="{anchor}">{body}</li>')
         out.extend(["</ol>", "</section>"])
         return out

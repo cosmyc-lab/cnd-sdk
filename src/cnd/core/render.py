@@ -109,12 +109,31 @@ def _indented(text: str, first: str, indent: str) -> str:
     return "\n".join([head, *rest])
 
 
+def expand_headings(nodes: list[CndNode]) -> list[CndNode]:
+    """``nodes`` with every heading followed by its section, recursively,
+    in pre-order.
+
+    A renderer emits only the line of a heading; the converters' body walk
+    visits the section under it. A heading nested in a container (a quote,
+    an item, a cell, a figure) or held by a footnote is not on that walk,
+    so whatever renders the container's or the footnote's blocks renders
+    this list instead of the raw children, or the section would be lost.
+    """
+    out: list[CndNode] = []
+    for node in nodes:
+        out.append(node)
+        if isinstance(node, HeadingNode):
+            out.extend(expand_headings(node.children))
+    return out
+
+
 def _is_loose(blocks_per_item: list[list[CndNode]]) -> bool:
     """A list is tight unless an item holds several blocks. A nested list
     does not count: ``1. Parent`` over a nested list stays tight, as in
     CommonMark (docs/proposals/0013, "Lists and terms hold blocks")."""
     return any(
-        sum(not isinstance(node, ListNode) for node in nodes) > 1 for nodes in blocks_per_item
+        sum(not isinstance(node, ListNode) for node in expand_headings(nodes)) > 1
+        for nodes in blocks_per_item
     )
 
 
@@ -264,7 +283,7 @@ class MarkdownRenderer(NodeRenderer):
         return escape_block(text) if self.escape else text
 
     def _blocks(self, nodes: list[CndNode], separator: str = "\n\n") -> str:
-        rendered = (self.render(node).strip("\n") for node in nodes)
+        rendered = (self.render(node).strip("\n") for node in expand_headings(nodes))
         return separator.join(block for block in rendered if block)
 
     def render_heading(self, node: HeadingNode) -> str:
@@ -349,7 +368,7 @@ class MarkdownRenderer(NodeRenderer):
     def render_terms(self, node: TermsNode) -> str:
         """``**term**`` then ``: definition``; a definition's further
         blocks are indented under it."""
-        loose = any(len(item.children) > 1 for item in node.items)
+        loose = any(len(expand_headings(item.children)) > 1 for item in node.items)
         out: list[str] = []
         for item in node.items:
             term = self.render_text(with_whole_mark(item.term, "strong"))
@@ -407,7 +426,7 @@ class MarkdownRenderer(NodeRenderer):
         out: list[str] = []
         for row in body:
             cells = sorted((c for c in node.cells if c.row == row), key=lambda c: c.col)
-            rows.append([cell.children for cell in cells])
+            rows.append([expand_headings(cell.children) for cell in cells])
             parts: list[str] = []
             for cell in cells:
                 content = self._blocks(cell.children)
@@ -415,7 +434,7 @@ class MarkdownRenderer(NodeRenderer):
                     continue
                 label = labels.get(cell.col)
                 parts.append(f"{self._plain(label)}: {content}" if label else content)
-            several = any(len(cell.children) > 1 for cell in cells)
+            several = any(len(children) > 1 for children in rows[-1])
             out.append(_indented(("\n\n" if several else "\n").join(parts), "- ", "  "))
         loose = any(len(children) > 1 for cells in rows for children in cells)
         return ("\n\n" if loose else "\n").join(out)
@@ -429,7 +448,7 @@ class MarkdownRenderer(NodeRenderer):
             )
         )
         if wants_inline and node.children:
-            parts = [self.render(child) for child in node.children]
+            parts = [self.render(child) for child in expand_headings(node.children)]
             parts += self._figure_caption_parts(node)
             return "\n\n".join(part for part in parts if part)
         if wants_inline and node.raw is None and (node.caption or node.numbering):

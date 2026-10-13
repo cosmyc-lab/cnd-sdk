@@ -14,8 +14,10 @@ from cnd.converters import HtmlConverter, MarkdownConverter, iter_body, resolve_
 from cnd.converters.markdown import format_bib_entry
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
 from cnd.core.nodes import (
+    AdmonitionNode,
     FigureNode,
     HeadingNode,
+    LayoutNode,
     ListNode,
     QuoteNode,
     TableNode,
@@ -244,3 +246,89 @@ class TestHtml:
         a = HtmlConverter().convert(Cnd.model_validate_json(elements_cnd_path.read_text()))
         b = HtmlConverter().convert(Cnd.model_validate_json(explicit.read_text()))
         assert a.text == b.text
+
+
+# -- headings nested in containers and footnotes --------------------------
+
+
+def _section_heading() -> HeadingNode:
+    """A heading whose section holds one paragraph with a ref marker."""
+    child = para(rt("SECTION-TEXT", refs=[NodeRef(label="tgt-c1", text_span=[0, 7])]))
+    return HeadingNode(
+        type="heading", id=uuid4(), level=3, text=rt("Inner"), heading_path=["Inner"],
+        children=[child],
+    )
+
+
+def _holding(kind: str):
+    heading = _section_heading()
+    if kind == "quote":
+        return QuoteNode(type="quote", id=uuid4(), children=[heading])
+    if kind == "list item":
+        return ListNode(type="list", id=uuid4(), items=[item(heading)])
+    if kind == "admonition":
+        return AdmonitionNode(type="admonition", id=uuid4(), kind="note", children=[heading])
+    if kind == "table cell":
+        return TableNode(type="table", id=uuid4(), kind="content", cells=[
+            cell(0, 0, "head", is_header=True), cell(1, 0, None, children=[heading]),
+        ])
+    if kind == "layout cell":
+        return LayoutNode(type="layout", id=uuid4(), cells=[cell(0, 0, None, children=[heading])])
+    if kind == "figure":
+        return FigureNode(type="figure", id=uuid4(), kind="other", children=[heading])
+    raise AssertionError(kind)
+
+
+_CONTAINERS = ["quote", "list item", "admonition", "table cell", "layout cell", "figure"]
+_CONVERTERS = {
+    "markdown": (lambda: MarkdownConverter(), "[tgt-c1]"),
+    "markdown text_only": (lambda: MarkdownConverter(text_only=True), "[tgt-c1]"),
+    "html": (lambda: HtmlConverter(), 'href="#tgt-c1"'),
+}
+
+
+def _assert_once_with_its_text(out: str, marker: str) -> None:
+    assert out.count("Inner") == 1
+    assert out.count("SECTION-TEXT") == 1
+    assert out.count(marker) == 1
+    assert out.index("SECTION-TEXT") < out.index(marker)
+
+
+class TestNestedHeadings:
+    @pytest.mark.parametrize("converter", list(_CONVERTERS))
+    @pytest.mark.parametrize("container", _CONTAINERS)
+    def test_a_heading_in_a_container_keeps_its_section(self, container, converter) -> None:
+        make, marker = _CONVERTERS[converter]
+        target = para("target", label="tgt-c1")
+        out = make().convert(_cnd([target, _holding(container)])).text
+        _assert_once_with_its_text(out, marker)
+
+    @pytest.mark.parametrize("converter", list(_CONVERTERS))
+    def test_a_heading_in_a_footnote_keeps_its_section(self, converter) -> None:
+        make, marker = _CONVERTERS[converter]
+        note = Footnote(id=uuid4(), label="fn", children=[para("Intro."), _section_heading()])
+        body = para(rt("Text.", footnotes=[FootnoteRef(label="fn", text_span=[4, 5])]))
+        target = para("target", label="tgt-c1")
+        out = make().convert(_cnd([body, target], footnotes=[note])).text
+        _assert_once_with_its_text(out, marker)
+        notes = out[out.index("Footnotes"):]
+        assert notes.index("Intro.") < notes.index("Inner") < notes.index("SECTION-TEXT")
+
+    def test_a_heading_in_a_footnote_keeps_the_markdown_structure(self) -> None:
+        note = Footnote(id=uuid4(), label="fn", children=[para("Intro."), _section_heading()])
+        body = para(rt("Text.", footnotes=[FootnoteRef(label="fn", text_span=[4, 5])]))
+        out = MarkdownConverter().convert(_cnd([body, para("t", label="tgt-c1")], footnotes=[note])).text
+        assert "[^fn]: Intro.\n\n    ### Inner\n\n    SECTION-TEXT\n    [tgt-c1]" in out
+
+    def test_nested_sections_expand_in_pre_order(self) -> None:
+        deep = HeadingNode(
+            type="heading", id=uuid4(), level=4, text=rt("Deep"), heading_path=["Deep"],
+            children=[para("DEEP-TEXT")],
+        )
+        outer = HeadingNode(
+            type="heading", id=uuid4(), level=3, text=rt("Outer"), heading_path=["Outer"],
+            children=[deep, para("AFTER-DEEP")],
+        )
+        quote = QuoteNode(type="quote", id=uuid4(), children=[outer])
+        out = MarkdownRenderer().render(quote)
+        assert out == "> ### Outer\n>\n> #### Deep\n>\n> DEEP-TEXT\n>\n> AFTER-DEEP"
