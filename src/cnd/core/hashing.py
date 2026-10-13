@@ -10,14 +10,20 @@ Do not confuse it with ``Cnd.source.hash``, which is a producer-supplied
 digest of the *input artifact* and is only comparable between two CNDs
 from the same producer over the same source.
 
-**What is hashed.** Content, and nothing a producer resolved for
-display. Excluded under the current field set: the node ``id``, its
-``location``, the resolved ``number``, its ``counter_label``, and the
-CND's ``built_at``, ``source`` and ``cnd_version``. The exclusion is a principle plus a
-list, so the list is maintained as the field set evolves. The ``number``
-case is the one that would otherwise break silently: inserting a heading
-renumbers everything after it, so a hash covering ``number`` would
-report every following node as changed.
+**What is hashed.** Three rules (docs/proposals/0013):
+
+1. *Defaults are dropped.* The preimage holds only the fields a producer
+   set to a non-default value, so an omitted empty list and a written one
+   hash the same, and a future optional field cannot move an existing
+   hash.
+2. *Nested nodes are excluded.* A node's hash is node-local: the
+   ``children`` of the node and of its list items, term items and cells
+   are not part of it. The tree is covered by ``content_hash``.
+3. *Resolved presentation state is excluded:* the node ``id``, its
+   ``location`` and its ``numbering`` (inserting a heading renumbers
+   everything after it, so a hash covering ``numbering`` would report
+   every following node as changed), and the CND's ``built_at``,
+   ``source`` and ``cnd_version``.
 
 **Canonicalisation.** RFC 8785 (JCS) over the hashable subset, with
 strings normalised to Unicode NFC first. Both are external references
@@ -42,57 +48,50 @@ from cnd.core.nodes import CndNode
 ALGORITHM = "sha256"
 
 # Resolved presentation state — computed for display, changes without the
-# authored content changing. `children` is excluded for a different
-# reason: see `node_hash`.
-_EXCLUDED_NODE_FIELDS = frozenset(
-    {"id", "location", "number", "counter_label", "children"}
-)
+# authored content changing.
+_EXCLUDED_NODE_FIELDS = frozenset({"id", "location", "numbering"})
+# Container entries whose `children` hold nested nodes (principle 2).
+_CONTAINER_ENTRY_FIELDS = ("items", "cells")
 
 
 def node_hash(node: CndNode) -> str:
     """The content hash of a single node, as ``"sha256:<hex>"``.
 
-    ``counter_label`` is excluded alongside ``number``: it is the same
-    resolved presentation state, and it changes when the document language
-    changes without the authored content changing.
+    Over the node's own fields with every default-valued field dropped
+    (docs/proposals/0013): an omitted empty list and a written one hash the
+    same, and a future optional field cannot move an existing hash.
 
-    **Node-local**: a node's children are not hashed into it. A heading
-    whose subsection changed has not itself changed, and treating it as
-    changed would defeat the reconciliation pass that recognises a
-    moved-but-unchanged node (docs/adr/0018). The tree as a whole is
-    covered by ``content_hash``, which folds every node's hash.
+    **Node-local.** Every nested node is excluded, wherever it sits — the
+    node's ``children`` and the ``children`` of its list items, term items
+    and cells. A list whose item text changed has not itself changed; the
+    item's paragraph has. Only those structural keys are stripped: a
+    ``children`` key inside ``state_metadata`` is content.
     """
-    payload = node.model_dump(mode="json", exclude=_EXCLUDED_NODE_FIELDS)
+    payload = node.model_dump(
+        mode="json", exclude=_EXCLUDED_NODE_FIELDS, exclude_defaults=True
+    )
+    payload.pop("children", None)
+    for field in _CONTAINER_ENTRY_FIELDS:
+        for entry in payload.get(field, []):
+            entry.pop("children", None)
     return _digest(payload)
 
 
 def content_hash(cnd: Cnd) -> str:
-    """The content hash of a whole CND, as ``"sha256:<hex>"``.
+    """The content hash of a whole CND.
 
-    Folds every node hash in reading order, both out-of-tree pools, and
-    the ``doc`` metadata.
-
-    Each node's hash is paired with its depth, because nesting is
-    structure and not presentation — re-parenting a section under a
-    different heading changes the document even though the reading order
-    and every node-local hash are untouched.
-
-    **The pools are content.** A footnote's text and a bibliography
-    entry's fields are authored material; leaving them out would let a
-    rewritten footnote pass as an unchanged document — a silent
-    false negative of exactly the kind excluding ``number`` is meant to
-    avoid in the other direction. They sit out of the tree for
-    referencing reasons, not because they are metadata.
-
-    Excluded: ``built_at``, ``source`` and ``cnd_version``. The same
-    content built twice, reached from two different input formats, or
-    expressed under two format versions is the same content;
-    ``source.hash`` answers the separate question of whether the input
-    artifact moved.
+    Folds the ``doc`` metadata, every node of the body and of the footnotes
+    paired with its full **path** (``nodes/0/children/4/cells/2/children/0``),
+    and both pools. The path, not only the depth: moving a paragraph from
+    one cell to the next keeps depth and reading order but changes the
+    document. Excluded: ``built_at``, ``source``, ``cnd_version``.
     """
     payload = {
-        "doc": cnd.doc.model_dump(mode="json"),
-        "nodes": [[visit.ctx.depth, node_hash(visit.node)] for visit in cnd.iter()],
+        "doc": cnd.doc.model_dump(mode="json", exclude_defaults=True),
+        "nodes": [
+            ["/".join(map(str, visit.ctx.path)), node_hash(visit.node)]
+            for visit in cnd.iter_all()
+        ],
         "bibliography": [pool_entry_hash(entry) for entry in cnd.bibliography],
         "footnotes": [pool_entry_hash(note) for note in cnd.footnotes],
     }
@@ -100,14 +99,13 @@ def content_hash(cnd: Cnd) -> str:
 
 
 def pool_entry_hash(entry: BibEntry | Footnote) -> str:
-    """The content hash of one pool entry, as ``"sha256:<hex>"``.
-
-    Only ``id`` is excluded — non-durable, like a node's (docs/adr/0015).
-    A pool entry carries no resolved presentation state of its own: it
-    has no ``location`` and no ``number``, so the exclusion set is
-    narrower than a node's rather than the same one reused.
-    """
-    return _digest(entry.model_dump(mode="json", exclude={"id"}))
+    """The content hash of one pool entry. ``id`` is excluded, and a
+    footnote's ``children`` too: its content nodes are hashed as nodes and
+    folded into ``content_hash`` by path."""
+    exclude = {"id", "children"} if isinstance(entry, Footnote) else {"id"}
+    return _digest(
+        entry.model_dump(mode="json", exclude=exclude, exclude_defaults=True)
+    )
 
 
 def _digest(payload: Any) -> str:

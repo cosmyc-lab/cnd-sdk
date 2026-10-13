@@ -9,12 +9,14 @@ from cnd.core.nodes import (
     CndNode,
     NodeTraverse,
     StopPredicate,
+    edges_of,
     iter_nodes,
     position_totals,
 )
+from cnd.core.text import RichText
 
 
-CND_VERSION = "0.4.0"
+CND_VERSION = "0.5.0"
 """The format version this SDK builds and targets (spec/cnd-spec.md).
 
 Stamped into ``Cnd.cnd_version`` by the builder (docs/adr/0019). One
@@ -38,14 +40,22 @@ class DocMetadata(BaseModel):
     was built from is ``Cnd.source``, deliberately separate: the same work
     can be built from a Typst source and later re-imported from another
     format (docs/proposals/0008).
+
+    ``status`` and ``version`` are the values the author declares on the
+    document, unrelated to ``cnd_version`` and to any build history. ``extra``
+    holds any other title-page metadata; its keys never repeat a field name
+    (validation, docs/proposals/0013).
     """
 
     title: str
-    authors: list[str] = Field(default_factory=list)
+    authors: list[str] = Field(default=[])
     date: DocDate | None = None
-    keywords: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default=[])
     description: str | None = None
     lang: str | None = None
+    status: str | None = None
+    version: str | None = None
+    extra: dict[str, str] = Field(default={})
 
 
 class SourceInfo(BaseModel):
@@ -82,23 +92,25 @@ class BibEntry(BaseModel):
 
     id: UUID
     label: str
-    formatted: str | None = None
+    formatted: RichText | None = None
     type: str | None = None
-    authors: list[str] = Field(default_factory=list)
+    authors: list[str] = Field(default=[])
     title: str | None = None
     year: int | None = None
     container: str | None = None
     doi: str | None = None
     url: str | None = None
-    fields: dict[str, Any] = Field(default_factory=dict)
+    fields: dict[str, Any] = Field(default={})
 
 
 class Footnote(BaseModel):
-    """Footnote pool entry — target of ``footnotes`` edges. Flat text."""
+    """Footnote pool entry — target of ``footnotes`` edges. Its content is
+    block nodes: real nodes (global id/label uniqueness, location rule)
+    kept out of the body walk (docs/proposals/0013)."""
 
     id: UUID
     label: str
-    text: str
+    children: list[CndNode] = Field(default=[])
 
 
 LinkTarget = Union[CndNode, BibEntry, Footnote]
@@ -114,8 +126,8 @@ class Cnd(BaseModel):
     source: SourceInfo | None = None
     doc: DocMetadata
     nodes: list[CndNode]
-    bibliography: list[BibEntry] = Field(default_factory=list)
-    footnotes: list[Footnote] = Field(default_factory=list)
+    bibliography: list[BibEntry] = Field(default=[])
+    footnotes: list[Footnote] = Field(default=[])
 
     _incoming_index: dict[str, list[CndNode]] | None = PrivateAttr(default=None)
     _label_index: dict[str, LinkTarget] | None = PrivateAttr(default=None)
@@ -130,7 +142,7 @@ class Cnd(BaseModel):
         all-or-nothing — a partially located CND is a validation error — so
         the first node settles it for the whole document.
         """
-        for visit in self.iter():
+        for visit in self.iter_all():
             return visit.node.location is not None
         return False
 
@@ -155,6 +167,24 @@ class Cnd(BaseModel):
             _totals=self._position_totals,
         )
 
+    def iter_all(self) -> Iterator[NodeTraverse]:
+        """The body walk, then the content of every footnote.
+
+        Footnote content nodes are nodes in every respect (ids, labels,
+        locations) but stay out of the body walk, so a consumer splitting
+        the body never mixes notes into running text (docs/proposals/0013).
+        Positions inside a footnote count within that footnote; ``slot`` is
+        ``"footnotes"`` and ``slot_index`` the pool index.
+        """
+        yield from self.iter()
+        for index, note in enumerate(self.footnotes):
+            yield from iter_nodes(
+                note.children,
+                _base_path=("footnotes", index, "children"),
+                _slot="footnotes",
+                _slot_index=index,
+            )
+
     def __iter__(self) -> Iterator[NodeTraverse]:
         return self.iter()
 
@@ -168,7 +198,7 @@ class Cnd(BaseModel):
         """
         if self._label_index is None:
             index: dict[str, LinkTarget] = {}
-            for visit in self.iter():
+            for visit in self.iter_all():
                 if visit.node.label is not None:
                     index.setdefault(visit.node.label, visit.node)
             for entry in (*self.bibliography, *self.footnotes):
@@ -188,9 +218,11 @@ class Cnd(BaseModel):
         if self._incoming_index is None:
             index: dict[str, list[CndNode]] = {}
             seen: dict[str, set[UUID]] = {}
-            for visit in self.iter():
+            for visit in self.iter_all():
                 node = visit.node
-                for link in (*node.refs, *node.cites, *node.footnotes):
+                for link in edges_of(node):
+                    if not hasattr(link, "label"):
+                        continue  # hyperlinks are href-keyed and never incoming
                     sources = seen.setdefault(link.label, set())
                     if node.id in sources:
                         continue

@@ -24,7 +24,7 @@ from cnd.core.nodes import (
     NodeBase,
     ParagraphNode,
     QuoteNode,
-    TableCell,
+    Cell,
     TableNode,
     TermsNode,
 )
@@ -85,7 +85,7 @@ class HtmlNodeRenderer(NodeRenderer):
         return f"<p{_anchor(node)}{lang}>{escape(node.text)}</p>"
 
     def render_table(self, node: TableNode) -> str:
-        rows: dict[int, list[TableCell]] = {}
+        rows: dict[int, list[Cell]] = {}
         for cell in node.cells:
             rows.setdefault(cell.row, []).append(cell)
         body = []
@@ -152,7 +152,7 @@ class HtmlNodeRenderer(NodeRenderer):
         return f"<dl{_anchor(node)}>{items}</dl>"
 
 
-def _cell_html(cell: TableCell) -> str:
+def _cell_html(cell: Cell) -> str:
     tag = "th" if cell.is_header else "td"
     attrs = ""
     if cell.rowspan != 1:

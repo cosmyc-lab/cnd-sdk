@@ -1,10 +1,10 @@
 ---
 title: Derived content hashing — canonical serialisation and excluded presentation state
-status: accepted
+status: superseded
 date: 2026-07-22
 tags: [hashing, identity, derived, change-detection]
 related: [0008, 0012, 0015]
-superseded-by: null
+superseded-by: 0028
 ---
 
 # ADR 0016 — Derived content hashing
