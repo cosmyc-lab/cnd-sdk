@@ -286,6 +286,28 @@ class MarkdownRenderer(NodeRenderer):
         rendered = (self.render(node).strip("\n") for node in expand_headings(nodes))
         return separator.join(block for block in rendered if block)
 
+    def _prefixed_blocks(self, nodes: list[CndNode], prefix: str, separator: str = "\n\n") -> str:
+        """``nodes`` rendered as blocks behind an inline ``prefix`` (a
+        definition's ``: ``, a task item's ``[ ] ``, a row's ``Label: ``).
+
+        The prefix shares the first line with a paragraph or an image. Any
+        other first block (a fence, a list, a quote, a table, a heading)
+        only parses at the start of a line, so the prefix stands on a line
+        of its own and the blocks start on the next one; the caller indents
+        that line to the content column like the others.
+        """
+        content = self._blocks(nodes, separator)
+        if not content:
+            return ""
+        if not prefix:
+            return content
+        first = next(
+            (node for node in expand_headings(nodes) if self.render(node).strip("\n")), None
+        )
+        if isinstance(first, (ParagraphNode, ImageNode)):
+            return f"{prefix}{content}"
+        return f"{prefix.rstrip()}\n{content}"
+
     def render_heading(self, node: HeadingNode) -> str:
         text = self.render_text(node.text)
         if self.escape and (m := _CLOSING_HASHES.search(text)):
@@ -361,8 +383,8 @@ class MarkdownRenderer(NodeRenderer):
             number = item.number if item.number is not None else index
             marker = f"{number}." if node.ordered else "-"
             box = "" if item.checked is None else ("[x] " if item.checked else "[ ] ")
-            content = self._blocks(item.children, "\n\n" if loose else "\n")
-            out.append(_indented(content, f"{marker} {box}", " " * (len(marker) + 1)))
+            content = self._prefixed_blocks(item.children, box, "\n\n" if loose else "\n")
+            out.append(_indented(content, f"{marker} ", " " * (len(marker) + 1)))
         return separator.join(out)
 
     def render_terms(self, node: TermsNode) -> str:
@@ -372,9 +394,9 @@ class MarkdownRenderer(NodeRenderer):
         out: list[str] = []
         for item in node.items:
             term = self.render_text(with_whole_mark(item.term, "strong"))
-            definition = self._blocks(item.children)
+            definition = self._prefixed_blocks(item.children, ": ")
             if definition:
-                term = f"{term}\n{_indented(definition, ': ', '  ')}"
+                term = f"{term}\n{_indented(definition, '', '  ')}"
             out.append(term)
         return ("\n\n" if loose else "\n").join(out)
 
@@ -429,11 +451,12 @@ class MarkdownRenderer(NodeRenderer):
             rows.append([expand_headings(cell.children) for cell in cells])
             parts: list[str] = []
             for cell in cells:
-                content = self._blocks(cell.children)
+                label = labels.get(cell.col)
+                prefix = f"{self._plain(label)}: " if label else ""
+                content = self._prefixed_blocks(cell.children, prefix)
                 if not content:
                     continue
-                label = labels.get(cell.col)
-                parts.append(f"{self._plain(label)}: {content}" if label else content)
+                parts.append(content)
             several = any(len(children) > 1 for children in rows[-1])
             out.append(_indented(("\n\n" if several else "\n").join(parts), "- ", "  "))
         loose = any(len(children) > 1 for cells in rows for children in cells)

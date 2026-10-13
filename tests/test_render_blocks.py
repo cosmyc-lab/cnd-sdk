@@ -275,3 +275,118 @@ def test_every_element_of_the_elements_fixture_renders(elements_cnd_path, text_o
     renderer = MarkdownRenderer(tables="inline", figures="inline", text_only=text_only)
     for visit in cnd.iter_all():
         assert renderer.render(visit.node).strip()
+
+
+class TestPrefixBeforeABlock:
+    """A definition's ``: ``, a task item's checkbox and a linearized row's
+    ``Label: `` share a line with a paragraph only: before any other block
+    they stand on a line of their own, so the block still parses."""
+
+    CODE = "x = 1\n\ny = 2"
+    OPENS = {"quote": "blockquote_open", "list": "bullet_list_open",
+             "ordered list": "ordered_list_open"}
+
+    def _code(self) -> CodeNode:
+        return CodeNode(type="code", text=self.CODE, lang="python", **_id())
+
+    def _first_blocks(self):
+        return {
+            "code": self._code(),
+            "quote": QuoteNode(type="quote", children=[para("quoted")], **_id()),
+            "list": _list(item("one"), item("two")),
+            "ordered list": _list(item("one"), item("two"), ordered=True),
+        }
+
+    def _terms(self, first) -> TermsNode:
+        return TermsNode(
+            type="terms", items=[TermItem(term=rt("cmd"), children=[first, para("MORE")])], **_id()
+        )
+
+    def _task(self, first) -> ListNode:
+        # A nested list followed by a paragraph keeps the item tight, which
+        # makes the paragraph a lazy continuation: a separate limit, so the
+        # list cases put MORE in a second item instead.
+        if isinstance(first, ListNode):
+            return _list(item(first, checked=False), item("MORE"))
+        return _list(item(first, para("MORE"), checked=False), item("second", checked=True))
+
+    def _rows(self, first) -> TableNode:
+        return TableNode(type="table", kind="content", cells=[
+            cell(0, 0, "Lang", is_header=True),
+            cell(0, 1, "Example", is_header=True),
+            cell(1, 0, "py"),
+            cell(1, 1, children=[first, para("MORE")]),
+        ], **_id())
+
+    @staticmethod
+    def _tokens(node) -> list:
+        renderer = MarkdownRenderer(tables="inline", text_only=True)
+        return _parse(f"{renderer.render(node)}\n\nAFTER")
+
+    def _assert_structure(self, tokens, container_open: str) -> None:
+        fences = [t for t in tokens if t.type == "fence"]
+        assert all("AFTER" not in t.content and "MORE" not in t.content for t in fences)
+        # MORE stays inside the container, AFTER is a top-level paragraph.
+        more = next(i for i, t in enumerate(tokens) if t.type == "inline" and t.content == "MORE")
+        assert tokens[more].level > 1
+        assert any(t.type == container_open for t in tokens[:more])
+        after = next(i for i, t in enumerate(tokens) if t.type == "inline" and t.content == "AFTER")
+        assert tokens[after - 1].type == "paragraph_open" and tokens[after - 1].level == 0
+
+    def test_definition_starting_with_code(self) -> None:
+        out = MarkdownRenderer().render(self._terms(self._code()))
+        assert out.startswith("**cmd**\n:\n  ```python\n  x = 1\n\n  y = 2\n  ```\n\n  MORE")
+        tokens = _parse(f"{out}\n\nAFTER")
+        [fence] = [t for t in tokens if t.type == "fence"]
+        assert fence.content == "x = 1\n\ny = 2\n"
+        after = next(i for i, t in enumerate(tokens) if t.type == "inline" and t.content == "AFTER")
+        assert tokens[after - 1].level == 0
+        assert "MORE" not in fence.content
+
+    @pytest.mark.parametrize("first", ["code", "quote", "list", "ordered list"])
+    def test_definition_starting_with_a_block(self, first) -> None:
+        tokens = _parse(f"{MarkdownRenderer().render(self._terms(self._first_blocks()[first]))}\n\nAFTER")
+        fences = [t for t in tokens if t.type == "fence"]
+        assert all("AFTER" not in t.content and "MORE" not in t.content for t in fences)
+        if first != "code":
+            assert any(t.type == self.OPENS[first] for t in tokens)
+        after = next(i for i, t in enumerate(tokens) if t.type == "inline" and t.content == "AFTER")
+        assert tokens[after - 1].level == 0
+
+    def test_task_item_starting_with_code(self) -> None:
+        out = MarkdownRenderer().render(self._task(self._code()))
+        assert out.startswith("- [ ]\n  ```python\n  x = 1\n\n  y = 2\n  ```\n\n  MORE")
+        tokens = _parse(f"{out}\n\nAFTER")
+        [fence] = [t for t in tokens if t.type == "fence"]
+        assert fence.content == "x = 1\n\ny = 2\n"
+        self._assert_structure(tokens, "list_item_open")
+        items = [t for t in tokens if t.type == "list_item_open"]
+        assert len(items) == 2
+
+    @pytest.mark.parametrize("first", ["quote", "list", "ordered list"])
+    def test_task_item_starting_with_a_block(self, first) -> None:
+        tokens = self._tokens(self._task(self._first_blocks()[first]))
+        self._assert_structure(tokens, "list_item_open")
+        assert any(t.type == self.OPENS[first] and t.level > 0 for t in tokens)
+
+    def test_linearized_row_starting_with_code(self) -> None:
+        out = MarkdownRenderer(tables="inline", text_only=True).render(self._rows(self._code()))
+        assert "  Example:\n  ```python\n  x = 1\n\n  y = 2\n  ```\n\n  MORE" in out
+        tokens = _parse(f"{out}\n\nAFTER")
+        [fence] = [t for t in tokens if t.type == "fence"]
+        assert fence.content == "x = 1\n\ny = 2\n"
+        self._assert_structure(tokens, "list_item_open")
+
+    @pytest.mark.parametrize("first", ["quote", "list", "ordered list"])
+    def test_linearized_row_starting_with_a_block(self, first) -> None:
+        tokens = self._tokens(self._rows(self._first_blocks()[first]))
+        self._assert_structure(tokens, "list_item_open")
+        assert any(t.type == self.OPENS[first] and t.level > 0 for t in tokens)
+
+    def test_a_paragraph_keeps_the_prefix_on_its_line(self) -> None:
+        node = self._task(para("todo"))
+        assert MarkdownRenderer().render(node).startswith("- [ ] todo")
+
+    def test_an_empty_definition_prints_no_prefix(self) -> None:
+        node = TermsNode(type="terms", items=[TermItem(term=rt("cmd"), children=[])], **_id())
+        assert MarkdownRenderer().render(node) == "**cmd**"
