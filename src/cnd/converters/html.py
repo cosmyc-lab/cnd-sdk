@@ -33,7 +33,8 @@ from cnd.core.nodes import (
     TermsNode,
 )
 from cnd.core.render import NodeRenderer, expand_headings
-from cnd.core.text import RichText
+from cnd.core.text import Edge, LinkRef, RichText
+from cnd.core.urls import is_safe_url
 
 from cnd.converters.base import (
     CndConverter,
@@ -67,6 +68,14 @@ pre { overflow-x: auto; padding: .75rem; }
 """
 
 
+def _link_wrap(edge: Edge) -> tuple[str, str] | None:
+    """The ``<a>`` around the text a ``links`` edge spans; ``None`` for
+    the other families, and for an href that is not safe to link to."""
+    if not isinstance(edge, LinkRef) or not is_safe_url(edge.href):
+        return None
+    return f'<a class="cnd-link" href="{escape(edge.href, quote=True)}">', "</a>"
+
+
 def _anchor(node: NodeBase) -> str:
     """``id="<label>"`` for a labelled node, nothing for an unlabelled one."""
     return f' id="{escape(node.label, quote=True)}"' if node.label else ""
@@ -92,10 +101,18 @@ class HtmlNodeRenderer(NodeRenderer):
     Markdown converter only has bracketed text. Node ``id`` (the UUID),
     ``state_metadata`` and ``location`` are not emitted. A container
     renders its nested nodes itself.
+
+    A ``links`` edge with a ``text_span`` makes the text it spans an
+    ``<a class="cnd-link">``, unless its href fails
+    ``cnd.core.urls.is_safe_url``: the text then stays plain. ``links=False``
+    leaves every text plain, for a caller that renders links elsewhere.
     """
 
+    def __init__(self, *, links: bool = True) -> None:
+        self.links = links
+
     def render_text(self, text: RichText) -> str:
-        return render_inline(text, "html")
+        return render_inline(text, "html", edge_wrap=_link_wrap if self.links else None)
 
     def _blocks(self, nodes: list[CndNode]) -> str:
         return "".join(self.render(node) for node in expand_headings(nodes))
@@ -273,13 +290,20 @@ class HtmlConverter(CndConverter):
       edges of every text in the block; a marker whose label does not
       resolve degrades to a ``<span class="cnd-unresolved">`` and is
       reported in ``ConversionResult.warnings``.
+    - ``links``: a hyperlink with a ``text_span`` is an ``<a
+      class="cnd-link">`` around the text it spans (the renderer's
+      job, see ``HtmlNodeRenderer``); one without a span goes to the
+      marker line as ``<a class="cnd-link" href="…">href</a>``. An
+      href that fails ``cnd.core.urls.is_safe_url`` is never emitted as
+      a link: the spanned text stays plain, a span-less href is written
+      as text.
 
     **Irreducibly dropped** — the same for every document
     (docs/proposals/0007):
 
-    - ``text_span`` — markers are appended after the block rather than
-      spliced in at their standoff offsets; only their relative order
-      survives.
+    - ``text_span`` of ``refs``, ``cites`` and ``footnotes`` — their
+      markers are appended after the block rather than spliced in at
+      their standoff offsets; only their relative order survives.
     - ``CiteRef.form`` and ``supplement`` beyond the ``none`` case: HTML
       has no citation model, so a bracketed link is all there is.
     - ``state_metadata`` and ``NodeLocation.page``: no target in HTML.
@@ -291,10 +315,6 @@ class HtmlConverter(CndConverter):
       ``format_bib_entry``.
     - ``RawSource`` survives only on a childless figure, as a ``<pre>``;
       ``math.raw`` is dropped in favour of the structured content.
-    - ``links`` — **not yet rendered by this converter**; unlike the rest
-      of this list, this is a gap rather than an inherent limit: ``<a
-      href>`` is native to HTML, so a future revision can render it
-      (docs/adr/0024).
 
     This conversion does **not** round-trip.
     """
@@ -396,7 +416,12 @@ class HtmlConverter(CndConverter):
     @staticmethod
     def _marker(marker: ResolvedMarker) -> str:
         if marker.family == "links":
-            return ""  # not rendered yet: see the class docstring
+            href = marker.link.href
+            if marker.link.text_span:
+                return ""  # the renderer links the spanned text itself
+            if not is_safe_url(href):
+                return escape(href)
+            return f'<a class="cnd-link" href="{escape(href, quote=True)}">{escape(href)}</a>'
         label = escape(marker.label)
         href = escape(marker.label, quote=True)
         if marker.family == "cites" and getattr(marker.link, "form", None) == "none":

@@ -9,9 +9,11 @@ It cuts ``value`` at every mark boundary, and at every edge boundary
 when the caller asks for edges to be wrapped (``edge_wrap``), and builds
 a tree of nested spans. Where two spans cross, the one that ends first
 closes and the other is reopened after it, as text editors do, so the
-output always nests. The converters shipped today append their markers
-after the block (see ``cnd.converters.base``) and pass no ``edge_wrap``:
-an edge cut that renders nothing would only split marks for no reason.
+output always nests. The HTML renderer wraps the ``links`` edges (the
+linked text becomes an ``<a>``) and returns ``None`` for every other
+edge; every other marker is appended after its block (see
+``cnd.converters.base``), so no edge cut that renders nothing splits a
+mark for no reason.
 
 Policy (spec §7): a dialect renders the marks it supports and leaves the
 text of any other mark unchanged. ``value`` is always the plain text, so

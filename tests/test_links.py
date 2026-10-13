@@ -1,0 +1,225 @@
+"""Hyperlinks: the shared URL check, ``links`` edges in the HTML converter
+and the Markdown link marker."""
+
+from datetime import datetime, timezone
+from html.parser import HTMLParser
+
+import pytest
+from markdown_it import MarkdownIt
+
+from factories import para, rt
+
+from cnd.converters import HtmlConverter, MarkdownConverter
+from cnd.converters.html import HtmlNodeRenderer
+from cnd.core.cnd import Cnd, DocMetadata
+from cnd.core.nodes import TableNode
+from cnd.core.render import MarkdownRenderer
+from cnd.core.text import LinkRef, Mark
+from cnd.core.urls import is_safe_url
+
+from factories import cell
+
+
+def _cnd(nodes) -> Cnd:
+    return Cnd(
+        cnd_version="0.5.0",
+        built_at=datetime(2026, 10, 13, tzinfo=timezone.utc),
+        doc=DocMetadata(title="T"),
+        nodes=nodes,
+    )
+
+
+class _Anchors(HTMLParser):
+    """Every ``<a>`` element: its attributes and its text."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.anchors: list[tuple[dict, str]] = []
+        self._open: list[tuple[dict, list[str]]] = []
+
+    def handle_starttag(self, tag, attrs) -> None:
+        if tag == "a":
+            self._open.append((dict(attrs), []))
+
+    def handle_endtag(self, tag) -> None:
+        if tag == "a" and self._open:
+            attrs, text = self._open.pop()
+            self.anchors.append((attrs, "".join(text)))
+
+    def handle_data(self, data) -> None:
+        for _, text in self._open:
+            text.append(data)
+
+
+def _anchors(html: str) -> list[tuple[dict, str]]:
+    parser = _Anchors()
+    parser.feed(html)
+    return parser.anchors
+
+
+# -- the URL check ---------------------------------------------------------
+
+
+class TestIsSafeUrl:
+    @pytest.mark.parametrize("url", [
+        "http://example.com",
+        "https://example.com/a?b#c",
+        "HTTPS://EXAMPLE.COM",
+        "mailto:someone@example.com",
+        "MailTo:someone@example.com",
+        "  https://example.com",
+        "page.html",
+        "../up/page.html",
+        "/abs/path",
+        "#section",
+        "?q=1",
+        "dir/name:with-colon",
+        "",
+    ])
+    def test_safe(self, url: str) -> None:
+        assert is_safe_url(url)
+
+    @pytest.mark.parametrize("url", [
+        "javascript:alert(1)",
+        "JavaScript:alert(1)",
+        " javascript:alert(1)",
+        "\x01\x02javascript:alert(1)",
+        "\njavascript:alert(1)",
+        "java\tscript:alert(1)",
+        "java\nscript:alert(1)",
+        "jav\rascript:alert(1)",
+        "vbscript:msgbox(1)",
+        "data:text/html,<script>alert(1)</script>",
+        "data:image/png;base64,AAAA",
+        "file:///etc/passwd",
+        "ftp://example.com",
+    ])
+    def test_unsafe(self, url: str) -> None:
+        assert not is_safe_url(url)
+
+
+# -- HTML: a link with a span wraps its text --------------------------------
+
+
+class TestHtmlInlineLinks:
+    def test_linked_text_becomes_an_anchor(self) -> None:
+        text = rt("see the spec here", links=[LinkRef(href="https://example.com/s", text_span=[8, 12])])
+        out = HtmlNodeRenderer().render(para(text))
+        assert out == '<p>see the <a class="cnd-link" href="https://example.com/s">spec</a> here</p>'
+
+    def test_href_is_escaped_as_an_attribute(self) -> None:
+        text = rt("x", links=[LinkRef(href='https://e.com/?a=1&b="2"', text_span=[0, 1])])
+        anchors = _anchors(HtmlNodeRenderer().render(para(text)))
+        assert anchors == [({"class": "cnd-link", "href": 'https://e.com/?a=1&b="2"'}, "x")]
+
+    def test_crossing_mark_and_link_nest(self) -> None:
+        text = rt(
+            "abcdef",
+            marks=[Mark(start=0, end=4, kind="strong")],
+            links=[LinkRef(href="https://e.com", text_span=[2, 6])],
+        )
+        out = HtmlNodeRenderer().render_text(text)
+        assert out == (
+            '<strong>ab<a class="cnd-link" href="https://e.com">cd</a></strong>'
+            '<a class="cnd-link" href="https://e.com">ef</a>'
+        )
+
+    def test_unsafe_link_leaves_the_text_plain(self) -> None:
+        text = rt("click me", links=[LinkRef(href="javascript:alert(1)", text_span=[0, 5])])
+        out = HtmlNodeRenderer().render(para(text))
+        assert out == "<p>click me</p>"
+        assert "javascript" not in out
+
+    def test_other_families_are_not_wrapped(self) -> None:
+        from cnd.core.text import NodeRef
+
+        text = rt("see t", refs=[NodeRef(label="t", text_span=[4, 5])])
+        assert HtmlNodeRenderer().render_text(text) == "see t"
+
+    def test_links_switch_off_leaves_text_plain(self) -> None:
+        text = rt("site", links=[LinkRef(href="https://e.com", text_span=[0, 4])])
+        assert HtmlNodeRenderer(links=False).render_text(text) == "site"
+
+
+# -- HTML converter: marker line --------------------------------------------
+
+
+class TestHtmlConverterLinks:
+    def test_spanned_link_is_inline_not_in_the_marker_line(self) -> None:
+        node = para(rt("site", links=[LinkRef(href="https://e.com", text_span=[0, 4])]))
+        html = HtmlConverter().convert(_cnd([node])).text
+        assert '<p><a class="cnd-link" href="https://e.com">site</a></p>' in html
+        assert '<span class="cnd-markers">' not in html
+
+    def test_spanless_link_goes_to_the_marker_line(self) -> None:
+        node = para(rt("site", links=[LinkRef(href="https://e.com/x")]))
+        html = HtmlConverter().convert(_cnd([node])).text
+        assert (
+            '<span class="cnd-markers"><a class="cnd-link" href="https://e.com/x">'
+            "https://e.com/x</a></span>"
+        ) in html
+
+    def test_unsafe_spanless_link_is_plain_text(self) -> None:
+        node = para(rt("site", links=[LinkRef(href="javascript:alert('<x>')")]))
+        html = HtmlConverter().convert(_cnd([node])).text
+        assert '<span class="cnd-markers">javascript:alert(&#x27;&lt;x&gt;&#x27;)</span>' in html
+        assert not [a for a in _anchors(html) if "javascript" in a[0].get("href", "")]
+
+
+# -- Markdown: the link marker ------------------------------------------------
+
+
+def _md_links(text: str) -> list[str]:
+    tokens = MarkdownIt("commonmark").parse(text)
+    hrefs = []
+    for token in tokens:
+        for child in token.children or []:
+            if child.type == "link_open":
+                hrefs.append(child.attrs["href"])
+    return hrefs
+
+
+class TestMarkdownLinkMarker:
+    def test_safe_link_marker_is_a_link(self) -> None:
+        node = para(rt("site", links=[LinkRef(href="https://e.com/x", text_span=[0, 4])]))
+        md = MarkdownConverter().convert(_cnd([node])).text
+        assert "[https://e.com/x](https://e.com/x)" in md
+        assert _md_links(md) == ["https://e.com/x"]
+
+    def test_unsafe_link_marker_is_plain_text(self) -> None:
+        node = para(rt("site", links=[LinkRef(href="javascript:alert(1)")]))
+        md = MarkdownConverter().convert(_cnd([node])).text
+        assert "javascript:alert(1)" in md
+        assert _md_links(md) == []
+
+    def test_unsafe_link_marker_cannot_open_inline_html(self) -> None:
+        node = para(rt("site", links=[LinkRef(href="data:text/html,<script>alert(1)</script>")]))
+        md = MarkdownConverter().convert(_cnd([node])).text
+        html = MarkdownIt("commonmark").render(md)
+        assert "<script>" not in html
+
+    @pytest.mark.parametrize("href", [
+        "javascript&colon;alert(1)",
+        "javascript\\:alert(1)",
+        "a&amp;b",
+        "path\\with\\backslash",
+    ])
+    def test_destination_parses_back_to_the_checked_href(self, href: str) -> None:
+        assert is_safe_url(href)
+        node = para(rt("site", links=[LinkRef(href=href)]))
+        md = MarkdownConverter().convert(_cnd([node])).text
+        parsed = _md_links(md)
+        assert len(parsed) == 1
+        # markdown-it percent-encodes; decode before comparing.
+        from urllib.parse import unquote
+
+        assert unquote(parsed[0]) == href
+
+    def test_html_table_in_markdown_does_not_wrap_links(self) -> None:
+        link = LinkRef(href="https://e.com", text_span=[0, 1])
+        table = TableNode(type="table", id=para().id, kind="content", cells=[
+            cell(0, 0, "h", is_header=True),
+            cell(1, 0, None, children=[para(rt("c", links=[link])), para("more")]),
+        ])
+        out = MarkdownRenderer(tables="inline").render(table)
+        assert "cnd-link" not in out

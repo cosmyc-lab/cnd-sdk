@@ -5,9 +5,11 @@ Target 1 of docs/proposals/0007, built directly on
 """
 
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
+from cnd.core.markdown_escape import escape_destination, escape_inline
 from cnd.core.nodes import CndNode, HeadingNode, ParagraphNode
 from cnd.core.render import MarkdownRenderer, NodeRenderer, expand_headings
 from cnd.core.text import RichText
+from cnd.core.urls import is_safe_url
 
 from cnd.converters.base import (
     CndConverter,
@@ -90,7 +92,9 @@ class MarkdownConverter(CndConverter):
       pandoc-style ``[@label]`` / ``@label`` for ``cites``, ``[^label]``
       for ``footnotes``, and ``[href](href)`` for ``links`` — the href is
       the only text a ``LinkRef`` carries, so it stands in for the display
-      text a Markdown link normally has. Markers are ordered text by text,
+      text a Markdown link normally has. An href whose scheme is not
+      ``http``, ``https`` or ``mailto`` (``cnd.core.urls.is_safe_url``)
+      is written as plain text, never as a link. Markers are ordered text by text,
       then by ``text_span`` where one exists, then by family (spec §8). A
       ``links`` marker is **appended**, like the other three families,
       never spliced into the text at its span: splicing would make marker
@@ -235,7 +239,9 @@ class MarkdownConverter(CndConverter):
             return f"[^{marker.label}]"
         if marker.family == "links":
             href = marker.link.href
-            return f"[{href}]({href})"
+            if not is_safe_url(href):
+                return escape_inline(href)
+            return f"[{escape_inline(href)}]({escape_destination(href)})"
         form = getattr(marker.link, "form", None)
         supplement = getattr(marker.link, "supplement", None)
         if form == "none":

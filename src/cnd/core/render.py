@@ -438,7 +438,8 @@ class MarkdownRenderer(NodeRenderer):
         """
         from cnd.converters.html import HtmlNodeRenderer
 
-        return HtmlNodeRenderer().render_table(node).replace("\n", "&#10;")
+        # The converter already appends every link to the marker line.
+        return HtmlNodeRenderer(links=False).render_table(node).replace("\n", "&#10;")
 
     def _linear_rows(self, node: TableNode) -> str:
         """Under ``text_only``, a table whose cells hold blocks becomes one
