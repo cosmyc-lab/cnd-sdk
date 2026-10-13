@@ -49,10 +49,8 @@ collect_ignore = [
     "test_cli.py",
     "test_converters.py",
     "test_declaration.py",
-    "test_full_coverage.py",
     "test_markdown_structure.py",
     "test_node_display_visitor.py",
     "test_reconcile.py",
-    "test_render.py",
     "test_visitor.py",
 ]

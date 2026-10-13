@@ -34,14 +34,28 @@ from ids import (
 )
 
 from cnd.core.cnd import Cnd
-from cnd.core.nodes import CndNode, FigureNode, ImageNode, ListNode, TableNode
+from cnd.core.nodes import (
+    CndNode,
+    FigureNode,
+    ImageNode,
+    LayoutNode,
+    ListNode,
+    TableNode,
+    edges_of,
+)
 from cnd.core.render import MarkdownRenderer
+from cnd.core.text import CiteRef, LinkRef, NodeRef
 
 FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "full_coverage.cnd"
 
 
 def _load() -> Cnd:
     return Cnd.model_validate_json(FIXTURE_PATH.read_text())
+
+
+def _family(node: CndNode, family: type) -> list:
+    """One link family of a node, read from its texts (docs/adr/0025)."""
+    return [edge for edge in edges_of(node) if isinstance(edge, family)]
 
 
 def _node(cnd: Cnd, node_id) -> CndNode:
@@ -70,40 +84,45 @@ class TestFixtureShape:
             "image",
             "list",
             "terms",
+            "layout",
         }
 
     def test_covers_table_and_list_variants(self) -> None:
         cnd = _load()
         tables = [v.node for v in cnd.iter() if isinstance(v.node, TableNode)]
-        assert {t.kind for t in tables} == {"table", "grid"}
-        assert {t.content_kind for t in tables} == {"content", "data"}
+        assert {t.kind for t in tables} == {"content"}
         grid = _node(cnd, FULL_GRID_ID)
+        assert isinstance(grid, LayoutNode)
         assert any(c.rowspan > 1 for c in grid.cells)
         assert any(c.colspan > 1 for c in grid.cells)
         assert any(c.is_header for c in grid.cells)
 
         lists = [v.node for v in cnd.iter() if isinstance(v.node, ListNode)]
         assert {lst.ordered for lst in lists} == {True, False}
-        assert {lst.tight for lst in lists} == {True, False}
-        assert any(item.children for lst in lists for item in lst.items)
+        assert any(
+            isinstance(child, ListNode)
+            for lst in lists
+            for item in lst.items
+            for child in item.children
+        )
 
     def test_covers_cite_form_variants(self) -> None:
         cnd = _load()
         forms = {
-            cite.form for v in cnd.iter() for cite in v.node.cites
+            cite.form for v in cnd.iter() for cite in _family(v.node, CiteRef)
         }
         assert forms == {"normal", "prose", "full", "author", "year", "none"}
         supplements = [
             cite.supplement
             for v in cnd.iter()
-            for cite in v.node.cites
+            for cite in _family(v.node, CiteRef)
             if cite.supplement
         ]
         assert supplements == ["p. 42"]
 
     def test_refs_with_and_without_span(self) -> None:
         cnd = _load()
-        spans = [ref.text_span for v in cnd.iter() for ref in v.node.refs]
+        spans = [ref.text_span for v in cnd.iter() for ref in _family(v.node, NodeRef)]
         assert any(span is not None for span in spans)
         assert any(span is None for span in spans)
 
@@ -114,7 +133,7 @@ class TestFixtureShape:
         cnd = _load()
         para = _node(cnd, FULL_PARA_REFS_ID)
 
-        [link] = para.links
+        [link] = _family(para, LinkRef)
         assert link.href == "https://example.org/appendix/grid-raw"
         assert link.text_span == [16, 22]
 
@@ -145,7 +164,7 @@ class TestIncomingResolution:
         cnd = _load()
         para = _node(cnd, FULL_PARA_REFS_ID)
 
-        [none_cite] = [c for c in para.cites if c.form == "none"]
+        [none_cite] = [c for c in _family(para, CiteRef) if c.form == "none"]
         assert none_cite.text_span is None
         assert none_cite.label == FULL_BIB_MINIMAL_LABEL
         assert FULL_PARA_REFS_ID in {n.id for n in cnd.incoming(FULL_BIB_MINIMAL_LABEL)}
