@@ -24,7 +24,7 @@ from dataclasses import dataclass
 
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
 from cnd.core.nodes import CndNode, texts_of
-from cnd.core.text import ATOMIC_MARK_KINDS, RichText
+from cnd.core.text import ATOMIC_MARK_KINDS, LinkRef, RichText
 
 # The lifted bibliographic fields; an entry satisfies the content floor
 # with a `formatted` string or with at least one of these.
@@ -269,7 +269,7 @@ def _check_text_spans(cnd: Cnd) -> list[Violation]:
             if span is None:
                 continue
             if len(span) != 2 or not 0 <= span[0] <= span[1] <= length:
-                name = getattr(edge, "label", None) or edge.href
+                name = edge.href if isinstance(edge, LinkRef) else edge.label
                 violations.append(
                     Violation(
                         "text-span-out-of-bounds",
@@ -293,7 +293,15 @@ def _mark_violations(text: RichText, where: str) -> list[Violation]:
     out: list[Violation] = []
     length = len(text.value)
     for mark in text.marks:
-        if not 0 <= mark.start < mark.end <= length:
+        if mark.start == mark.end and 0 <= mark.start <= length:
+            out.append(
+                Violation(
+                    "mark-out-of-bounds",
+                    f"{mark.kind} mark [{mark.start}, {mark.end}) is empty",
+                    where,
+                )
+            )
+        elif not 0 <= mark.start < mark.end <= length:
             out.append(
                 Violation(
                     "mark-out-of-bounds",

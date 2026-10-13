@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
+import pytest
 from factories import rt
 
 from cnd import (
@@ -258,6 +259,18 @@ class TestMarks:
             text = rt("hello", marks=[Mark(start=start, end=end, kind="strong")])
             assert "mark-out-of-bounds" in _rules(_doc([_p(text)]))
 
+    def test_an_empty_mark_says_so(self) -> None:
+        text = rt("hello", marks=[Mark(start=2, end=2, kind="strong")])
+        [violation] = validate(_doc([_p(text)]))
+        assert violation.rule == "mark-out-of-bounds"
+        assert "is empty" in violation.message
+        assert "outside" not in violation.message
+
+    def test_an_out_of_range_mark_says_outside(self) -> None:
+        text = rt("hello", marks=[Mark(start=0, end=6, kind="strong")])
+        [violation] = validate(_doc([_p(text)]))
+        assert "is outside a text of 5 code points" in violation.message
+
     def test_canonical_order(self) -> None:
         text = rt("abcd", marks=[Mark(start=2, end=3, kind="emph"), Mark(start=0, end=1, kind="emph")])
         assert "mark-not-canonical" in _rules(_doc([_p(text)]))
@@ -282,6 +295,15 @@ class TestMarks:
 class TestSpansAndMetadata:
     def test_text_span_out_of_bounds(self) -> None:
         text = rt("short", links=[{"href": "https://x.test", "text_span": [2, 9]}])
+        assert "text-span-out-of-bounds" in _rules(_doc([_p(text)]))
+
+    @pytest.mark.parametrize("span", [[1], [1, 2, 3], [9, 2], [-3, 4], []])
+    def test_a_malformed_text_span_is_reported_never_raised(self, span) -> None:
+        text = rt("short", links=[{"href": "https://x.test", "text_span": span}])
+        assert "text-span-out-of-bounds" in _rules(_doc([_p(text)]))
+
+    def test_an_empty_label_edge_with_a_bad_span_is_reported(self) -> None:
+        text = rt("short", refs=[NodeRef(label="", text_span=[2, 9])])
         assert "text-span-out-of-bounds" in _rules(_doc([_p(text)]))
 
     def test_extra_must_not_shadow_a_field(self) -> None:
