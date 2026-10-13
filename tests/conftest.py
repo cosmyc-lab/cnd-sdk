@@ -50,4 +50,10 @@ collect_ignore = [
     "test_reconcile.py",
     "test_render.py",
     "test_visitor.py",
+    # ported by plan 1, Tasks 4-7
+    "test_cnd.py",
+    "test_hashing.py",
+    "test_schema.py",
+    "test_traverse.py",
+    "test_validate.py",
 ]

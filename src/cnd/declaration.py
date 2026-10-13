@@ -53,7 +53,7 @@ from cnd.core.nodes import (
     FootnoteRef,
     NodeRef,
     RawSource,
-    TableCell,
+    Cell,
     TermItem,
 )
 
@@ -81,7 +81,7 @@ class _Strict(BaseModel):
 
     **This strictness is partial by construction.** ``extra="forbid"`` is
     per model and does not reach the value objects reused from the CND
-    (``TableCell``, the link edges, ``DocMetadata``): those keep the CND's
+    (``Cell``, the link edges, ``DocMetadata``): those keep the CND's
     lenient config, since forbidding on them would change CND parsing. A
     stray key on a node or at the top level is caught; one *inside* a
     table cell or a link edge is not. The open extension bags
@@ -135,7 +135,7 @@ class DeclTableNode(DeclNodeBase):
     type: Literal["table"]
     kind: Literal["table", "grid"] = "table"
     content_kind: Literal["data", "content"] | None = None
-    cells: list[TableCell] = Field(default_factory=list)
+    cells: list[Cell] = Field(default_factory=list)
     raw: RawSource | None = None
 
 
@@ -315,6 +315,6 @@ __all__ = [
     "NodeRef",
     "RawSource",
     "SourceInfo",
-    "TableCell",
+    "Cell",
     "TermItem",
 ]

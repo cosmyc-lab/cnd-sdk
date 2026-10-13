@@ -9,12 +9,14 @@ from cnd.core.nodes import (
     CndNode,
     NodeTraverse,
     StopPredicate,
+    edges_of,
     iter_nodes,
     position_totals,
 )
+from cnd.core.text import RichText
 
 
-CND_VERSION = "0.4.0"
+CND_VERSION = "0.5.0"
 """The format version this SDK builds and targets (spec/cnd-spec.md).
 
 Stamped into ``Cnd.cnd_version`` by the builder (docs/adr/0019). One
@@ -38,6 +40,11 @@ class DocMetadata(BaseModel):
     was built from is ``Cnd.source``, deliberately separate: the same work
     can be built from a Typst source and later re-imported from another
     format (docs/proposals/0008).
+
+    ``status`` and ``version`` are the values the author declares on the
+    document, unrelated to ``cnd_version`` and to any build history. ``extra``
+    holds any other title-page metadata; its keys never repeat a field name
+    (validation, docs/proposals/0013).
     """
 
     title: str
@@ -46,6 +53,9 @@ class DocMetadata(BaseModel):
     keywords: list[str] = Field(default_factory=list)
     description: str | None = None
     lang: str | None = None
+    status: str | None = None
+    version: str | None = None
+    extra: dict[str, str] = Field(default_factory=dict)
 
 
 class SourceInfo(BaseModel):
@@ -82,7 +92,7 @@ class BibEntry(BaseModel):
 
     id: UUID
     label: str
-    formatted: str | None = None
+    formatted: RichText | None = None
     type: str | None = None
     authors: list[str] = Field(default_factory=list)
     title: str | None = None
@@ -94,11 +104,13 @@ class BibEntry(BaseModel):
 
 
 class Footnote(BaseModel):
-    """Footnote pool entry — target of ``footnotes`` edges. Flat text."""
+    """Footnote pool entry — target of ``footnotes`` edges. Its content is
+    block nodes: real nodes (global id/label uniqueness, location rule)
+    kept out of the body walk (docs/proposals/0013)."""
 
     id: UUID
     label: str
-    text: str
+    children: list[CndNode] = Field(default_factory=list)
 
 
 LinkTarget = Union[CndNode, BibEntry, Footnote]
@@ -190,7 +202,9 @@ class Cnd(BaseModel):
             seen: dict[str, set[UUID]] = {}
             for visit in self.iter():
                 node = visit.node
-                for link in (*node.refs, *node.cites, *node.footnotes):
+                for link in edges_of(node):
+                    if not hasattr(link, "label"):
+                        continue  # hyperlinks are href-keyed and never incoming
                     sources = seen.setdefault(link.label, set())
                     if node.id in sources:
                         continue

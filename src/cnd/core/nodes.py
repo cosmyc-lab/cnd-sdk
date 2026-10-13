@@ -5,7 +5,16 @@ from dataclasses import dataclass, field
 
 from pydantic import BaseModel, Field
 
-from cnd.core.text import CiteRef, FootnoteRef, LinkRef, NodeRef, RawSource  # noqa: F401
+from cnd.core.text import (  # noqa: F401  (re-exported for existing imports)
+    CiteRef,
+    Edge,
+    FootnoteRef,
+    LinkRef,
+    NodeRef,
+    Numbering,
+    RawSource,
+    RichText,
+)
 
 
 class NodeLocation(BaseModel):
@@ -27,118 +36,71 @@ class NodeLocation(BaseModel):
     page: int
 
 
+KNOWN_ADMONITION_KINDS = frozenset({"note", "tip", "important", "warning", "caution"})
+"""Known ``admonition.kind`` values (open vocabulary; fallback: a generic
+callout headed by the title, or by the kind)."""
+
+KNOWN_TABLE_KINDS = frozenset({"data", "content"})
+"""Known ``table.kind`` values (open vocabulary; ``None`` = unstated)."""
+
+
 class NodeBase(BaseModel):
-    """Shared fields for every cnd node."""
+    """Shared fields for every node. The link families live in the node's
+    texts (``RichText``), not here (docs/proposals/0013)."""
 
     id: UUID
     label: str | None = None
-    refs: list[NodeRef] = Field(default_factory=list)
-    cites: list[CiteRef] = Field(default_factory=list)
-    footnotes: list[FootnoteRef] = Field(default_factory=list)
-    links: list[LinkRef] = Field(default_factory=list)
     state_metadata: dict[str, Any] = Field(default_factory=dict)
     location: NodeLocation | None = None
 
 
 class HeadingNode(NodeBase):
-    """Section heading with nested section content in ``children``.
-
-    ``number`` — shared in shape with ``MathNode`` and ``FigureNode`` — is
-    the counter value **as resolved and displayed** (``"2.1.1"``, ``"(1)"``,
-    ``"3"``), never the pattern that produced it: a consumer cannot replay a
-    counter engine, so only the resolved value is usable.
-
-    ``counter_label`` is the word displayed in front of it (``"Figure"``,
-    ``"Tabelle"``), kept in its own field rather than fused into ``number``
-    (docs/proposals/0008, 0010). Fusing them was the defect; carrying the
-    word is not. It is not always derivable — for a custom ``kind`` the
-    author supplies it and nothing else in the CND encodes it.
-    """
+    """Section heading; the section's content is in ``children``."""
 
     type: Literal["heading"]
     level: int
-    number: str | None = None
-    counter_label: str | None = None
-    text: str
+    numbering: Numbering | None = None
+    text: RichText
     heading_path: list[str]
     children: list["CndNode"] = Field(default_factory=list)
 
 
 class ParagraphNode(NodeBase):
-    """Plain text paragraph."""
+    """A paragraph: the leaf that carries prose."""
 
     type: Literal["paragraph"]
-    text: str
-    lang: str | None = None
-
-
-class TableCell(BaseModel):
-    """Single cell inside a table node."""
-
-    row: int
-    col: int
-    rowspan: int = 1
-    colspan: int = 1
-    is_header: bool = False
-    text: str
-
-
-class TableNode(NodeBase):
-    """Structured table with typed cells.
-
-    ``kind`` distinguishes a semantic ``table`` from a layout ``grid``: both
-    share the same cell model, but a grid carries no tabular semantics.
-
-    A table has no caption of its own — a captioned/numbered table is a
-    ``TableNode`` wrapped in a ``FigureNode``, which carries the caption.
-    """
-
-    type: Literal["table"]
-    kind: Literal["table", "grid"] = "table"
-    # Optional producer-supplied hint used by mode="auto" rendering (see
-    # cnd.core.render.MarkdownRenderer): "content" for a table whose cells
-    # read fine inlined as text (a short comparison table, a parameter
-    # list), "data" for one that doesn't (a numeric measurement grid).
-    # Unset (the common case today) is treated as "data".
-    content_kind: Literal["data", "content"] | None = None
-    cells: list[TableCell] = Field(default_factory=list)
-    raw: RawSource | None = None
+    text: RichText
 
 
 class QuoteNode(NodeBase):
-    """Block quotation with optional attribution (author or source)."""
+    """Block quotation. An inline quotation stays text in its paragraph."""
 
     type: Literal["quote"]
-    text: str
-    attribution: str | None = None
-    block: bool = True
-    lang: str | None = None
+    attribution: RichText | None = None
+    children: list["CndNode"] = Field(default_factory=list)
 
 
 class CodeNode(NodeBase):
-    """Raw code block, preserved verbatim with its language tag."""
+    """Code block, verbatim. Inline code is a ``code`` mark. ``title`` is
+    the label an author gives a listing, typically a file name."""
 
     type: Literal["code"]
     text: str
     lang: str | None = None
-    block: bool = True
+    title: str | None = None
 
 
 class MathNode(NodeBase):
-    """Block-level equation."""
+    """Block equation. Inline math is a ``math`` mark."""
 
     type: Literal["math"]
     text: str
     raw: RawSource | None = None
-    number: str | None = None
-    counter_label: str | None = None
-    block: bool = True
+    numbering: Numbering | None = None
 
 
 class ImageNode(NodeBase):
-    """Leaf image content. A bare image outside any figure is an ``ImageNode``
-    with no wrapper; a captioned image is an ``ImageNode`` inside a
-    ``FigureNode``."""
+    """Leaf image content."""
 
     type: Literal["image"]
     path: str | None = None
@@ -146,77 +108,134 @@ class ImageNode(NodeBase):
 
 
 class FigureNode(NodeBase):
-    """Captioned/numbered float wrapper — never a content carrier.
-
-    The wrapped content (image, table, code, …) lives in ``children`` and
-    keeps its own node type and ``location``. ``kind`` is the counter/label
-    selector of the figure ("image", "table", or an author-custom kind like
-    "atom") — an open string, never a content discriminator. Nested figures
-    (subfigures) are allowed. An unconvertible body yields ``children=[]``
-    with ``raw`` filled.
-    """
+    """Captioned/numbered wrapper; content keeps its own node type in
+    ``children``. ``kind`` is the figure's category (open vocabulary),
+    useful above all for author-defined categories ``children`` cannot
+    reveal. ``description`` is the text equivalent of the visual. An
+    unconvertible body (a drawing) yields ``children=[]`` with ``raw``."""
 
     type: Literal["figure"]
     kind: str | None = None
-    caption: str | None = None
-    number: str | None = None
-    counter_label: str | None = None
+    caption: RichText | None = None
+    description: RichText | None = None
+    numbering: Numbering | None = None
     children: list["CndNode"] = Field(default_factory=list)
     raw: RawSource | None = None
 
 
-class ListItem(BaseModel):
-    """Single item of a bullet or numbered list."""
+class AdmonitionNode(NodeBase):
+    """A callout ("Note", "Warning"). ``kind`` is an open vocabulary; the
+    known values are ``KNOWN_ADMONITION_KINDS``."""
 
-    text: str
+    type: Literal["admonition"]
+    kind: str
+    title: RichText | None = None
+    children: list["CndNode"] = Field(default_factory=list)
+
+
+class ListItem(BaseModel):
+    """One list entry. Its content is block nodes; a nested list is a
+    ``list`` node with its own ``ordered``. ``checked`` is ``None`` for an
+    item that is not a task-list checkbox."""
+
     number: int | None = None
-    children: list["ListItem"] = Field(default_factory=list)
+    checked: bool | None = None
+    children: list["CndNode"] = Field(default_factory=list)
 
 
 class ListNode(NodeBase):
-    """Bullet (`ordered=False`) or numbered (`ordered=True`) list."""
+    """Bullet (``ordered=False``) or numbered (``ordered=True``) list."""
 
     type: Literal["list"]
     ordered: bool = False
-    tight: bool = True
     items: list[ListItem] = Field(default_factory=list)
 
 
 class TermItem(BaseModel):
-    """Single term/description pair of a definition list."""
+    """One term and its definition (block nodes in ``children``)."""
 
-    term: str
-    description: str
+    term: RichText
+    children: list["CndNode"] = Field(default_factory=list)
 
 
 class TermsNode(NodeBase):
-    """Definition list (Typst ``/ term: description`` items)."""
+    """Definition list."""
 
     type: Literal["terms"]
-    tight: bool = True
     items: list[TermItem] = Field(default_factory=list)
+
+
+class Cell(BaseModel):
+    """One cell of a ``table`` or a ``layout``; content is block nodes."""
+
+    row: int
+    col: int
+    rowspan: int = 1
+    colspan: int = 1
+    is_header: bool = False
+    children: list["CndNode"] = Field(default_factory=list)
+
+
+class TableNode(NodeBase):
+    """A table whose rows and columns carry meaning. ``kind`` states what
+    it is: ``"data"`` (a dataset of records), ``"content"`` (cells to
+    read), ``None`` (unstated). Open vocabulary; never guessed by a
+    producer. A captioned table is wrapped in a ``FigureNode``."""
+
+    type: Literal["table"]
+    kind: str | None = None
+    cells: list[Cell] = Field(default_factory=list)
+
+
+class LayoutNode(NodeBase):
+    """A grid used for arrangement only; position carries no relation."""
+
+    type: Literal["layout"]
+    cells: list[Cell] = Field(default_factory=list)
 
 
 CndNode = Annotated[
     Union[
         HeadingNode,
         ParagraphNode,
-        TableNode,
         QuoteNode,
         CodeNode,
         MathNode,
-        FigureNode,
         ImageNode,
+        FigureNode,
+        AdmonitionNode,
         ListNode,
         TermsNode,
+        TableNode,
+        LayoutNode,
     ],
     Field(discriminator="type"),
 ]
 
-ListItem.model_rebuild()
+for _model in (HeadingNode, QuoteNode, FigureNode, AdmonitionNode, ListItem, TermItem, Cell):
+    _model.model_rebuild()
 
-HeadingNode.model_rebuild()  # For recursive reference to children
-FigureNode.model_rebuild()  # For recursive reference to children
+
+def texts_of(node: "CndNode") -> list[RichText]:
+    """The node's own texts, in document order; never a nested node's."""
+    if isinstance(node, (HeadingNode, ParagraphNode)):
+        return [node.text]
+    if isinstance(node, QuoteNode):
+        return [node.attribution] if node.attribution is not None else []
+    if isinstance(node, FigureNode):
+        return [t for t in (node.caption, node.description) if t is not None]
+    if isinstance(node, AdmonitionNode):
+        return [node.title] if node.title is not None else []
+    if isinstance(node, TermsNode):
+        return [item.term for item in node.items]
+    return []
+
+
+def edges_of(node: "CndNode") -> list[Edge]:
+    """Every forward edge of the node's own texts, flattened."""
+    return [edge for text in texts_of(node) for edge in text.edges()]
+
+
 
 
 @dataclass(frozen=True)
