@@ -515,3 +515,71 @@ class TestBlockAfterANestedList:
 
         node = _list(item(para("parent"), _list(item("child"))))
         assert HtmlNodeRenderer().render(node) == "<ul><li>parent<ul><li>child</li></ul></li></ul>"
+
+
+class TestMarkdownImageSource:
+    @staticmethod
+    def _tokens(md: str) -> list:
+        tokens = MarkdownIt("commonmark").parse(md)
+        flat = list(tokens)
+        for token in tokens:
+            flat.extend(token.children or [])
+        return flat
+
+    @pytest.mark.parametrize("path", [
+        "javascript:alert(1)",
+        " javascript:alert(1)",
+        "vbscript:x",
+        "data:text/html,<script>alert(1)</script>",
+        "file:///etc/passwd",
+    ])
+    def test_unsafe_source_is_the_placeholder(self, path: str) -> None:
+        node = ImageNode(type="image", path=path, alt="A cat", **_id())
+        out = R.render(node)
+        assert out == f'[[image:{node.id} alt="A cat"]]'
+        assert "image" not in [t.type for t in self._tokens(out)]
+
+    @pytest.mark.parametrize("path", [
+        "javascript&colon;alert(1)",
+        "javascript&#58;alert(1)",
+        "javascript\\:alert(1)",
+        "a&amp;b.png",
+        "dir\\x.png",
+    ])
+    def test_destination_parses_back_to_the_checked_path(self, path: str) -> None:
+        from urllib.parse import unquote
+
+        node = ImageNode(type="image", path=path, alt="A", **_id())
+        images = [t for t in self._tokens(R.render(node)) if t.type == "image"]
+        assert len(images) == 1
+        assert unquote(images[0].attrs["src"]) == path
+
+    @pytest.mark.parametrize("path", [
+        "a\n\n![t](https://t/p.gif)",
+        "a\n# [x](intent:e)",
+        "a\r> q",
+    ])
+    def test_a_line_ending_in_the_path_stays_inside(self, path: str) -> None:
+        node = ImageNode(type="image", path=path, alt="A", **_id())
+        types = [t.type for t in self._tokens(R.render(node))]
+        assert types.count("image") == 1
+        assert "heading_open" not in types and "blockquote_open" not in types
+        assert "link_open" not in types
+
+    @pytest.mark.parametrize("alt", ["a\n\n# h", "a\r> q", "a\n\n![t](https://t/p.gif)"])
+    def test_a_line_ending_in_the_alt_stays_inside(self, alt: str) -> None:
+        node = ImageNode(type="image", path="a.png", alt=alt, **_id())
+        types = [t.type for t in self._tokens(R.render(node))]
+        assert types.count("image") == 1
+        assert "heading_open" not in types and "blockquote_open" not in types
+
+    def test_a_line_ending_in_a_placeholder_alt_stays_on_its_line(self) -> None:
+        node = ImageNode(type="image", path="javascript:x", alt="a\n\n# h", **_id())
+        out = R.render(node)
+        assert "\n" not in out
+        node = ImageNode(type="image", alt="a\r\n# h", **_id())
+        assert "\n" not in R.render(node) and "\r" not in R.render(node)
+
+    def test_data_image_is_kept(self) -> None:
+        node = ImageNode(type="image", path="data:image/png;base64,AAAA", alt="A", **_id())
+        assert R.render(node) == "![A](data:image/png;base64,AAAA)"

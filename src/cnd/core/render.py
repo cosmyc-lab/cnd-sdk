@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover — Python 3.10, via pydantic's typing-e
     from typing_extensions import assert_never
 
 from cnd.core.inline import concat_texts, render_inline, with_whole_mark
-from cnd.core.markdown_escape import escape_block
+from cnd.core.markdown_escape import escape_block, escape_destination
 from cnd.core.node_text import (
     NodeTextMode,
     cell_plain_text,
@@ -58,17 +58,14 @@ from cnd.core.nodes import (
     TermsNode,
 )
 from cnd.core.text import RichText
+from cnd.core.urls import is_safe_image_source
 
 __all__ = ["MarkdownRenderer", "NodeRenderer", "expand_headings", "holds_several_blocks"]
 
 
-_DEST_NEEDS_BRACKETS = re.compile(r"[ ()<>]")
-
-
-def _image_destination(path: str) -> str:
-    if _DEST_NEEDS_BRACKETS.search(path):
-        return "<" + path.replace("<", "%3C").replace(">", "%3E") + ">"
-    return path
+def _one_line(text: str) -> str:
+    """``text`` with every line ending (CR, LF, CRLF) made a space."""
+    return text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ")
 
 
 def _unix_newlines(text: str) -> str:
@@ -405,10 +402,16 @@ class MarkdownRenderer(NodeRenderer):
         return f"{block}\n{self._plain(value)}"
 
     def render_image(self, node: ImageNode) -> str:
-        if node.path:
-            return f"![{_escape_alt(node.alt or '')}]({_image_destination(node.path)})"
-        if node.alt:
-            return f'[[image:{node.id} alt="{node.alt}"]]'
+        """``![alt](path)`` when the path is a safe source
+        (``cnd.core.urls.is_safe_image_source``), else the
+        ``[[image:id alt="…"]]`` placeholder. A line ending in the alt
+        becomes a space, and the destination is escaped so it parses back
+        to the checked path: neither can start a block of its own."""
+        alt = _one_line(node.alt or "")
+        if node.path and is_safe_image_source(node.path):
+            return f"![{_escape_alt(alt)}]({escape_destination(node.path)})"
+        if alt:
+            return f'[[image:{node.id} alt="{alt}"]]'
         return f"[[image:{node.id}]]"
 
     def render_list(self, node: ListNode) -> str:
