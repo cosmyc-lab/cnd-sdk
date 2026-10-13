@@ -55,6 +55,4 @@ collect_ignore = [
     "test_reconcile.py",
     "test_render.py",
     "test_visitor.py",
-    # ported by plan 1, Tasks 4-7
-    "test_hashing.py",
 ]

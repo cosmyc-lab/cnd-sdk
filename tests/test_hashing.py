@@ -19,12 +19,22 @@ from cnd import (
     DocMetadata,
     Footnote,
     HeadingNode,
+    Cell,
+    LayoutNode,
+    ListItem,
+    ListNode,
     NodeLocation,
+    Numbering,
     ParagraphNode,
     SourceInfo,
+    TableNode,
+    TermItem,
+    TermsNode,
     content_hash,
     node_hash,
 )
+from cnd.core.hashing import _digest
+from factories import rt
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 VECTORS = FIXTURES / "hashes.json"
@@ -32,7 +42,7 @@ VECTORS = FIXTURES / "hashes.json"
 
 def _cnd(nodes, **kwargs) -> Cnd:
     return Cnd(
-        cnd_version="0.3.0",
+        cnd_version="0.5.0",
         built_at=datetime(2026, 7, 22),
         doc=DocMetadata(title="T"),
         nodes=nodes,
@@ -41,7 +51,7 @@ def _cnd(nodes, **kwargs) -> Cnd:
 
 
 def _para(text: str = "p", **kwargs) -> ParagraphNode:
-    return ParagraphNode(id=uuid4(), type="paragraph", text=text, **kwargs)
+    return ParagraphNode(id=uuid4(), type="paragraph", text=rt(text), **kwargs)
 
 
 def _heading(text: str = "H", children=(), **kwargs) -> HeadingNode:
@@ -49,7 +59,7 @@ def _heading(text: str = "H", children=(), **kwargs) -> HeadingNode:
         id=uuid4(),
         type="heading",
         level=1,
-        text=text,
+        text=rt(text),
         heading_path=[text],
         children=list(children),
         **kwargs,
@@ -70,22 +80,22 @@ class TestExcludedFromNodeHash:
             _para("x", location=NodeLocation(page=1))
         )
 
-    def test_the_resolved_number_is_excluded(self) -> None:
+    def test_the_resolved_numbering_is_excluded(self) -> None:
         """The case that would break silently: inserting a heading
-        renumbers every following node, and a hash covering `number`
+        renumbers every following node, and a hash covering `numbering`
         would report each of them as changed."""
-        assert node_hash(_heading("H", number="2.1")) == node_hash(
-            _heading("H", number="3.1")
+        assert node_hash(_heading("H", numbering=Numbering(value="2.1"))) == node_hash(
+            _heading("H", numbering=Numbering(value="3.1"))
         )
 
-    def test_the_counter_label_is_excluded(self) -> None:
-        """Same resolved presentation state as `number` — it changes with
-        the document language, not with the authored content."""
-        assert node_hash(_heading("H", number="1", counter_label="Section")) == (
-            node_hash(_heading("H", number="1", counter_label="Abschnitt"))
-        )
-        assert node_hash(_heading("H", number="1")) == node_hash(
-            _heading("H", number="1", counter_label="Section")
+    def test_the_counter_name_is_excluded(self) -> None:
+        """The counter word is part of `numbering` — it changes with the
+        document language, not with the authored content."""
+        assert node_hash(
+            _heading("H", numbering=Numbering(value="1", name="Section"))
+        ) == node_hash(_heading("H", numbering=Numbering(value="1", name="Abschnitt")))
+        assert node_hash(_heading("H", numbering=Numbering(value="1"))) == node_hash(
+            _heading("H", numbering=Numbering(value="1", name="Section"))
         )
 
     def test_children_are_excluded(self) -> None:
@@ -108,9 +118,14 @@ class TestCoveredByNodeHash:
     def test_link_labels_are_covered(self) -> None:
         from cnd import NodeRef
 
-        assert node_hash(_para("x", refs=[NodeRef(label="a")])) != node_hash(
-            _para("x", refs=[NodeRef(label="b")])
-        )
+        def para(label):
+            return ParagraphNode(
+                id=uuid4(),
+                type="paragraph",
+                text=rt("x", refs=[NodeRef(label=label)]),
+            )
+
+        assert node_hash(para("a")) != node_hash(para("b"))
 
 
 class TestUnicodeNormalisation:
@@ -162,9 +177,9 @@ class TestContentHash:
 
     def test_renumbering_alone_does_not_change_the_document_hash(self) -> None:
         assert content_hash(
-            _cnd([_heading("A", number="1"), _heading("B", number="2")])
+            _cnd([_heading("A", numbering=Numbering(value="1")), _heading("B", numbering=Numbering(value="2"))])
         ) == content_hash(
-            _cnd([_heading("A", number="2"), _heading("B", number="3")])
+            _cnd([_heading("A", numbering=Numbering(value="2")), _heading("B", numbering=Numbering(value="3"))])
         )
 
     def test_repagination_alone_does_not_change_the_document_hash(self) -> None:
@@ -186,8 +201,8 @@ class TestContentHash:
     def test_a_rewritten_footnote_changes_the_document_hash(self) -> None:
         """The pools sit out of the tree for referencing reasons, not
         because they are metadata — their text is authored content."""
-        a = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", text="one")])
-        b = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", text="two")])
+        a = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", children=[_para("one")])])
+        b = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", children=[_para("two")])])
 
         assert content_hash(a) != content_hash(b)
 
@@ -199,8 +214,8 @@ class TestContentHash:
 
     def test_a_pool_entry_id_is_excluded(self) -> None:
         """Pool ids are as non-durable as node ids (docs/adr/0015)."""
-        a = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", text="n")])
-        b = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", text="n")])
+        a = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", children=[_para("n")])])
+        b = _cnd([_para("x")], footnotes=[Footnote(id=uuid4(), label="a", children=[_para("n")])])
 
         assert content_hash(a) == content_hash(b)
 
@@ -211,6 +226,86 @@ class TestContentHash:
         nested = _cnd([_heading("H", children=[_para("a")])])
 
         assert content_hash(flat) != content_hash(nested)
+
+
+class TestDefaultsAreDropped:
+    def test_hash_equals_the_minimal_payload(self) -> None:
+        """Omitted and default-valued fields never enter the preimage, so a
+        future optional field cannot move an existing hash."""
+        assert node_hash(_para("x")) == _digest(
+            {"type": "paragraph", "text": {"value": "x"}}
+        )
+
+    def test_explicit_empty_lists_hash_like_omitted_ones(self) -> None:
+        with_lists = ParagraphNode.model_validate(
+            {
+                "id": str(uuid4()),
+                "type": "paragraph",
+                "text": {"value": "x", "marks": [], "refs": []},
+            }
+        )
+        assert node_hash(with_lists) == node_hash(_para("x"))
+
+
+class TestNestedNodesAreExcluded:
+    def test_a_list_does_not_change_when_an_item_text_does(self) -> None:
+        a = ListNode(id=uuid4(), type="list", items=[ListItem(children=[_para("one")])])
+        b = ListNode(id=uuid4(), type="list", items=[ListItem(children=[_para("two")])])
+        assert node_hash(a) == node_hash(b)
+
+    def test_a_list_changes_when_a_checkbox_does(self) -> None:
+        a = ListNode(id=uuid4(), type="list", items=[ListItem(checked=False)])
+        b = ListNode(id=uuid4(), type="list", items=[ListItem(checked=True)])
+        assert node_hash(a) != node_hash(b)
+
+    def test_a_table_does_not_change_when_a_cell_content_does(self) -> None:
+        a = TableNode(
+            id=uuid4(), type="table", cells=[Cell(row=0, col=0, children=[_para("1")])]
+        )
+        b = TableNode(
+            id=uuid4(), type="table", cells=[Cell(row=0, col=0, children=[_para("2")])]
+        )
+        assert node_hash(a) == node_hash(b)
+
+    def test_a_term_is_the_terms_node_own_content(self) -> None:
+        a = TermsNode(id=uuid4(), type="terms", items=[TermItem(term=rt("A"))])
+        b = TermsNode(id=uuid4(), type="terms", items=[TermItem(term=rt("B"))])
+        assert node_hash(a) != node_hash(b)
+
+    def test_state_metadata_children_key_is_content(self) -> None:
+        a = _para("x", state_metadata={"children": 1})
+        b = _para("x", state_metadata={"children": 2})
+        assert node_hash(a) != node_hash(b)
+
+    def test_numbering_is_excluded(self) -> None:
+        assert node_hash(_heading("H", numbering=Numbering(value="2.1"))) == node_hash(
+            _heading("H", numbering=Numbering(value="3.1", name="Section"))
+        )
+
+
+class TestDocumentHashSeesStructure:
+    def test_moving_a_paragraph_between_cells_changes_the_document(self) -> None:
+        def grid(first, second):
+            return LayoutNode(
+                id=uuid4(),
+                type="layout",
+                cells=[
+                    Cell(row=0, col=0, children=first),
+                    Cell(row=0, col=1, children=second),
+                ],
+            )
+
+        a = _cnd([grid([_para("x"), _para("y")], [])])
+        b = _cnd([grid([_para("x")], [_para("y")])])
+        assert content_hash(a) != content_hash(b)
+
+    def test_editing_footnote_content_changes_the_document(self) -> None:
+        def note(value):
+            return Footnote(id=uuid4(), label="fn", children=[_para(value)])
+
+        assert content_hash(_cnd([], footnotes=[note("a")])) != content_hash(
+            _cnd([], footnotes=[note("b")])
+        )
 
 
 class TestNotSerialised:
@@ -233,7 +328,7 @@ class TestConformanceVectors:
             cnd = Cnd.model_validate_json(path.read_text())
             vectors[path.name] = {
                 "content_hash": content_hash(cnd),
-                "node_hashes": [node_hash(v.node) for v in cnd.iter()],
+                "node_hashes": [node_hash(v.node) for v in cnd.iter_all()],
             }
         return vectors
 
