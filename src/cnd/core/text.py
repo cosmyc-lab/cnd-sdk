@@ -32,8 +32,8 @@ class NodeRef(BaseModel):
     resolves through the CND's label index (docs/adr/0017, superseding the
     ``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the
     reference marker sits in the ``value`` of the ``RichText`` that holds
-    the edge, as a
-    ``[start, end)`` pair of Unicode code-point offsets (docs/adr/0013).
+    the edge, as a ``[start, end)`` pair of Unicode code-point offsets
+    (docs/adr/0013).
     """
 
     label: str
@@ -110,11 +110,11 @@ class RichText(BaseModel):
 
     value: str
     lang: str | None = None
-    marks: list[Mark] = Field(default_factory=list)
-    refs: list[NodeRef] = Field(default_factory=list)
-    cites: list[CiteRef] = Field(default_factory=list)
-    footnotes: list[FootnoteRef] = Field(default_factory=list)
-    links: list[LinkRef] = Field(default_factory=list)
+    marks: list[Mark] = Field(default=[])
+    refs: list[NodeRef] = Field(default=[])
+    cites: list[CiteRef] = Field(default=[])
+    footnotes: list[FootnoteRef] = Field(default=[])
+    links: list[LinkRef] = Field(default=[])
 
     def edges(self) -> list[Edge]:
         """All forward edges of this text: refs, cites, footnotes, links."""

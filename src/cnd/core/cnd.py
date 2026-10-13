@@ -48,14 +48,14 @@ class DocMetadata(BaseModel):
     """
 
     title: str
-    authors: list[str] = Field(default_factory=list)
+    authors: list[str] = Field(default=[])
     date: DocDate | None = None
-    keywords: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default=[])
     description: str | None = None
     lang: str | None = None
     status: str | None = None
     version: str | None = None
-    extra: dict[str, str] = Field(default_factory=dict)
+    extra: dict[str, str] = Field(default={})
 
 
 class SourceInfo(BaseModel):
@@ -94,13 +94,13 @@ class BibEntry(BaseModel):
     label: str
     formatted: RichText | None = None
     type: str | None = None
-    authors: list[str] = Field(default_factory=list)
+    authors: list[str] = Field(default=[])
     title: str | None = None
     year: int | None = None
     container: str | None = None
     doi: str | None = None
     url: str | None = None
-    fields: dict[str, Any] = Field(default_factory=dict)
+    fields: dict[str, Any] = Field(default={})
 
 
 class Footnote(BaseModel):
@@ -110,7 +110,7 @@ class Footnote(BaseModel):
 
     id: UUID
     label: str
-    children: list[CndNode] = Field(default_factory=list)
+    children: list[CndNode] = Field(default=[])
 
 
 LinkTarget = Union[CndNode, BibEntry, Footnote]
@@ -126,8 +126,8 @@ class Cnd(BaseModel):
     source: SourceInfo | None = None
     doc: DocMetadata
     nodes: list[CndNode]
-    bibliography: list[BibEntry] = Field(default_factory=list)
-    footnotes: list[Footnote] = Field(default_factory=list)
+    bibliography: list[BibEntry] = Field(default=[])
+    footnotes: list[Footnote] = Field(default=[])
 
     _incoming_index: dict[str, list[CndNode]] | None = PrivateAttr(default=None)
     _label_index: dict[str, LinkTarget] | None = PrivateAttr(default=None)
@@ -142,7 +142,7 @@ class Cnd(BaseModel):
         all-or-nothing — a partially located CND is a validation error — so
         the first node settles it for the whole document.
         """
-        for visit in self.iter():
+        for visit in self.iter_all():
             return visit.node.location is not None
         return False
 

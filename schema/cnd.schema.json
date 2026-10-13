@@ -22,6 +22,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -57,6 +58,7 @@
           "default": null
         },
         "children": {
+          "default": [],
           "items": {
             "discriminator": {
               "mapping": {
@@ -162,6 +164,7 @@
           "title": "Type"
         },
         "authors": {
+          "default": [],
           "items": {
             "type": "string"
           },
@@ -230,6 +233,7 @@
         },
         "fields": {
           "additionalProperties": true,
+          "default": {},
           "title": "Fields",
           "type": "object"
         }
@@ -268,6 +272,7 @@
           "type": "boolean"
         },
         "children": {
+          "default": [],
           "items": {
             "discriminator": {
               "mapping": {
@@ -419,6 +424,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -521,6 +527,7 @@
           "type": "string"
         },
         "authors": {
+          "default": [],
           "items": {
             "type": "string"
           },
@@ -539,6 +546,7 @@
           "default": null
         },
         "keywords": {
+          "default": [],
           "items": {
             "type": "string"
           },
@@ -597,6 +605,7 @@
           "additionalProperties": {
             "type": "string"
           },
+          "default": {},
           "title": "Extra",
           "type": "object"
         }
@@ -629,6 +638,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -694,6 +704,7 @@
           "default": null
         },
         "children": {
+          "default": [],
           "items": {
             "discriminator": {
               "mapping": {
@@ -786,6 +797,7 @@
           "type": "string"
         },
         "children": {
+          "default": [],
           "items": {
             "discriminator": {
               "mapping": {
@@ -905,6 +917,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -950,6 +963,7 @@
           "type": "array"
         },
         "children": {
+          "default": [],
           "items": {
             "discriminator": {
               "mapping": {
@@ -1043,6 +1057,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -1116,6 +1131,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -1136,6 +1152,7 @@
           "type": "string"
         },
         "cells": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/Cell"
           },
@@ -1207,6 +1224,7 @@
           "title": "Checked"
         },
         "children": {
+          "default": [],
           "items": {
             "discriminator": {
               "mapping": {
@@ -1293,6 +1311,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -1318,6 +1337,7 @@
           "type": "boolean"
         },
         "items": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/ListItem"
           },
@@ -1389,6 +1409,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -1458,7 +1479,7 @@
       "type": "object"
     },
     "NodeRef": {
-      "description": "Forward cross-reference edge to another node.\n\nAn edge is ``{label, text_span?}``: it names its target by label and\nresolves through the CND's label index (docs/adr/0017, superseding the\n``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the\nreference marker sits in the ``value`` of the ``RichText`` that holds\nthe edge, as a\n``[start, end)`` pair of Unicode code-point offsets (docs/adr/0013).",
+      "description": "Forward cross-reference edge to another node.\n\nAn edge is ``{label, text_span?}``: it names its target by label and\nresolves through the CND's label index (docs/adr/0017, superseding the\n``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the\nreference marker sits in the ``value`` of the ``RichText`` that holds\nthe edge, as a ``[start, end)`` pair of Unicode code-point offsets\n(docs/adr/0013).",
       "properties": {
         "label": {
           "title": "Label",
@@ -1534,6 +1555,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -1587,6 +1609,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -1618,6 +1641,7 @@
           "default": null
         },
         "children": {
+          "default": [],
           "items": {
             "discriminator": {
               "mapping": {
@@ -1725,6 +1749,7 @@
           "title": "Lang"
         },
         "marks": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/Mark"
           },
@@ -1732,6 +1757,7 @@
           "type": "array"
         },
         "refs": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/NodeRef"
           },
@@ -1739,6 +1765,7 @@
           "type": "array"
         },
         "cites": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/CiteRef"
           },
@@ -1746,6 +1773,7 @@
           "type": "array"
         },
         "footnotes": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/FootnoteRef"
           },
@@ -1753,6 +1781,7 @@
           "type": "array"
         },
         "links": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/LinkRef"
           },
@@ -1819,6 +1848,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -1851,6 +1881,7 @@
           "title": "Kind"
         },
         "cells": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/Cell"
           },
@@ -1872,6 +1903,7 @@
           "$ref": "#/$defs/RichText"
         },
         "children": {
+          "default": [],
           "items": {
             "discriminator": {
               "mapping": {
@@ -1961,6 +1993,7 @@
         },
         "state_metadata": {
           "additionalProperties": true,
+          "default": {},
           "title": "State Metadata",
           "type": "object"
         },
@@ -1981,6 +2014,7 @@
           "type": "string"
         },
         "items": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/TermItem"
           },
@@ -2088,6 +2122,7 @@
       "type": "array"
     },
     "bibliography": {
+      "default": [],
       "items": {
         "$ref": "#/$defs/BibEntry"
       },
@@ -2095,6 +2130,7 @@
       "type": "array"
     },
     "footnotes": {
+      "default": [],
       "items": {
         "$ref": "#/$defs/Footnote"
       },

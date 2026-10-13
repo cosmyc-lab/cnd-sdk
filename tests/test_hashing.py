@@ -350,3 +350,33 @@ class TestConformanceVectors:
     @pytest.mark.parametrize("name", [p.name for p in sorted(FIXTURES.glob("*.cnd"))])
     def test_every_fixture_has_a_vector(self, name: str) -> None:
         assert name in json.loads(VECTORS.read_text())
+
+
+class TestExplicitDefaultsTwin:
+    """``elements_explicit.cnd`` is ``elements.cnd`` with every default written
+    out. Spec section 10 drops a field the schema declares with a default, so
+    the two must hash alike: this is what lets another implementation prove it
+    applies the rule rather than copying the SDK's field list."""
+
+    def _load(self, name: str) -> Cnd:
+        return Cnd.model_validate_json((FIXTURES / name).read_text())
+
+    def test_the_twin_spells_out_what_the_original_omits(self) -> None:
+        plain = (FIXTURES / "elements.cnd").read_text()
+        explicit = (FIXTURES / "elements_explicit.cnd").read_text()
+        assert len(explicit) > len(plain)
+        assert '"marks": []' in explicit
+        assert json.loads(explicit) != json.loads(plain)
+
+    def test_the_content_hash_is_the_same(self) -> None:
+        assert content_hash(self._load("elements_explicit.cnd")) == content_hash(
+            self._load("elements.cnd")
+        )
+
+    def test_every_node_hash_matches_in_walk_order(self) -> None:
+        plain = [node_hash(v.node) for v in self._load("elements.cnd").iter_all()]
+        explicit = [
+            node_hash(v.node) for v in self._load("elements_explicit.cnd").iter_all()
+        ]
+        assert explicit == plain
+        assert len(plain) > 0

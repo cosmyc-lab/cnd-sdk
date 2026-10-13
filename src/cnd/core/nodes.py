@@ -50,7 +50,7 @@ class NodeBase(BaseModel):
 
     id: UUID
     label: str | None = None
-    state_metadata: dict[str, Any] = Field(default_factory=dict)
+    state_metadata: dict[str, Any] = Field(default={})
     location: NodeLocation | None = None
 
 
@@ -62,7 +62,7 @@ class HeadingNode(NodeBase):
     numbering: Numbering | None = None
     text: RichText
     heading_path: list[str]
-    children: list["CndNode"] = Field(default_factory=list)
+    children: list["CndNode"] = Field(default=[])
 
 
 class ParagraphNode(NodeBase):
@@ -77,7 +77,7 @@ class QuoteNode(NodeBase):
 
     type: Literal["quote"]
     attribution: RichText | None = None
-    children: list["CndNode"] = Field(default_factory=list)
+    children: list["CndNode"] = Field(default=[])
 
 
 class CodeNode(NodeBase):
@@ -119,7 +119,7 @@ class FigureNode(NodeBase):
     caption: RichText | None = None
     description: RichText | None = None
     numbering: Numbering | None = None
-    children: list["CndNode"] = Field(default_factory=list)
+    children: list["CndNode"] = Field(default=[])
     raw: RawSource | None = None
 
 
@@ -130,7 +130,7 @@ class AdmonitionNode(NodeBase):
     type: Literal["admonition"]
     kind: str
     title: RichText | None = None
-    children: list["CndNode"] = Field(default_factory=list)
+    children: list["CndNode"] = Field(default=[])
 
 
 class ListItem(BaseModel):
@@ -140,7 +140,7 @@ class ListItem(BaseModel):
 
     number: int | None = None
     checked: bool | None = None
-    children: list["CndNode"] = Field(default_factory=list)
+    children: list["CndNode"] = Field(default=[])
 
 
 class ListNode(NodeBase):
@@ -148,21 +148,21 @@ class ListNode(NodeBase):
 
     type: Literal["list"]
     ordered: bool = False
-    items: list[ListItem] = Field(default_factory=list)
+    items: list[ListItem] = Field(default=[])
 
 
 class TermItem(BaseModel):
     """One term and its definition (block nodes in ``children``)."""
 
     term: RichText
-    children: list["CndNode"] = Field(default_factory=list)
+    children: list["CndNode"] = Field(default=[])
 
 
 class TermsNode(NodeBase):
     """Definition list."""
 
     type: Literal["terms"]
-    items: list[TermItem] = Field(default_factory=list)
+    items: list[TermItem] = Field(default=[])
 
 
 class Cell(BaseModel):
@@ -173,7 +173,7 @@ class Cell(BaseModel):
     rowspan: int = 1
     colspan: int = 1
     is_header: bool = False
-    children: list["CndNode"] = Field(default_factory=list)
+    children: list["CndNode"] = Field(default=[])
 
 
 class TableNode(NodeBase):
@@ -184,14 +184,14 @@ class TableNode(NodeBase):
 
     type: Literal["table"]
     kind: str | None = None
-    cells: list[Cell] = Field(default_factory=list)
+    cells: list[Cell] = Field(default=[])
 
 
 class LayoutNode(NodeBase):
     """A grid used for arrangement only; position carries no relation."""
 
     type: Literal["layout"]
-    cells: list[Cell] = Field(default_factory=list)
+    cells: list[Cell] = Field(default=[])
 
 
 CndNode = Annotated[
@@ -386,6 +386,11 @@ def iter_nodes(
     reading order and the derived position attributes on the context are
     document positions. ``_totals`` lets a caller (``Cnd.iter``)
     reuse a cached ``position_totals`` result.
+
+    The ``path`` on each context is relative to the list given: it starts
+    at ``("nodes",)`` for any list unless a caller overrides the base. Only
+    ``Cnd.iter`` and ``Cnd.iter_all`` yield document paths in the sense of
+    spec section 8.
     """
     totals = _totals if _totals is not None else position_totals(nodes)
     root_ctx = NodeTraverseContext(

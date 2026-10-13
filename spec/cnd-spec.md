@@ -487,6 +487,26 @@ both forms: a union such as `RichText | Node[]` would let the same
 content be written two ways, which breaks canonical hashing and makes
 every consumer handle both shapes.
 
+**Defaults.** Every field not marked required below has a default, and
+`schema/cnd.schema.json` states it with `default`; §10 drops a field
+holding its default before hashing, so the defaults are normative.
+The rule is uniform:
+
+- **Empty list `[]`:** every `children`, `items` and `cells`; the
+  `RichText` families `marks`, `refs`, `cites`, `footnotes` and `links`;
+  `doc.authors` and `doc.keywords`; `BibEntry.authors`; the CND's
+  `bibliography` and `footnotes`.
+- **Empty object `{}`:** `state_metadata` on every node, `doc.extra`
+  and `BibEntry.fields`.
+- **`false`:** `list.ordered` and `Cell.is_header`.
+- **`1`:** `Cell.rowspan` and `Cell.colspan`.
+- **`null`:** every other optional field (`label`, `location`,
+  `numbering`, `raw`, `kind`, `lang`, `text_span`, `source`,
+  `doc.date` and the rest of the optional metadata, and so on).
+
+The one default that is not a constant is the CND's own `id`, which is
+generated when absent; it is not part of the hashable value (§10).
+
 Two fields recur across node types and are defined once here.
 
 **`numbering`** — carried by `heading`, `math` and `figure`, always
@@ -1023,7 +1043,8 @@ serialization is where a hand-rolled implementation silently diverges.
 **Defaults are dropped.** A field that the schema declares with a
 default and that holds exactly that default is removed from the hashable
 value: `null`, `[]` and `{}` where those are the defaults, `false` for
-`ordered` and `is_header`, `1` for `rowspan` and `colspan`. The rule
+`ordered` and `is_header`, `1` for `rowspan` and `colspan` (the full
+list is in §6, *Defaults*, and every one is a `default` in the schema). The rule
 applies at every level the schema models — inside a `RichText`, a
 `Mark`, a `Cell`, a `ListItem`, a `DocDate` — but not inside a free-form
 object (`state_metadata`, `BibEntry.fields`), whose contents are hashed

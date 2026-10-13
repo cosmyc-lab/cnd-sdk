@@ -107,3 +107,11 @@ def test_document_metadata_and_pools() -> None:
     entry = BibEntry(id=uuid4(), label="k", formatted=rt("Knuth"))
     note = Footnote(id=uuid4(), label="fn", children=[_para("n")])
     assert entry.formatted.value == "Knuth" and note.children[0].text.value == "n"
+
+
+def test_mutable_defaults_are_not_shared_between_instances() -> None:
+    from cnd.core.text import Mark, RichText
+
+    a, b = RichText(value="a"), RichText(value="b")
+    a.marks.append(Mark(start=0, end=1, kind="strong"))
+    assert b.marks == []

@@ -1,0 +1,660 @@
+{
+  "id": "00000000-0000-4000-d000-000000000000",
+  "cnd_version": "0.5.0",
+  "built_at": "2026-10-13T00:00:00Z",
+  "source": null,
+  "doc": {
+    "title": "Elements of format 0.5",
+    "authors": [],
+    "date": null,
+    "keywords": [],
+    "description": null,
+    "lang": "en",
+    "status": "Approved",
+    "version": "1.2",
+    "extra": {
+      "client": "ACME",
+      "reference": "PRJ-042"
+    }
+  },
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-d000-000000000002",
+      "label": null,
+      "state_metadata": {},
+      "location": null,
+      "type": "heading",
+      "level": 1,
+      "numbering": {
+        "value": "1",
+        "name": "Section"
+      },
+      "text": {
+        "value": "Elements of format 0.5",
+        "lang": null,
+        "marks": [],
+        "refs": [],
+        "cites": [],
+        "footnotes": [],
+        "links": []
+      },
+      "heading_path": [
+        "Elements of format 0.5"
+      ],
+      "children": [
+        {
+          "id": "00000000-0000-4000-d000-000000000001",
+          "label": null,
+          "state_metadata": {},
+          "location": null,
+          "type": "paragraph",
+          "text": {
+            "value": "Pressure rose 103 times, see Theorem 1 and the note, after Knuth: E = mc^2 holds.",
+            "lang": null,
+            "marks": [
+              {
+                "start": 9,
+                "end": 13,
+                "kind": "strong",
+                "raw": null
+              },
+              {
+                "start": 16,
+                "end": 17,
+                "kind": "sup",
+                "raw": null
+              },
+              {
+                "start": 66,
+                "end": 74,
+                "kind": "math",
+                "raw": {
+                  "format": "typst",
+                  "value": "E = m c^2"
+                }
+              }
+            ],
+            "refs": [
+              {
+                "label": "thm-main",
+                "text_span": [
+                  29,
+                  38
+                ]
+              }
+            ],
+            "cites": [
+              {
+                "label": "knuth1984",
+                "text_span": [
+                  59,
+                  64
+                ],
+                "form": "prose",
+                "supplement": null
+              }
+            ],
+            "footnotes": [
+              {
+                "label": "fn-detail",
+                "text_span": [
+                  43,
+                  51
+                ]
+              }
+            ],
+            "links": []
+          }
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000003",
+          "label": null,
+          "state_metadata": {},
+          "location": null,
+          "type": "admonition",
+          "kind": "warning",
+          "title": {
+            "value": "Careful",
+            "lang": null,
+            "marks": [],
+            "refs": [],
+            "cites": [],
+            "footnotes": [],
+            "links": []
+          },
+          "children": [
+            {
+              "id": "00000000-0000-4000-d000-000000000004",
+              "label": null,
+              "state_metadata": {},
+              "location": null,
+              "type": "paragraph",
+              "text": {
+                "value": "Never edit a CND in place.",
+                "lang": null,
+                "marks": [],
+                "refs": [],
+                "cites": [],
+                "footnotes": [],
+                "links": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000005",
+          "label": null,
+          "state_metadata": {},
+          "location": null,
+          "type": "list",
+          "ordered": true,
+          "items": [
+            {
+              "number": 1,
+              "checked": true,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000006",
+                  "label": null,
+                  "state_metadata": {},
+                  "location": null,
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Compile the source",
+                    "lang": null,
+                    "marks": [],
+                    "refs": [],
+                    "cites": [],
+                    "footnotes": [],
+                    "links": []
+                  }
+                },
+                {
+                  "id": "00000000-0000-4000-d000-000000000007",
+                  "label": null,
+                  "state_metadata": {},
+                  "location": null,
+                  "type": "list",
+                  "ordered": false,
+                  "items": [
+                    {
+                      "number": null,
+                      "checked": null,
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-d000-000000000008",
+                          "label": null,
+                          "state_metadata": {},
+                          "location": null,
+                          "type": "paragraph",
+                          "text": {
+                            "value": "with fonts",
+                            "lang": null,
+                            "marks": [],
+                            "refs": [],
+                            "cites": [],
+                            "footnotes": [],
+                            "links": []
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "number": 2,
+              "checked": false,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000009",
+                  "label": null,
+                  "state_metadata": {},
+                  "location": null,
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Validate the output",
+                    "lang": null,
+                    "marks": [],
+                    "refs": [],
+                    "cites": [],
+                    "footnotes": [],
+                    "links": []
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000010",
+          "label": null,
+          "state_metadata": {},
+          "location": null,
+          "type": "terms",
+          "items": [
+            {
+              "term": {
+                "value": "Mark",
+                "lang": null,
+                "marks": [
+                  {
+                    "start": 0,
+                    "end": 4,
+                    "kind": "emph",
+                    "raw": null
+                  }
+                ],
+                "refs": [],
+                "cites": [],
+                "footnotes": [],
+                "links": []
+              },
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000011",
+                  "label": null,
+                  "state_metadata": {},
+                  "location": null,
+                  "type": "paragraph",
+                  "text": {
+                    "value": "A standoff span with a kind.",
+                    "lang": null,
+                    "marks": [],
+                    "refs": [],
+                    "cites": [],
+                    "footnotes": [],
+                    "links": []
+                  }
+                },
+                {
+                  "id": "00000000-0000-4000-d000-000000000012",
+                  "label": null,
+                  "state_metadata": {},
+                  "location": null,
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Marks of different kinds may overlap.",
+                    "lang": null,
+                    "marks": [],
+                    "refs": [],
+                    "cites": [],
+                    "footnotes": [],
+                    "links": []
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000013",
+          "label": null,
+          "state_metadata": {},
+          "location": null,
+          "type": "table",
+          "kind": "data",
+          "cells": [
+            {
+              "row": 0,
+              "col": 0,
+              "rowspan": 1,
+              "colspan": 1,
+              "is_header": true,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000014",
+                  "label": null,
+                  "state_metadata": {},
+                  "location": null,
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Station",
+                    "lang": null,
+                    "marks": [],
+                    "refs": [],
+                    "cites": [],
+                    "footnotes": [],
+                    "links": []
+                  }
+                }
+              ]
+            },
+            {
+              "row": 0,
+              "col": 1,
+              "rowspan": 1,
+              "colspan": 1,
+              "is_header": true,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000015",
+                  "label": null,
+                  "state_metadata": {},
+                  "location": null,
+                  "type": "paragraph",
+                  "text": {
+                    "value": "hPa",
+                    "lang": null,
+                    "marks": [],
+                    "refs": [],
+                    "cites": [],
+                    "footnotes": [],
+                    "links": []
+                  }
+                }
+              ]
+            },
+            {
+              "row": 1,
+              "col": 0,
+              "rowspan": 1,
+              "colspan": 1,
+              "is_header": false,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000016",
+                  "label": null,
+                  "state_metadata": {},
+                  "location": null,
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Brest",
+                    "lang": null,
+                    "marks": [],
+                    "refs": [],
+                    "cites": [],
+                    "footnotes": [],
+                    "links": []
+                  }
+                }
+              ]
+            },
+            {
+              "row": 1,
+              "col": 1,
+              "rowspan": 1,
+              "colspan": 1,
+              "is_header": false,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000017",
+                  "label": null,
+                  "state_metadata": {},
+                  "location": null,
+                  "type": "paragraph",
+                  "text": {
+                    "value": "1013",
+                    "lang": null,
+                    "marks": [],
+                    "refs": [],
+                    "cites": [],
+                    "footnotes": [],
+                    "links": []
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000018",
+          "label": null,
+          "state_metadata": {},
+          "location": null,
+          "type": "layout",
+          "cells": [
+            {
+              "row": 0,
+              "col": 0,
+              "rowspan": 1,
+              "colspan": 1,
+              "is_header": false,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000019",
+                  "label": null,
+                  "state_metadata": {},
+                  "location": null,
+                  "type": "image",
+                  "path": "a.png",
+                  "alt": "Before"
+                }
+              ]
+            },
+            {
+              "row": 0,
+              "col": 1,
+              "rowspan": 1,
+              "colspan": 1,
+              "is_header": false,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000020",
+                  "label": null,
+                  "state_metadata": {},
+                  "location": null,
+                  "type": "image",
+                  "path": "b.png",
+                  "alt": "After"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000021",
+          "label": "thm-main",
+          "state_metadata": {},
+          "location": null,
+          "type": "figure",
+          "kind": "theorem",
+          "caption": {
+            "value": "Mass–energy equivalence",
+            "lang": null,
+            "marks": [],
+            "refs": [],
+            "cites": [],
+            "footnotes": [],
+            "links": []
+          },
+          "description": {
+            "value": "States that energy equals mass times the speed of light squared.",
+            "lang": null,
+            "marks": [],
+            "refs": [],
+            "cites": [],
+            "footnotes": [],
+            "links": []
+          },
+          "numbering": {
+            "value": "1",
+            "name": "Theorem"
+          },
+          "children": [
+            {
+              "id": "00000000-0000-4000-d000-000000000022",
+              "label": null,
+              "state_metadata": {},
+              "location": null,
+              "type": "paragraph",
+              "text": {
+                "value": "Energy and mass are equivalent.",
+                "lang": null,
+                "marks": [],
+                "refs": [],
+                "cites": [],
+                "footnotes": [],
+                "links": []
+              }
+            }
+          ],
+          "raw": null
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000023",
+          "label": null,
+          "state_metadata": {},
+          "location": null,
+          "type": "quote",
+          "attribution": {
+            "value": "A. Einstein",
+            "lang": null,
+            "marks": [
+              {
+                "start": 0,
+                "end": 11,
+                "kind": "emph",
+                "raw": null
+              }
+            ],
+            "refs": [],
+            "cites": [],
+            "footnotes": [],
+            "links": []
+          },
+          "children": [
+            {
+              "id": "00000000-0000-4000-d000-000000000024",
+              "label": null,
+              "state_metadata": {},
+              "location": null,
+              "type": "paragraph",
+              "text": {
+                "value": "First paragraph of the quote.",
+                "lang": null,
+                "marks": [],
+                "refs": [],
+                "cites": [],
+                "footnotes": [],
+                "links": []
+              }
+            },
+            {
+              "id": "00000000-0000-4000-d000-000000000025",
+              "label": null,
+              "state_metadata": {},
+              "location": null,
+              "type": "paragraph",
+              "text": {
+                "value": "Second paragraph.",
+                "lang": null,
+                "marks": [],
+                "refs": [],
+                "cites": [],
+                "footnotes": [],
+                "links": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000026",
+          "label": null,
+          "state_metadata": {},
+          "location": null,
+          "type": "code",
+          "text": "print('hi')\n",
+          "lang": "python",
+          "title": "main.py"
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000027",
+          "label": null,
+          "state_metadata": {},
+          "location": null,
+          "type": "math",
+          "text": "a^2 + b^2 = c^2",
+          "raw": {
+            "format": "typst",
+            "value": "a^2 + b^2 = c^2"
+          },
+          "numbering": {
+            "value": "(1)",
+            "name": null
+          }
+        }
+      ]
+    }
+  ],
+  "bibliography": [
+    {
+      "id": "00000000-0000-4000-d000-000000000031",
+      "label": "knuth1984",
+      "formatted": {
+        "value": "Knuth, D. The TeXbook. Addison-Wesley, 1984.",
+        "lang": null,
+        "marks": [
+          {
+            "start": 10,
+            "end": 21,
+            "kind": "emph",
+            "raw": null
+          }
+        ],
+        "refs": [],
+        "cites": [],
+        "footnotes": [],
+        "links": []
+      },
+      "type": "book",
+      "authors": [
+        "Donald Knuth"
+      ],
+      "title": "The TeXbook",
+      "year": 1984,
+      "container": null,
+      "doi": null,
+      "url": null,
+      "fields": {}
+    }
+  ],
+  "footnotes": [
+    {
+      "id": "00000000-0000-4000-d000-000000000028",
+      "label": "fn-detail",
+      "children": [
+        {
+          "id": "00000000-0000-4000-d000-000000000029",
+          "label": null,
+          "state_metadata": {},
+          "location": null,
+          "type": "paragraph",
+          "text": {
+            "value": "Details live here.",
+            "lang": null,
+            "marks": [],
+            "refs": [],
+            "cites": [],
+            "footnotes": [],
+            "links": []
+          }
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000030",
+          "label": "fn-second",
+          "state_metadata": {},
+          "location": null,
+          "type": "paragraph",
+          "text": {
+            "value": "A second paragraph, with code.",
+            "lang": null,
+            "marks": [
+              {
+                "start": 25,
+                "end": 29,
+                "kind": "code",
+                "raw": null
+              }
+            ],
+            "refs": [],
+            "cites": [],
+            "footnotes": [],
+            "links": []
+          }
+        }
+      ]
+    }
+  ]
+}
