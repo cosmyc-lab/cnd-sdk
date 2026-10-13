@@ -77,6 +77,19 @@ class TestMarkers:
         out = MarkdownConverter().convert(_cnd([target, lst])).text
         assert "- see it\n\n[t]" in out
 
+    def test_html_markers_of_nested_paragraphs_reach_the_block(self) -> None:
+        target = para("target", label="t")
+        lst = ListNode(
+            type="list", id=uuid4(),
+            items=[item(para(rt("see it", refs=[NodeRef(label="t", text_span=[4, 6])])))],
+        )
+        out = HtmlConverter().convert(_cnd([target, lst])).text
+        assert (
+            '<ul><li>see it</li></ul>\n'
+            '<span class="cnd-markers"><a class="cnd-ref" href="#t">[t]</a></span>'
+        ) in out
+        assert out.count('href="#t"') == 1
+
     def _parse(self, node, target):
         out = MarkdownConverter().convert(_cnd([target, node])).text
         body = out.split("\n---\n", 1)[1]
