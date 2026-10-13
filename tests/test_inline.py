@@ -6,7 +6,7 @@ from markdown_it import MarkdownIt
 
 from factories import rt
 
-from cnd.core.inline import concat_texts, render_inline, with_whole_mark
+from cnd.core.inline import concat_texts, render_inline, with_whole_mark, wrapped_edges
 from cnd.core.text import LinkRef, Mark, NodeRef, RawSource
 
 
@@ -193,6 +193,60 @@ class TestEdges:
     def test_edge_wrap_returning_none_skips_the_edge(self) -> None:
         text = rt("abc", refs=[NodeRef(label="x", text_span=[0, 3])])
         assert render_inline(text, "html", edge_wrap=lambda e: None) == "abc"
+
+    def test_an_edge_inside_another_is_dropped(self) -> None:
+        outer, inner = LinkRef(href="o", text_span=[0, 6]), LinkRef(href="i", text_span=[2, 4])
+        text = rt("abcdef", links=[inner, outer])
+        out = render_inline(text, "html", edge_wrap=self._anchor)
+        assert out == '<a href="o">abcdef</a>'
+        assert wrapped_edges(text, self._anchor) == [outer]
+
+    def test_of_two_crossing_edges_the_first_wins(self) -> None:
+        first, second = LinkRef(href="1", text_span=[0, 4]), LinkRef(href="2", text_span=[2, 6])
+        text = rt("abcdef", links=[second, first])
+        out = render_inline(text, "html", edge_wrap=self._anchor)
+        assert out == '<a href="1">abcd</a>ef'
+        assert wrapped_edges(text, self._anchor) == [first]
+
+    def test_of_two_equal_spans_the_first_listed_wins(self) -> None:
+        a, b = LinkRef(href="a", text_span=[0, 2]), LinkRef(href="b", text_span=[0, 2])
+        text = rt("ab", links=[a, b])
+        assert render_inline(text, "html", edge_wrap=self._anchor) == '<a href="a">ab</a>'
+        assert wrapped_edges(text, self._anchor) == [a]
+
+    def test_an_unwrapped_edge_does_not_block_another(self) -> None:
+        outer, inner = LinkRef(href="bad", text_span=[0, 6]), LinkRef(href="i", text_span=[2, 4])
+        wrap = lambda e: None if e.href == "bad" else self._anchor(e)  # noqa: E731
+        text = rt("abcdef", links=[outer, inner])
+        assert render_inline(text, "html", edge_wrap=wrap) == 'ab<a href="i">cd</a>ef'
+        assert wrapped_edges(text, wrap) == [inner]
+
+    def test_adjacent_edges_both_render(self) -> None:
+        a, b = LinkRef(href="a", text_span=[0, 2]), LinkRef(href="b", text_span=[2, 4])
+        text = rt("abcd", links=[a, b])
+        assert wrapped_edges(text, self._anchor) == [a, b]
+
+    @pytest.mark.parametrize("span", [[1, 1], [5, 9], [3, 2], [1]])
+    def test_an_empty_or_malformed_span_is_not_wrapped(self, span) -> None:
+        link = LinkRef(href="u", text_span=span)
+        text = rt("abcd", links=[link])
+        assert render_inline(text, "html", edge_wrap=self._anchor) == "abcd"
+        assert wrapped_edges(text, self._anchor) == []
+
+    @pytest.mark.parametrize("kind", ["code", "math"])
+    def test_an_edge_inside_an_atom_is_not_wrapped(self, kind) -> None:
+        link = LinkRef(href="u", text_span=[2, 4])
+        text = rt("abcdef", marks=[m(1, 5, kind)], links=[link])
+        assert 'href="u"' not in render_inline(text, "html", edge_wrap=self._anchor)
+        assert wrapped_edges(text, self._anchor) == []
+
+    def test_an_edge_reaching_into_an_atom_is_wrapped_outside_it(self) -> None:
+        link = LinkRef(href="u", text_span=[0, 3])
+        text = rt("abcdef", marks=[m(2, 5, "code")], links=[link])
+        assert render_inline(text, "html", edge_wrap=self._anchor) == (
+            '<a href="u">ab</a><code>cde</code>f'
+        )
+        assert wrapped_edges(text, self._anchor) == [link]
 
 
 class TestComposition:

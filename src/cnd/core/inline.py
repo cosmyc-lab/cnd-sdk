@@ -74,6 +74,7 @@ class _Span:
     kind: str
     mark: Mark | None = None
     wrap: tuple[str, str] = ("", "")
+    edge: Edge | None = None
 
 
 @dataclass
@@ -109,19 +110,57 @@ def render_inline(
       ``highlight`` plain text.
 
     ``edge_wrap``, when given, wraps the span of every edge with a
-    ``text_span`` in the strings it returns; edge spans nest and split
-    like marks. ``"plain"`` ignores it.
+    ``text_span`` in the strings it returns; edge spans split around
+    marks like marks do. Wrapped edges never nest in one another: an
+    edge whose span overlaps the span of a wrapped edge that starts
+    before it (or at the same offset and ends later, or is listed first
+    on an equal span) is left out, so the outer or first edge wins. An
+    edge inside a ``code`` or ``math`` atom is left out too. Which edges
+    end up wrapped is ``wrapped_edges``. ``"plain"`` ignores it.
 
     Unknown mark kinds render their covered text unchanged. Bounds are
     clamped, so an unvalidated text with a stray mark never raises.
     """
     if dialect == "plain":
         return text.value
-    spans = _spans(text, dialect, text_only) + _edge_spans(text, edge_wrap)
-    root = _tree(text.value, spans)
+    root = _layout(text, dialect, text_only, edge_wrap)
     if dialect == "html":
         return _render_html(text.value, root)
     return _MarkdownWriter(text.value, escape=escape, text_only=text_only).render(root)
+
+
+def wrapped_edges(
+    text: RichText,
+    edge_wrap: EdgeWrap,
+    dialect: Literal["markdown", "html"] = "html",
+    *,
+    text_only: bool = False,
+) -> list[Edge]:
+    """The edges of ``text`` that ``render_inline`` with the same
+    arguments wraps, in the order of ``text.edges()``: an edge left out (no span, an empty
+    span, inside an atom, inside or across an edge that wins, ``None``
+    from ``edge_wrap``) is not in the list. A caller that must not lose
+    an edge renders the others some other way."""
+    root = _layout(text, dialect, text_only, edge_wrap)
+    seen: list[Edge] = []
+    pieces = [root]
+    while pieces:
+        piece = pieces.pop()
+        span = piece.span
+        if span is not None and span.edge is not None and not any(
+            e is span.edge for e in seen
+        ):
+            seen.append(span.edge)
+        pieces.extend(c for c in piece.children if isinstance(c, _Piece))
+    order = text.edges()
+    return sorted(seen, key=lambda e: next(i for i, x in enumerate(order) if x is e))
+
+
+def _layout(
+    text: RichText, dialect: InlineDialect, text_only: bool, edge_wrap: EdgeWrap | None
+) -> _Piece:
+    spans = _spans(text, dialect, text_only) + _edge_spans(text, edge_wrap)
+    return _tree(text.value, spans)
 
 
 def concat_texts(*parts: "str | RichText | None") -> RichText:
@@ -182,7 +221,7 @@ def _spans(text: RichText, dialect: InlineDialect, text_only: bool) -> list[_Spa
 def _edge_spans(text: RichText, edge_wrap: EdgeWrap | None) -> list[_Span]:
     if edge_wrap is None:
         return []
-    spans: list[_Span] = []
+    candidates: list[_Span] = []
     for edge in text.edges():
         if not edge.text_span or len(edge.text_span) != 2:
             continue
@@ -190,7 +229,13 @@ def _edge_spans(text: RichText, edge_wrap: EdgeWrap | None) -> list[_Span]:
         end = min(edge.text_span[1], len(text.value))
         wrap = edge_wrap(edge)
         if wrap is not None and start < end:
-            spans.append(_Span(start, end, _EDGE, wrap=wrap))
+            candidates.append(_Span(start, end, _EDGE, wrap=wrap, edge=edge))
+    # Wrapped edges never nest: the outer or first one wins (a stable
+    # sort keeps list order on equal spans).
+    spans: list[_Span] = []
+    for span in sorted(candidates, key=lambda s: (s.start, -s.end)):
+        if not spans or span.start >= max(s.end for s in spans):
+            spans.append(span)
     return spans
 
 
