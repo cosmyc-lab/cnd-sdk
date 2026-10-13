@@ -10,6 +10,9 @@ from cnd.core.cnd import (
 from cnd.core.hashing import content_hash, node_hash, pool_entry_hash
 from cnd.core.node_text import NodeTextMode
 from cnd.core.nodes import (
+    KNOWN_ADMONITION_KINDS,
+    KNOWN_TABLE_KINDS,
+    ChildSlot,
     AdmonitionNode,
     Cell,
     CiteRef,
@@ -36,19 +39,29 @@ from cnd.core.nodes import (
     TableNode,
     TermItem,
     TermsNode,
+    child_slots,
     edges_of,
     iter_nodes,
     position_totals,
     texts_of,
 )
-from cnd.core.text import Edge, Mark, Numbering, RichText
+from cnd.core.text import (
+    ATOMIC_MARK_KINDS,
+    KNOWN_MARK_KINDS,
+    Edge,
+    Mark,
+    Numbering,
+    RichText,
+)
 from cnd.core.render import MarkdownRenderer, NodeRenderer
 from cnd.core.validate import Violation, validate
 
 __all__ = [
+    "ATOMIC_MARK_KINDS",
     "AdmonitionNode",
     "BibEntry",
     "Cell",
+    "ChildSlot",
     "CiteRef",
     "Cnd",
     "CndNode",
@@ -61,6 +74,9 @@ __all__ = [
     "FootnoteRef",
     "HeadingNode",
     "ImageNode",
+    "KNOWN_ADMONITION_KINDS",
+    "KNOWN_MARK_KINDS",
+    "KNOWN_TABLE_KINDS",
     "LayoutNode",
     "LinkRef",
     "LinkTarget",
@@ -87,6 +103,7 @@ __all__ = [
     "TermItem",
     "TermsNode",
     "Violation",
+    "child_slots",
     "content_hash",
     "edges_of",
     "iter_nodes",

@@ -1,5 +1,6 @@
+from datetime import datetime
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from factories import rt
 from ids import (
@@ -15,7 +16,7 @@ from ids import (
     TABLE001_LABEL,
 )
 
-from cnd import BibEntry, Cnd, FigureNode, Footnote
+from cnd import BibEntry, Cnd, DocMetadata, FigureNode, Footnote, NodeLocation
 from cnd.core.nodes import ParagraphNode
 from cnd.core.text import LinkRef
 
@@ -156,6 +157,25 @@ class TestPagination:
         assert _load(minimal_cnd_path).paginated is True
         assert "paginated" not in unpaginated_cnd_path.read_text()
 
+    def test_footnote_content_alone_settles_pagination(self) -> None:
+        note = Footnote(
+            id=uuid4(),
+            label="fn",
+            children=[
+                ParagraphNode(
+                    id=uuid4(), type="paragraph", text=rt("n"), location=NodeLocation(page=1)
+                )
+            ],
+        )
+        cnd = Cnd(
+            cnd_version="0.5.0",
+            built_at=datetime(2026, 10, 13),
+            doc=DocMetadata(title="T"),
+            nodes=[],
+            footnotes=[note],
+        )
+        assert cnd.paginated is True
+
     def test_no_node_carries_a_location(self, unpaginated_cnd_path: Path) -> None:
         cnd = _load(unpaginated_cnd_path)
 
@@ -231,3 +251,21 @@ def test_elements_fixture_parses_and_carries_every_new_element(elements_cnd_path
 def test_incoming_reads_edges_from_texts(elements_cnd_path) -> None:
     cnd = Cnd.model_validate_json(elements_cnd_path.read_text())
     assert [node.type for node in cnd.incoming("thm-main")] == ["paragraph"]
+
+
+def test_the_vocabulary_and_slot_helpers_are_exported() -> None:
+    import cnd
+    import cnd.core
+
+    for name in (
+        "child_slots",
+        "ChildSlot",
+        "KNOWN_MARK_KINDS",
+        "ATOMIC_MARK_KINDS",
+        "KNOWN_ADMONITION_KINDS",
+        "KNOWN_TABLE_KINDS",
+    ):
+        assert getattr(cnd, name) is getattr(cnd.core, name)
+        assert name in cnd.__all__ and name in cnd.core.__all__
+    assert cnd.__all__ == sorted(cnd.__all__)
+    assert cnd.core.__all__ == sorted(cnd.core.__all__)

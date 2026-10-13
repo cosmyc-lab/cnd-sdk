@@ -8,6 +8,11 @@ have no optional dependencies. Display helpers
 """
 
 from cnd.core import (
+    ATOMIC_MARK_KINDS,
+    KNOWN_ADMONITION_KINDS,
+    KNOWN_MARK_KINDS,
+    KNOWN_TABLE_KINDS,
+    ChildSlot,
     AdmonitionNode,
     BibEntry,
     Cell,
@@ -49,6 +54,7 @@ from cnd.core import (
     TermItem,
     TermsNode,
     Violation,
+    child_slots,
     content_hash,
     edges_of,
     iter_nodes,
@@ -67,10 +73,12 @@ from cnd.converters import (
 from cnd.visitors import BaseVisitor, VisitTarget
 
 __all__ = [
+    "ATOMIC_MARK_KINDS",
     "AdmonitionNode",
     "BaseVisitor",
     "BibEntry",
     "Cell",
+    "ChildSlot",
     "CiteRef",
     "Cnd",
     "CndConverter",
@@ -86,6 +94,9 @@ __all__ = [
     "HeadingNode",
     "HtmlConverter",
     "ImageNode",
+    "KNOWN_ADMONITION_KINDS",
+    "KNOWN_MARK_KINDS",
+    "KNOWN_TABLE_KINDS",
     "LayoutNode",
     "LinkRef",
     "LinkTarget",
@@ -114,6 +125,7 @@ __all__ = [
     "TermsNode",
     "Violation",
     "VisitTarget",
+    "child_slots",
     "content_hash",
     "edges_of",
     "iter_nodes",
