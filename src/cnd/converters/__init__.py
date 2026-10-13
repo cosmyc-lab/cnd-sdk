@@ -10,6 +10,7 @@ from cnd.converters.base import (
     ConversionResult,
     ResolvedMarker,
     iter_body,
+    marker_texts,
     resolve_markers,
 )
 from cnd.converters.html import HtmlConverter, HtmlNodeRenderer
@@ -24,5 +25,6 @@ __all__ = [
     "ResolvedMarker",
     "format_bib_entry",
     "iter_body",
+    "marker_texts",
     "resolve_markers",
 ]
