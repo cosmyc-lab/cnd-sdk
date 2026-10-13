@@ -134,7 +134,7 @@ class MarkdownConverter(CndConverter):
       ``BibEntry.fields``: the producer's verbatim source and the full
       structured bibliography entry have no Markdown target, except that
       a ``math`` mark renders its source between ``$`` and a ``math``
-      block its source in a ``math`` fence.
+      block its LaTeX source in a ``math`` fence.
     - Whatever the injected renderer itself drops.
 
     This conversion does **not** round-trip. Nothing reconstructs a CND

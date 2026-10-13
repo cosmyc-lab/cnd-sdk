@@ -435,11 +435,19 @@ class TestMathBlock:
         assert [t.type for t in tokens] == ["fence"]
         assert tokens[0].info == "math" and tokens[0].content == "a * b_1\n"
 
-    def test_raw_source_wins_over_text(self) -> None:
+    @pytest.mark.parametrize("fmt", ["latex", "LaTeX", "LATEX"])
+    def test_latex_source_wins_over_text(self, fmt: str) -> None:
         from cnd.core.text import RawSource
 
-        node = self._math("E = mc2", raw=RawSource(format="latex", value="E = mc^2\n"))
+        node = self._math("E = mc2", raw=RawSource(format=fmt, value="E = mc^2\n"))
         assert R.render(node) == "```math\nE = mc^2\n```"
+
+    @pytest.mark.parametrize("fmt", ["typst", "mathml", "tex-ish"])
+    def test_other_source_formats_render_the_text(self, fmt: str) -> None:
+        from cnd.core.text import RawSource
+
+        node = self._math("E = mc2", raw=RawSource(format=fmt, value="$ E = m c^2 $"))
+        assert R.render(node) == "```math\nE = mc2\n```"
 
     def test_fence_outgrows_backticks_in_the_source(self) -> None:
         out = R.render(self._math("x ```` y"))

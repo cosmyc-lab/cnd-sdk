@@ -387,9 +387,13 @@ class MarkdownRenderer(NodeRenderer):
 
     def render_math(self, node: MathNode) -> str:
         """A fenced block with the info string ``math``, holding the
-        producer's source (``raw``) when there is one, else ``text``; the
-        numbering ``value`` follows on its own line, in parentheses."""
-        source = node.raw.value if node.raw is not None else node.text
+        producer's source when it is LaTeX (``raw.format``, any case), else
+        ``text``: a ``math`` fence is read as LaTeX, so Typst or any other
+        source would display wrongly. The numbering ``value`` follows on
+        its own line, in parentheses."""
+        raw = node.raw
+        latex = raw is not None and raw.format.lower() == "latex"
+        source = raw.value if latex else node.text
         source = source[:-1] if source.endswith("\n") else source
         fence = _fence_for(source)
         block = f"{fence}math\n{source}\n{fence}"

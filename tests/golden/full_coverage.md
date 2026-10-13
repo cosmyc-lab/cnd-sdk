@@ -46,7 +46,7 @@ def moyenne(valeurs):
 ```
 
 ```math
-$ e(t) = m(t) - r(t) $
+e(t) = m(t) - r(t)
 ```
 (1)
 
