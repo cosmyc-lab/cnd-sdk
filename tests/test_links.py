@@ -329,3 +329,48 @@ class TestNoLinkIsLost:
         html = HtmlConverter(HtmlNodeRenderer(links=False)).convert(_cnd([para(text)])).text
         assert '<p>abcd</p>' in html
         assert 'href="https://e.com">https://e.com</a>' in html
+
+
+class TestLinkMarkerStaysOnItsLine:
+    """No line ending in an href may leave the Markdown link marker."""
+
+    PAYLOADS = [
+        "a\n\n[x](ms-msdt:e)",
+        "a\n# [x](intent:e)",
+        "a\r\r[x](javascript:alert(1))",
+        "a\n> [x](x:y)",
+        "a\n\n![t](https://t/p.gif)",
+        "a\r\n- [x](x:y)",
+    ]
+
+    @staticmethod
+    def _tokens(md: str) -> list:
+        body = md.split("---\n", 2)[-1]  # past the front matter
+        tokens = MarkdownIt("commonmark").parse(body)
+        flat = list(tokens)
+        for token in tokens:
+            flat.extend(token.children or [])
+        return flat
+
+    @pytest.mark.parametrize("href", PAYLOADS)
+    @pytest.mark.parametrize("span", [None, [0, 4]])
+    def test_one_link_and_no_new_structure(self, href: str, span) -> None:
+        node = para(rt("link here", links=[LinkRef(href=href, text_span=span)]))
+        md = MarkdownConverter().convert(_cnd([node])).text
+        types = [t.type for t in self._tokens(md)]
+        assert types.count("link_open") == (1 if is_safe_url(href) else 0)
+        assert "image" not in types
+        assert "heading_open" not in types
+        assert "blockquote_open" not in types and "bullet_list_open" not in types
+
+    @pytest.mark.parametrize("href", [
+        "javascript:a\n\n![t](https://t/p.gif)",
+        "javascript:a\n# h",
+        "javascript:a\r> q",
+    ])
+    def test_unsafe_plain_text_stays_on_its_line(self, href: str) -> None:
+        node = para(rt("link here", links=[LinkRef(href=href)]))
+        md = MarkdownConverter().convert(_cnd([node])).text
+        types = [t.type for t in self._tokens(md)]
+        assert "link_open" not in types and "image" not in types
+        assert "heading_open" not in types and "blockquote_open" not in types
