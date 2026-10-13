@@ -419,3 +419,48 @@ class TestPrefixBeforeABlock:
         items = [t for t in tokens if t.type == "list_item_open" and t.level == 1]
         assert len(items) == 2
         assert any(t.type == "inline" and t.content == "nxt" for t in tokens)
+
+
+class TestMathBlock:
+    @staticmethod
+    def _math(text: str = "E = mc^2", **kwargs):
+        from cnd.core.nodes import MathNode
+
+        return MathNode(type="math", text=text, **kwargs, **_id())
+
+    def test_math_is_a_math_fence(self) -> None:
+        out = R.render(self._math("a * b_1"))
+        assert out == "```math\na * b_1\n```"
+        tokens = _parse(out)
+        assert [t.type for t in tokens] == ["fence"]
+        assert tokens[0].info == "math" and tokens[0].content == "a * b_1\n"
+
+    def test_raw_source_wins_over_text(self) -> None:
+        from cnd.core.text import RawSource
+
+        node = self._math("E = mc2", raw=RawSource(format="latex", value="E = mc^2\n"))
+        assert R.render(node) == "```math\nE = mc^2\n```"
+
+    def test_fence_outgrows_backticks_in_the_source(self) -> None:
+        out = R.render(self._math("x ```` y"))
+        assert out.startswith("`````math\n") and out.endswith("\n`````")
+        assert [t.type for t in _parse(out)] == ["fence"]
+
+    def test_numbering_value_follows_the_fence(self) -> None:
+        node = self._math(numbering=Numbering(name="Equation", value="3"))
+        out = MarkdownRenderer(escape=True).render(node)
+        assert out == "```math\nE = mc^2\n```\n(3)"
+        types = [t.type for t in _parse(out)]
+        assert types == ["fence", "paragraph_open", "inline", "paragraph_close"]
+
+    def test_a_parenthesized_value_is_not_wrapped_twice(self) -> None:
+        node = self._math(numbering=Numbering(value="(2)"))
+        assert R.render(node) == "```math\nE = mc^2\n```\n(2)"
+
+    def test_an_empty_value_adds_no_line(self) -> None:
+        node = self._math(numbering=Numbering(value=""))
+        assert R.render(node) == "```math\nE = mc^2\n```"
+
+    def test_text_only_is_the_same(self) -> None:
+        node = self._math(numbering=Numbering(value="1"))
+        assert MarkdownRenderer(text_only=True).render(node) == R.render(node)

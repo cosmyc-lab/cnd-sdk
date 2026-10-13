@@ -45,7 +45,10 @@ def moyenne(valeurs):
     return sum(valeurs) / len(valeurs)
 ```
 
-e(t) = m(t) - r(t)
+```math
+$ e(t) = m(t) - r(t) $
+```
+(1)
 
 ## 1.1 Résultats et figures
 [fig-schema]

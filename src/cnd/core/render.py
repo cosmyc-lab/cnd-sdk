@@ -372,7 +372,19 @@ class MarkdownRenderer(NodeRenderer):
         return block
 
     def render_math(self, node: MathNode) -> str:
-        return node.text
+        """A fenced block with the info string ``math``, holding the
+        producer's source (``raw``) when there is one, else ``text``; the
+        numbering ``value`` follows on its own line, in parentheses."""
+        source = node.raw.value if node.raw is not None else node.text
+        source = source[:-1] if source.endswith("\n") else source
+        fence = _fence_for(source)
+        block = f"{fence}math\n{source}\n{fence}"
+        value = node.numbering.value if node.numbering is not None else ""
+        if not value:
+            return block
+        if not (value.startswith("(") and value.endswith(")")):
+            value = f"({value})"
+        return f"{block}\n{self._plain(value)}"
 
     def render_image(self, node: ImageNode) -> str:
         if node.path:

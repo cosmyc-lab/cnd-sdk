@@ -105,7 +105,7 @@ class TestMarkdownRenderer:
 
     def test_math(self) -> None:
         node = MathNode(type="math", text="E = m c^2", **_base())
-        assert self.renderer.render(node) == "E = m c^2"
+        assert self.renderer.render(node) == "```math\nE = m c^2\n```"
 
     def test_list(self) -> None:
         node = ListNode(
