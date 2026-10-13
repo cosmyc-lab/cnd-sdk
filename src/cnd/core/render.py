@@ -127,6 +127,17 @@ def expand_headings(nodes: list[CndNode]) -> list[CndNode]:
     return out
 
 
+def _is_one_inline_block(nodes: list[CndNode]) -> bool:
+    """Whether ``nodes`` is at most one paragraph or image: content a
+    tight sibling can follow on the next line. After any other block (a
+    quote, a list, a fence) the next line could continue that block, so
+    a blank line has to separate them."""
+    expanded = expand_headings(nodes)
+    return not expanded or (
+        len(expanded) == 1 and isinstance(expanded[0], (ParagraphNode, ImageNode))
+    )
+
+
 def _is_loose(blocks_per_item: list[list[CndNode]]) -> bool:
     """A list is tight unless an item holds several blocks. A nested list
     does not count: ``1. Parent`` over a nested list stays tight, as in
@@ -390,7 +401,7 @@ class MarkdownRenderer(NodeRenderer):
     def render_terms(self, node: TermsNode) -> str:
         """``**term**`` then ``: definition``; a definition's further
         blocks are indented under it."""
-        loose = any(len(expand_headings(item.children)) > 1 for item in node.items)
+        loose = any(not _is_one_inline_block(item.children) for item in node.items)
         out: list[str] = []
         for item in node.items:
             term = self.render_text(with_whole_mark(item.term, "strong"))
@@ -457,9 +468,9 @@ class MarkdownRenderer(NodeRenderer):
                 if not content:
                     continue
                 parts.append(content)
-            several = any(len(children) > 1 for children in rows[-1])
+            several = any(not _is_one_inline_block(children) for children in rows[-1])
             out.append(_indented(("\n\n" if several else "\n").join(parts), "- ", "  "))
-        loose = any(len(children) > 1 for cells in rows for children in cells)
+        loose = any(not _is_one_inline_block(children) for cells in rows for children in cells)
         return ("\n\n" if loose else "\n").join(out)
 
     def render_figure(self, node: FigureNode) -> str:

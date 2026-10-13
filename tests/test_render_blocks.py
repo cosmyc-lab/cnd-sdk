@@ -390,3 +390,32 @@ class TestPrefixBeforeABlock:
     def test_an_empty_definition_prints_no_prefix(self) -> None:
         node = TermsNode(type="terms", items=[TermItem(term=rt("cmd"), children=[])], **_id())
         assert MarkdownRenderer().render(node) == "**cmd**"
+
+    @pytest.mark.parametrize("first", ["code", "quote", "list"])
+    def test_a_block_definition_does_not_swallow_the_next_term(self, first) -> None:
+        node = TermsNode(type="terms", items=[
+            TermItem(term=rt("cmd"), children=[self._first_blocks()[first]]),
+            TermItem(term=rt("next"), children=[para("d")]),
+        ], **_id())
+        tokens = _parse(MarkdownRenderer().render(node))
+        nxt = next(i for i, t in enumerate(tokens) if t.type == "inline" and "next" in t.content)
+        assert tokens[nxt - 1].type == "paragraph_open" and tokens[nxt - 1].level == 0
+
+    @pytest.mark.parametrize("first", ["code", "quote", "list"])
+    def test_a_block_cell_does_not_swallow_the_next_cell(self, first) -> None:
+        node = TableNode(type="table", kind="content", cells=[
+            cell(0, 0, "A", is_header=True), cell(0, 1, "B", is_header=True),
+            cell(1, 0, children=[self._first_blocks()[first]]), cell(1, 1, "y"),
+        ], **_id())
+        tokens = _parse(MarkdownRenderer(tables="inline", text_only=True).render(node))
+        label = next(i for i, t in enumerate(tokens) if t.type == "inline" and "B: y" in t.content)
+        assert tokens[label].content == "B: y"
+        assert tokens[label - 1].type == "paragraph_open" and tokens[label - 1].level == 2
+
+    @pytest.mark.parametrize("first", ["code", "quote", "list"])
+    def test_a_block_task_item_does_not_swallow_the_next_item(self, first) -> None:
+        node = _list(item(self._first_blocks()[first], checked=False), item("nxt"))
+        tokens = _parse(MarkdownRenderer().render(node))
+        items = [t for t in tokens if t.type == "list_item_open" and t.level == 1]
+        assert len(items) == 2
+        assert any(t.type == "inline" and t.content == "nxt" for t in tokens)
