@@ -350,7 +350,8 @@ class TestNestedHeadings:
 class TestFrontMatterScalars:
     CONTROLS = (
         [chr(c) for c in range(0x20) if chr(c) not in "\n\r\t"]
-        + ["\x7f", "\x85", "\u2028", "\u2029"]
+        + [chr(c) for c in range(0x7F, 0xA0)]
+        + ["\u2028", "\u2029", "\ud800", "\udfff", "\ufffe", "\uffff"]
     )
 
     @pytest.mark.parametrize("ch", CONTROLS)
@@ -390,3 +391,18 @@ class TestHtmlMetaExtra:
         doc = DocMetadata(title="T", extra={"team": "core"})
         result = HtmlConverter().convert(_cnd([para("x")], doc=doc))
         assert result.warnings == ()
+
+
+def test_a_cp1252_style_title_round_trips() -> None:
+    """Text decoded as Latin-1 instead of cp1252 carries C1 controls
+    (U+0080-U+009F) where the quotes and dashes were."""
+    yaml = pytest.importorskip("yaml")
+    title = "\x93Quoted\x94 \x96 dash\x85 \x80uro\x9f \ufffe\uffff"
+    doc = DocMetadata(title=title, authors=["\x8aimon"], extra={"k\x9d": "v\x81"})
+    text = MarkdownConverter().convert(_cnd([para("x")], doc=doc)).text
+    front = text.split("---\n")[1]
+    assert not any(0x80 <= ord(ch) <= 0x9F or ch in "\ufffe\uffff" for ch in front)
+    data = yaml.safe_load(front)
+    assert data["title"] == title
+    assert data["authors"] == ["\x8aimon"]
+    assert data["extra"] == {"k\x9d": "v\x81"}

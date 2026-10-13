@@ -310,7 +310,11 @@ def _yaml_scalar(value: str) -> str:
     return f'"{escaped}"'
 
 
-_YAML_UNPRINTABLE = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\x85\u2028\u2029]")
+_YAML_UNPRINTABLE = re.compile(
+    "[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\u2028\u2029\ud800-\udfff\ufffe\uffff]"
+)
 """What YAML forbids or reads as a line break inside a scalar: the C0
-controls other than tab and the two newlines (escaped by name), DEL, NEL
-and the Unicode line and paragraph separators."""
+controls other than tab and the two newlines (escaped by name), DEL,
+the C1 controls (NEL among them), the Unicode line and paragraph
+separators, lone surrogates (no UTF-8 file can hold one) and the two
+noncharacters U+FFFE and U+FFFF."""
