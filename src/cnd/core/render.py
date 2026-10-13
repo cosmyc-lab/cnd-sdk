@@ -26,9 +26,10 @@ except ImportError:  # pragma: no cover — Python 3.10, via pydantic's typing-e
     from typing_extensions import assert_never
 
 from cnd.core.inline import concat_texts, render_inline, with_whole_mark
-from cnd.core.markdown_escape import escape_block, escape_destination
+from cnd.core.markdown_escape import escape_block, escape_destination, escape_inline
 from cnd.core.node_text import (
     NodeTextMode,
+    attr_value,
     cell_plain_text,
     format_figure_placeholder,
     header_row_text,
@@ -72,12 +73,15 @@ def _unix_newlines(text: str) -> str:
     return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
-_ALT_ESCAPE = re.compile(r"\\(?=[!-/:-@\[-`{-~]|\Z)|[\[\]]")
+_ALT_ESCAPE = re.compile(r"\\(?=[!-/:-@\[-`{-~]|\Z)|[\[\]`<]")
 
 
 def _escape_alt(alt: str) -> str:
-    """Escape ``[``/``]``; double a backslash only where it would escape
-    something (before ASCII punctuation or at the end), as escape_inline does."""
+    """Escape ``[``, ``]``, a backtick and ``<``; double a backslash only
+    where it would escape something (before ASCII punctuation or at the
+    end), as escape_inline does. A code span, an autolink or raw HTML
+    binds tighter than the image brackets, so an unescaped backtick or
+    ``<`` in the alt could reach into the destination."""
     return _ALT_ESCAPE.sub(lambda m: "\\\\" if m.group() == "\\" else "\\" + m.group(), alt)
 
 
@@ -267,7 +271,7 @@ class MarkdownRenderer(NodeRenderer):
     - ``escape`` — escape free text (every rich text, image alt aside) so
       it cannot start Markdown syntax. Code and math are never escaped.
     - ``heading_numbers`` — prefix each heading with its numbering
-      (``name`` and ``value``, never escaped).
+      (``name`` and ``value``, escaped under ``escape`` like free text).
     - ``text_only`` — no HTML in the output: ``sup`` and ``sub`` render
       as ``^x`` / ``_x`` (``^(text)`` / ``_(text)`` over several
       characters), ``underline`` and ``highlight`` as plain text, a mark
@@ -304,6 +308,11 @@ class MarkdownRenderer(NodeRenderer):
         """A plain string (a kind, a title, a column header) as Markdown."""
         return escape_block(text) if self.escape else text
 
+    def _quoted(self, value: str) -> str:
+        """A placeholder's quoted value as Markdown: escaped under
+        ``escape`` so that it cannot become a link, an image or HTML."""
+        return escape_inline(value) if self.escape else value
+
     def _blocks(self, nodes: list[CndNode], separator: str = "\n\n") -> str:
         rendered = (self.render(node).strip("\n") for node in expand_headings(nodes))
         return separator.join(block for block in rendered if block)
@@ -337,7 +346,8 @@ class MarkdownRenderer(NodeRenderer):
             text = f"{text[: m.start(1)]}\\{text[m.start(1):]}"
         if self.heading_numbers and node.numbering is not None:
             prefix = " ".join(p for p in (node.numbering.name, node.numbering.value) if p)
-            text = f"{prefix} {text}"
+            prefix = _one_line(prefix)
+            text = f"{escape_inline(prefix) if self.escape else prefix} {text}"
         return f"{'#' * node.level} {text}"
 
     def render_paragraph(self, node: ParagraphNode) -> str:
@@ -411,7 +421,7 @@ class MarkdownRenderer(NodeRenderer):
         if node.path and is_safe_image_source(node.path):
             return f"![{_escape_alt(alt)}]({escape_destination(node.path)})"
         if alt:
-            return f'[[image:{node.id} alt="{alt}"]]'
+            return f'[[image:{node.id} alt="{self._quoted(attr_value(alt))}"]]'
         return f"[[image:{node.id}]]"
 
     def render_list(self, node: ListNode) -> str:
@@ -450,7 +460,7 @@ class MarkdownRenderer(NodeRenderer):
 
     def render_table(self, node: TableNode) -> str:
         if not wants_inline_table(node, self.tables) or not node.cells:
-            return table_node_placeholder(node)
+            return table_node_placeholder(node, escape=self._quoted)
         if all(is_inline_cell(cell) for cell in node.cells):
             return render_table_markdown(node, cell_text=self._gfm_cell, text_only=self.text_only)
         if self.text_only:
@@ -537,6 +547,7 @@ class MarkdownRenderer(NodeRenderer):
             shape=table_shape(table) if table else None,
             row_labels=row_labels_text(table) if table else None,
             summary=self._figure_summary(node),
+            escape=self._quoted,
         )
 
     def _figure_caption_parts(self, node: FigureNode) -> list[str]:

@@ -583,3 +583,84 @@ class TestMarkdownImageSource:
     def test_data_image_is_kept(self) -> None:
         node = ImageNode(type="image", path="data:image/png;base64,AAAA", alt="A", **_id())
         assert R.render(node) == "![A](data:image/png;base64,AAAA)"
+
+
+HOSTILE = [
+    'x <img src=x onerror=alert(1)>',
+    'x](ms-msdt:e)',
+    '"](ms-msdt:e) [y',
+    'a <img src=x onerror=alert(1)>\n\n[x](ms-msdt:e)\r# h\u0085> q',
+    'x <https://t.example/p> ![t](https://t/p.gif) &lt;b&gt; ]] [[',
+]
+FORBIDDEN = {"html_inline", "html_block", "link_open", "image", "heading_open", "blockquote_open"}
+
+
+def _all_tokens(markdown: str) -> list:
+    tokens = MarkdownIt("commonmark").parse(markdown)
+    flat = list(tokens)
+    for token in tokens:
+        flat.extend(token.children or [])
+    return flat
+
+
+class TestPlaceholdersAreInert:
+    """Text a placeholder carries cannot become Markdown structure."""
+
+    @pytest.mark.parametrize("alt", HOSTILE)
+    @pytest.mark.parametrize("path", [None, "javascript:z"])
+    @pytest.mark.parametrize("text_only", [False, True])
+    def test_image_placeholder(self, alt, path, text_only) -> None:
+        node = ImageNode(type="image", path=path, alt=alt, **_id())
+        out = MarkdownRenderer(escape=True, text_only=text_only).render(node)
+        assert out.startswith(f"[[image:{node.id} alt=") and "\n" not in out
+        assert not FORBIDDEN & {t.type for t in _all_tokens(out)}
+
+    def test_image_placeholder_alt_is_quoted(self) -> None:
+        node = ImageNode(type="image", alt='say "hi"', **_id())
+        assert MarkdownRenderer().render(node) == f'[[image:{node.id} alt="say \\"hi\\""]]'
+
+    @pytest.mark.parametrize("hostile", HOSTILE)
+    def test_figure_placeholder(self, hostile) -> None:
+        from cnd.core.text import RawSource
+
+        node = FigureNode(
+            type="figure", kind=hostile, caption=rt(hostile), description=rt(hostile),
+            numbering=Numbering(value=hostile, name=hostile),
+            raw=RawSource(format="typst", value="#x"), **_id(),
+        )
+        out = MarkdownRenderer(escape=True, figures="inline").render(node)
+        assert out.startswith(f"[[figure:{node.id} ")
+        assert not FORBIDDEN & {t.type for t in _all_tokens(out)}
+
+    @pytest.mark.parametrize("hostile", HOSTILE)
+    def test_table_placeholder(self, hostile) -> None:
+        node = TableNode(type="table", kind=hostile, cells=[
+            cell(0, 0, hostile, is_header=True), cell(1, 0, hostile),
+        ], **_id())
+        out = MarkdownRenderer(escape=True, tables="placeholder").render(node)
+        assert out.startswith(f"[[figure:{node.id} ")
+        assert not FORBIDDEN & {t.type for t in _all_tokens(out)}
+
+    @pytest.mark.parametrize("hostile", HOSTILE)
+    def test_heading_numbering(self, hostile) -> None:
+        from cnd.core.nodes import HeadingNode
+
+        node = HeadingNode(type="heading", level=2, text=rt("T"), heading_path=["T"],
+                           numbering=Numbering(value=hostile, name=hostile), **_id())
+        out = MarkdownRenderer(escape=True, heading_numbers=True).render(node)
+        types = [t.type for t in _all_tokens(out)]
+        assert types.count("heading_open") == 1
+        assert not (FORBIDDEN - {"heading_open"}) & set(types)
+
+    def test_without_escape_placeholders_stay_verbatim(self) -> None:
+        node = ImageNode(type="image", alt="a [b] <c>", **_id())
+        assert MarkdownRenderer().render(node) == f'[[image:{node.id} alt="a [b] <c>"]]'
+
+
+@pytest.mark.parametrize("alt", ["a ``` x", "a `", "<https://t.example/p", '<span title="'])
+@pytest.mark.parametrize("path", ["a\n```\n[x](ms-msdt:e)", 'b.png ">', "c.png"])
+def test_an_image_alt_cannot_reach_into_its_destination(alt, path) -> None:
+    node = ImageNode(type="image", path=path, alt=alt, **_id())
+    types = [t.type for t in _all_tokens(R.render(node))]
+    assert types.count("image") == 1
+    assert not {"link_open", "code_inline", "html_inline", "html_block"} & set(types)
