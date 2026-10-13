@@ -53,4 +53,4 @@ conventions.
 | [0010](proposals/0010-counter-label.md) | Capture the counter label as its own field, beside the number | implemented |
 | [0011](proposals/0011-decorative-content.md) | Content marked decorative is never emitted | implemented |
 | [0012](proposals/0012-placeholder-context.md) | Figure placeholders carry every piece of context the node holds | implemented |
-| [0013](proposals/0013-cnd-0.5.0-rich-text-and-block-containers.md) | CND 0.5.0 — rich text, block containers, and the elements a document actually uses | approved (core implemented) |
+| [0013](proposals/0013-cnd-0.5.0-rich-text-and-block-containers.md) | CND 0.5.0 — rich text, block containers, and the elements a document actually uses | approved (core, renderers and converters implemented) |

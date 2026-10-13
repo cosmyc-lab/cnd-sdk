@@ -47,7 +47,6 @@ def elements_cnd_path() -> Path:
 collect_ignore = [
     "test_builder.py",
     "test_cli.py",
-    "test_converters.py",
     "test_declaration.py",
     "test_node_display_visitor.py",
     "test_reconcile.py",

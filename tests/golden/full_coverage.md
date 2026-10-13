@@ -12,7 +12,7 @@ keywords:
   - "figures"
 description: "Manifest de référence exerçant chaque type de nœud et chaque variante du format CND 0.2.0 : familles de liens, pools, figures imbriquées, tables fusionnées."
 lang: "fr"
-cnd_version: "0.3.0"
+cnd_version: "0.5.0"
 built_at: "2026-07-15T08:30:00+00:00"
 ---
 
@@ -57,9 +57,13 @@ e(t) = m(t) - r(t)
 
 *Table 1: Mesures nominales par capteur.*
 
-| Zone | Relevés bruts |  |
-| --- | --- | --- |
-|  | 12.4 | 12.6 |
+Zone
+
+Relevés bruts
+
+12.4
+
+12.6
 
 ![Vue d'ensemble du banc de mesure](figures/banc.png)
 

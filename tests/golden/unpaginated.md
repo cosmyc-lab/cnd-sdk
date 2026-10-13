@@ -1,7 +1,7 @@
 ---
 title: "Protocol notes"
 lang: "en"
-cnd_version: "0.3.0"
+cnd_version: "0.5.0"
 built_at: "2026-07-22T09:30:00+00:00"
 ---
 

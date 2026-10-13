@@ -11,6 +11,7 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
+from factories import para, rt
 
 from cnd.converters import (
     ConversionResult,
@@ -42,6 +43,7 @@ ALL_FIXTURES = [
     "rich_content",
     "full_coverage",
     "unpaginated",
+    "elements",
 ]
 
 # full_coverage exercises both pools; comprehensive has neither;
@@ -54,6 +56,8 @@ GOLDEN_CASES = [
     ("unpaginated", MarkdownConverter),
     ("unpaginated", HtmlConverter),
     ("minimal", MarkdownConverter),
+    ("elements", MarkdownConverter),
+    ("elements", HtmlConverter),
 ]
 
 
@@ -101,7 +105,7 @@ def test_markdown_front_matter_carries_doc_metadata() -> None:
     assert '  - "Équipe CND"' in head
     assert "date: 2026-07-15" in head
     assert 'lang: "fr"' in head
-    assert 'cnd_version: "0.3.0"' in head
+    assert 'cnd_version: "0.5.0"' in head
 
 
 def test_figure_children_render_once() -> None:
@@ -174,9 +178,11 @@ def test_markdown_renders_a_links_marker_ordered_with_the_other_families() -> No
             ParagraphNode(
                 type="paragraph",
                 id=UUID("00000000-0000-4000-f000-000000000004"),
-                text="see the auth spec and eq 1",
-                links=[LinkRef(href="https://example.com/auth", text_span=[4, 17])],
-                refs=[NodeRef(label="eq-1", text_span=[22, 26])],
+                text=rt(
+                    "see the auth spec and eq 1",
+                    links=[LinkRef(href="https://example.com/auth", text_span=[4, 17])],
+                    refs=[NodeRef(label="eq-1", text_span=[22, 26])],
+                ),
             )
         ]
     )
@@ -224,8 +230,7 @@ def test_unresolvable_label_warns_and_degrades() -> None:
             ParagraphNode(
                 type="paragraph",
                 id=UUID("00000000-0000-4000-f000-000000000001"),
-                text="Dangling.",
-                refs=[NodeRef(label="nowhere")],
+                text=rt("Dangling.", refs=[NodeRef(label="nowhere")]),
             )
         ]
     )
@@ -244,15 +249,14 @@ def test_wrong_family_domain_warns() -> None:
             ParagraphNode(
                 type="paragraph",
                 id=UUID("00000000-0000-4000-f000-000000000002"),
-                text="Mis-filed.",
-                cites=[CiteRef(label="fn-a")],
+                text=rt("Mis-filed.", cites=[CiteRef(label="fn-a")]),
             )
         ],
         footnotes=[
             Footnote(
                 id=UUID("00000000-0000-4000-f000-000000000003"),
                 label="fn-a",
-                text="A note.",
+                children=[para("A note.")],
             )
         ],
     )
@@ -267,12 +271,12 @@ def test_formatted_is_preferred_verbatim() -> None:
     entry = BibEntry(
         id=UUID("00000000-0000-4000-f000-000000000010"),
         label="smith2024",
-        formatted="Smith, J. (2024). A styled reference. Journal, 1(1), 1–2.",
+        formatted=rt("Smith, J. (2024). A styled reference. Journal, 1(1), 1–2."),
         authors=["Ignored, X."],
         title="Ignored title",
     )
     reference, warning = format_bib_entry(entry)
-    assert reference == "Smith, J. (2024). A styled reference. Journal, 1(1), 1–2."
+    assert reference.value == "Smith, J. (2024). A styled reference. Journal, 1(1), 1–2."
     assert warning is None
 
 
@@ -291,7 +295,7 @@ def test_unformatted_entry_falls_back_to_lifted_fields() -> None:
         url="https://example.org/lee2020",
     )
     reference, warning = format_bib_entry(entry)
-    assert reference == (
+    assert reference.value == (
         "Lee, K., Ito, S.. (2020). Structured only. Proceedings of Nothing. "
         "doi:10.1000/xyz. https://example.org/lee2020"
     )
@@ -305,8 +309,7 @@ def test_unformatted_entry_warns_through_the_converter() -> None:
             ParagraphNode(
                 type="paragraph",
                 id=UUID("00000000-0000-4000-f000-000000000012"),
-                text="Cited.",
-                cites=[CiteRef(label="lee2020")],
+                text=rt("Cited.", cites=[CiteRef(label="lee2020")]),
             )
         ],
         bibliography=[
@@ -342,7 +345,7 @@ def test_entry_with_only_a_fields_blob_degrades_to_its_label() -> None:
         fields={"type": "book", "title": {"nested": "unread"}},
     )
     reference, warning = format_bib_entry(entry)
-    assert reference == "opaque"
+    assert reference.value == "opaque"
     assert warning is not None
 
 
@@ -363,7 +366,7 @@ def test_html_renderer_escapes_and_anchors() -> None:
         type="paragraph",
         id=UUID("00000000-0000-4000-f000-000000000020"),
         label="p-esc",
-        text="a < b & c > d",
+        text=rt("a < b & c > d"),
     )
     assert renderer.render(node) == (
         '<p id="p-esc">a &lt; b &amp; c &gt; d</p>'
@@ -408,7 +411,7 @@ def test_conversion_result_str_is_the_document() -> None:
 def _tiny_cnd(*, nodes, bibliography=(), footnotes=()) -> Cnd:
     return Cnd(
         id=UUID("00000000-0000-4000-f000-000000000000"),
-        cnd_version="0.3.0",
+        cnd_version="0.5.0",
         built_at=datetime(2026, 7, 23, tzinfo=timezone.utc),
         doc=DocMetadata(title="Ad-hoc"),
         nodes=list(nodes),

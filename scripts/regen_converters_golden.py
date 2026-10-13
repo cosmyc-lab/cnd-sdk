@@ -25,6 +25,8 @@ CASES = [
     ("unpaginated", MarkdownConverter),
     ("unpaginated", HtmlConverter),
     ("minimal", MarkdownConverter),
+    ("elements", MarkdownConverter),
+    ("elements", HtmlConverter),
 ]
 
 
