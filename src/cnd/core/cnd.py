@@ -167,6 +167,24 @@ class Cnd(BaseModel):
             _totals=self._position_totals,
         )
 
+    def iter_all(self) -> Iterator[NodeTraverse]:
+        """The body walk, then the content of every footnote.
+
+        Footnote content nodes are nodes in every respect (ids, labels,
+        locations) but stay out of the body walk, so a consumer splitting
+        the body never mixes notes into running text (docs/proposals/0013).
+        Positions inside a footnote count within that footnote; ``slot`` is
+        ``"footnotes"`` and ``slot_index`` the pool index.
+        """
+        yield from self.iter()
+        for index, note in enumerate(self.footnotes):
+            yield from iter_nodes(
+                note.children,
+                _base_path=("footnotes", index, "children"),
+                _slot="footnotes",
+                _slot_index=index,
+            )
+
     def __iter__(self) -> Iterator[NodeTraverse]:
         return self.iter()
 
@@ -180,7 +198,7 @@ class Cnd(BaseModel):
         """
         if self._label_index is None:
             index: dict[str, LinkTarget] = {}
-            for visit in self.iter():
+            for visit in self.iter_all():
                 if visit.node.label is not None:
                     index.setdefault(visit.node.label, visit.node)
             for entry in (*self.bibliography, *self.footnotes):
@@ -200,7 +218,7 @@ class Cnd(BaseModel):
         if self._incoming_index is None:
             index: dict[str, list[CndNode]] = {}
             seen: dict[str, set[UUID]] = {}
-            for visit in self.iter():
+            for visit in self.iter_all():
                 node = visit.node
                 for link in edges_of(node):
                     if not hasattr(link, "label"):

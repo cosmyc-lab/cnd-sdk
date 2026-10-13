@@ -17,8 +17,13 @@ vectors = {}
 for path in sorted(FIXTURES.glob("*.cnd")):
     cnd = Cnd.model_validate_json(path.read_text())
     vectors[path.name] = [
-        {"id": str(v.node.id), "type": v.node.type, "depth": v.ctx.depth}
-        for v in cnd.iter()
+        {
+            "id": str(v.node.id),
+            "type": v.node.type,
+            "depth": v.ctx.depth,
+            "path": "/".join(map(str, v.ctx.path)),
+        }
+        for v in cnd.iter_all()
     ]
 
 (FIXTURES / "traversal.json").write_text(json.dumps(vectors, indent=2) + "\n")

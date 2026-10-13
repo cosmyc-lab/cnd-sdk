@@ -247,8 +247,8 @@ class NodeTraverseContext:
     pairs suitable for an "x/y" display):
 
     - ``doc_index``/``doc_count`` — position among all nodes of the walk.
-    - ``sibling_index``/``sibling_count`` — position among the parent's
-      children.
+    - ``sibling_index``/``sibling_count`` — position among the siblings
+      of the same slot list.
     - ``page_index``/``page_count`` — position among the nodes that begin
       on the same page (``location.page``). Both are ``None`` on an
       unpaginated CND, where no page exists to be positioned within — the
@@ -258,6 +258,14 @@ class NodeTraverseContext:
     They are document facts, not walk artifacts: pruning a branch with
     ``max_depth``/``stop_predicate`` does not shift the positions of the
     nodes that are still visited.
+
+    - ``slot``/``slot_index`` — where the node's list sits in its parent:
+      ``"children"`` (index ``None``), ``"items"`` or ``"cells"`` with the
+      entry index, ``"footnotes"`` with the pool index, ``None`` at the top
+      level.
+    - ``path`` — the node's full position, e.g.
+      ``("nodes", 0, "children", 4, "cells", 2, "children", 0)``. It feeds
+      the document hash (§10).
     """
 
     depth: int
@@ -269,6 +277,9 @@ class NodeTraverseContext:
     sibling_count: int = 0
     page_index: int | None = None
     page_count: int | None = None
+    slot: str | None = None
+    slot_index: int | None = None
+    path: tuple[str | int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -282,11 +293,32 @@ class NodeTraverse:
 StopPredicate = Callable[[CndNode, NodeTraverseContext], bool]
 
 
-def _children_of(node: CndNode) -> list["CndNode"]:
-    """The child list of a children-bearing node (heading, figure)."""
-    if isinstance(node, (HeadingNode, FigureNode)):
-        return node.children
+@dataclass(frozen=True)
+class ChildSlot:
+    """One list of nested nodes inside a container, and where it sits:
+    ``field`` is ``"children"``, ``"items"`` or ``"cells"``; ``index`` is
+    the item or cell index (``None`` for ``"children"``)."""
+
+    field: str
+    index: int | None
+    nodes: list["CndNode"]
+
+
+def child_slots(node: "CndNode") -> list[ChildSlot]:
+    """Every nested-node list of ``node``, in document order (principle 2:
+    nested nodes always live in ``children``)."""
+    if isinstance(node, (HeadingNode, FigureNode, QuoteNode, AdmonitionNode)):
+        return [ChildSlot("children", None, node.children)]
+    if isinstance(node, (ListNode, TermsNode)):
+        return [ChildSlot("items", i, item.children) for i, item in enumerate(node.items)]
+    if isinstance(node, (TableNode, LayoutNode)):
+        return [ChildSlot("cells", i, cell.children) for i, cell in enumerate(node.cells)]
     return []
+
+
+def _children_of(node: "CndNode") -> list["CndNode"]:
+    """All nested nodes of ``node``, every slot flattened in order."""
+    return [child for slot in child_slots(node) for child in slot.nodes]
 
 
 def position_totals(nodes: list[CndNode]) -> tuple[int, dict[int, int]]:
@@ -343,8 +375,12 @@ def iter_nodes(
     max_depth: int | None = None,
     stop_predicate: StopPredicate | None = None,
     _totals: tuple[int, dict[int, int]] | None = None,
+    _base_path: tuple[str | int, ...] = ("nodes",),
+    _slot: str | None = None,
+    _slot_index: int | None = None,
 ) -> Iterator[NodeTraverse]:
-    """Walk a node tree depth-first, yielding each node with its context.
+    """Walk a node tree depth-first in reading order, entering every
+    container, yielding each node with its context.
 
     The tree is normatively in document reading order, so the walk order is
     reading order and the derived position attributes on the context are
@@ -352,18 +388,15 @@ def iter_nodes(
     reuse a cached ``position_totals`` result.
     """
     totals = _totals if _totals is not None else position_totals(nodes)
-    root_ctx = NodeTraverseContext(depth=0, heading_path=[], parent=None)
-    yield from _iter_nodes(nodes, root_ctx, max_depth, stop_predicate, totals, _WalkCounters())
+    root_ctx = NodeTraverseContext(
+        depth=0, heading_path=[], parent=None, slot=_slot, slot_index=_slot_index
+    )
+    yield from _iter_nodes(
+        nodes, root_ctx, max_depth, stop_predicate, totals, _WalkCounters(), _base_path
+    )
 
 
-def _iter_nodes(
-    nodes: list[CndNode],
-    ctx: NodeTraverseContext,
-    max_depth: int | None,
-    stop_predicate: StopPredicate | None,
-    totals: tuple[int, dict[int, int]],
-    counters: _WalkCounters,
-) -> Iterator[NodeTraverse]:
+def _iter_nodes(nodes, ctx, max_depth, stop_predicate, totals, counters, base_path):
     doc_count, page_counts = totals
     for sibling_index, node in enumerate(nodes, start=1):
         doc_index, page_index = counters.advance(node)
@@ -379,25 +412,37 @@ def _iter_nodes(
             page_count=(
                 page_counts[node.location.page] if node.location is not None else None
             ),
+            slot=ctx.slot,
+            slot_index=ctx.slot_index,
+            path=(*base_path, sibling_index - 1),
         )
         yield NodeTraverse(node=node, ctx=visit_ctx)
 
-        children = _children_of(node)
-        if not children:
+        slots = [slot for slot in child_slots(node) if slot.nodes]
+        if not slots:
             continue
         if (max_depth is not None and ctx.depth >= max_depth) or (
             stop_predicate is not None and stop_predicate(node, visit_ctx)
         ):
-            counters.skip_subtree(children)
+            counters.skip_subtree(_children_of(node))
             continue
 
-        child_ctx = NodeTraverseContext(
-            depth=ctx.depth + 1,
-            heading_path=(
-                node.heading_path if isinstance(node, HeadingNode) else ctx.heading_path
-            ),
-            parent=node,
+        heading_path = (
+            node.heading_path if isinstance(node, HeadingNode) else ctx.heading_path
         )
-        yield from _iter_nodes(
-            children, child_ctx, max_depth, stop_predicate, totals, counters
-        )
+        for slot in slots:
+            child_ctx = NodeTraverseContext(
+                depth=ctx.depth + 1,
+                heading_path=heading_path,
+                parent=node,
+                slot=slot.field,
+                slot_index=slot.index,
+            )
+            prefix = (
+                (*visit_ctx.path, slot.field)
+                if slot.index is None
+                else (*visit_ctx.path, slot.field, slot.index, "children")
+            )
+            yield from _iter_nodes(
+                slot.nodes, child_ctx, max_depth, stop_predicate, totals, counters, prefix
+            )

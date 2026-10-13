@@ -57,6 +57,5 @@ collect_ignore = [
     "test_visitor.py",
     # ported by plan 1, Tasks 4-7
     "test_hashing.py",
-    "test_traverse.py",
     "test_validate.py",
 ]

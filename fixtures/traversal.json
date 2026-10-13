@@ -3,367 +3,1016 @@
     {
       "id": "00000000-0000-4000-b000-000000000001",
       "type": "paragraph",
-      "depth": 0
+      "depth": 0,
+      "path": "nodes/0"
     },
     {
       "id": "00000000-0000-4000-b000-000000000002",
       "type": "heading",
-      "depth": 0
+      "depth": 0,
+      "path": "nodes/1"
     },
     {
       "id": "00000000-0000-4000-b000-000000000003",
       "type": "paragraph",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/1/children/0"
     },
     {
       "id": "00000000-0000-4000-b000-000000000004",
       "type": "heading",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/1/children/1"
     },
     {
       "id": "00000000-0000-4000-b000-000000000005",
       "type": "paragraph",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/1/children/1/children/0"
     },
     {
       "id": "00000000-0000-4000-b000-000000000006",
       "type": "paragraph",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/1/children/1/children/1"
     },
     {
       "id": "00000000-0000-4000-c000-000000000001",
       "type": "figure",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/1/children/1/children/2"
     },
     {
       "id": "00000000-0000-4000-b000-000000000007",
       "type": "table",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/1/children/1/children/2/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000005",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/1/children/2/children/0/cells/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000006",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/1/children/2/children/0/cells/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000007",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/1/children/2/children/0/cells/2/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000008",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/1/children/2/children/0/cells/3/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000009",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/1/children/2/children/0/cells/4/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000010",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/1/children/2/children/0/cells/5/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000011",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/1/children/2/children/0/cells/6/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000012",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/1/children/2/children/0/cells/7/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000013",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/1/children/2/children/0/cells/8/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000014",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/1/children/2/children/0/cells/9/children/0"
     },
     {
       "id": "00000000-0000-4000-b000-000000000008",
       "type": "heading",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/1/children/2"
     },
     {
       "id": "00000000-0000-4000-b000-000000000009",
       "type": "paragraph",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/1/children/2/children/0"
     },
     {
       "id": "00000000-0000-4000-c000-000000000002",
       "type": "figure",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/1/children/2/children/1"
     },
     {
       "id": "00000000-0000-4000-b000-000000000010",
       "type": "table",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/1/children/2/children/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000015",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/2/children/1/children/0/cells/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000016",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/2/children/1/children/0/cells/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000017",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/2/children/1/children/0/cells/2/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000018",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/2/children/1/children/0/cells/3/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000019",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/2/children/1/children/0/cells/4/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000020",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/2/children/1/children/0/cells/5/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000021",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/2/children/1/children/0/cells/6/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000022",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/2/children/1/children/0/cells/7/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000023",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/1/children/2/children/1/children/0/cells/8/children/0"
     },
     {
       "id": "00000000-0000-4000-b000-000000000011",
       "type": "heading",
-      "depth": 0
+      "depth": 0,
+      "path": "nodes/2"
     },
     {
       "id": "00000000-0000-4000-b000-000000000012",
       "type": "heading",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/2/children/0"
     },
     {
       "id": "00000000-0000-4000-b000-000000000013",
       "type": "heading",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/2/children/0/children/0"
     },
     {
       "id": "00000000-0000-4000-b000-000000000014",
       "type": "paragraph",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/2/children/0/children/0/children/0"
     },
     {
       "id": "00000000-0000-4000-b000-000000000015",
       "type": "paragraph",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/2/children/0/children/0/children/1"
     },
     {
       "id": "00000000-0000-4000-c000-000000000003",
       "type": "figure",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/2/children/0/children/0/children/2"
     },
     {
       "id": "00000000-0000-4000-b000-000000000016",
       "type": "table",
-      "depth": 4
+      "depth": 4,
+      "path": "nodes/2/children/0/children/0/children/2/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000024",
+      "type": "paragraph",
+      "depth": 5,
+      "path": "nodes/2/children/0/children/0/children/2/children/0/cells/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000025",
+      "type": "paragraph",
+      "depth": 5,
+      "path": "nodes/2/children/0/children/0/children/2/children/0/cells/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000026",
+      "type": "paragraph",
+      "depth": 5,
+      "path": "nodes/2/children/0/children/0/children/2/children/0/cells/2/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000027",
+      "type": "paragraph",
+      "depth": 5,
+      "path": "nodes/2/children/0/children/0/children/2/children/0/cells/3/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000028",
+      "type": "paragraph",
+      "depth": 5,
+      "path": "nodes/2/children/0/children/0/children/2/children/0/cells/4/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000029",
+      "type": "paragraph",
+      "depth": 5,
+      "path": "nodes/2/children/0/children/0/children/2/children/0/cells/5/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000030",
+      "type": "paragraph",
+      "depth": 5,
+      "path": "nodes/2/children/0/children/0/children/2/children/0/cells/6/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000031",
+      "type": "paragraph",
+      "depth": 5,
+      "path": "nodes/2/children/0/children/0/children/2/children/0/cells/7/children/0"
     },
     {
       "id": "00000000-0000-4000-b000-000000000017",
       "type": "heading",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/2/children/1"
     },
     {
       "id": "00000000-0000-4000-b000-000000000018",
       "type": "paragraph",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/2/children/1/children/0"
     },
     {
       "id": "00000000-0000-4000-b000-000000000019",
       "type": "heading",
-      "depth": 0
+      "depth": 0,
+      "path": "nodes/3"
     },
     {
       "id": "00000000-0000-4000-c000-000000000004",
       "type": "figure",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/3/children/0"
     },
     {
       "id": "00000000-0000-4000-b000-000000000020",
       "type": "table",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/3/children/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000032",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/3/children/0/children/0/cells/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000033",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/3/children/0/children/0/cells/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000034",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/3/children/0/children/0/cells/2/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000035",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/3/children/0/children/0/cells/3/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000036",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/3/children/0/children/0/cells/4/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000037",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/3/children/0/children/0/cells/5/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000038",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/3/children/0/children/0/cells/6/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000039",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/3/children/0/children/0/cells/7/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000040",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/3/children/0/children/0/cells/8/children/0"
+    }
+  ],
+  "elements.cnd": [
+    {
+      "id": "00000000-0000-4000-d000-000000000002",
+      "type": "heading",
+      "depth": 0,
+      "path": "nodes/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000001",
+      "type": "paragraph",
+      "depth": 1,
+      "path": "nodes/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000003",
+      "type": "admonition",
+      "depth": 1,
+      "path": "nodes/0/children/1"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000004",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000005",
+      "type": "list",
+      "depth": 1,
+      "path": "nodes/0/children/2"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000006",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/2/items/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000007",
+      "type": "list",
+      "depth": 2,
+      "path": "nodes/0/children/2/items/0/children/1"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000008",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/0/children/2/items/0/children/1/items/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000009",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/2/items/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000010",
+      "type": "terms",
+      "depth": 1,
+      "path": "nodes/0/children/3"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000011",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/3/items/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000012",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/3/items/0/children/1"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000013",
+      "type": "table",
+      "depth": 1,
+      "path": "nodes/0/children/4"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000014",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/4/cells/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000015",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/4/cells/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000016",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/4/cells/2/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000017",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/4/cells/3/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000018",
+      "type": "layout",
+      "depth": 1,
+      "path": "nodes/0/children/5"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000019",
+      "type": "image",
+      "depth": 2,
+      "path": "nodes/0/children/5/cells/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000020",
+      "type": "image",
+      "depth": 2,
+      "path": "nodes/0/children/5/cells/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000021",
+      "type": "figure",
+      "depth": 1,
+      "path": "nodes/0/children/6"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000022",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/6/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000023",
+      "type": "quote",
+      "depth": 1,
+      "path": "nodes/0/children/7"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000024",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/7/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000025",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/7/children/1"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000026",
+      "type": "code",
+      "depth": 1,
+      "path": "nodes/0/children/8"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000027",
+      "type": "math",
+      "depth": 1,
+      "path": "nodes/0/children/9"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000029",
+      "type": "paragraph",
+      "depth": 0,
+      "path": "footnotes/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-d000-000000000030",
+      "type": "paragraph",
+      "depth": 0,
+      "path": "footnotes/0/children/1"
     }
   ],
   "full_coverage.cnd": [
     {
       "id": "00000000-0000-4000-e000-000000000001",
       "type": "heading",
-      "depth": 0
+      "depth": 0,
+      "path": "nodes/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000002",
       "type": "paragraph",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000003",
       "type": "list",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/1"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000001",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/1/items/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000002",
+      "type": "list",
+      "depth": 2,
+      "path": "nodes/0/children/1/items/0/children/1"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000003",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/0/children/1/items/0/children/1/items/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000004",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/0/children/1/items/0/children/1/items/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000005",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/1/items/1/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000004",
       "type": "list",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/2"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000006",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/2/items/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000007",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/2/items/1/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000005",
       "type": "terms",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/3"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000008",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/3/items/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000009",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/3/items/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000010",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/3/items/2/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000006",
       "type": "quote",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/4"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000011",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/4/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000007",
       "type": "code",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/5"
     },
     {
       "id": "00000000-0000-4000-e000-000000000008",
       "type": "math",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/6"
     },
     {
       "id": "00000000-0000-4000-e000-000000000030",
       "type": "heading",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/7"
     },
     {
       "id": "00000000-0000-4000-e000-000000000010",
       "type": "figure",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/7/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000011",
       "type": "table",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/0/children/7/children/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000012",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/0/children/7/children/0/children/0/cells/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000013",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/0/children/7/children/0/children/0/cells/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000014",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/0/children/7/children/0/children/0/cells/2/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000015",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/0/children/7/children/0/children/0/cells/3/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000016",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/0/children/7/children/0/children/0/cells/4/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000017",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/0/children/7/children/0/children/0/cells/5/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000012",
-      "type": "table",
-      "depth": 2
+      "type": "layout",
+      "depth": 2,
+      "path": "nodes/0/children/7/children/1"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000018",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/0/children/7/children/1/cells/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000019",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/0/children/7/children/1/cells/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000020",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/0/children/7/children/1/cells/2/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000021",
+      "type": "paragraph",
+      "depth": 3,
+      "path": "nodes/0/children/7/children/1/cells/3/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000013",
       "type": "figure",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/7/children/2"
     },
     {
       "id": "00000000-0000-4000-e000-000000000014",
       "type": "image",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/0/children/7/children/2/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000015",
       "type": "figure",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/7/children/3"
     },
     {
       "id": "00000000-0000-4000-e000-000000000016",
       "type": "code",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/0/children/7/children/3/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000017",
       "type": "figure",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/7/children/4"
     },
     {
       "id": "00000000-0000-4000-e000-000000000018",
       "type": "figure",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/0/children/7/children/4/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000019",
       "type": "image",
-      "depth": 4
+      "depth": 4,
+      "path": "nodes/0/children/7/children/4/children/0/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000021",
       "type": "figure",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/0/children/7/children/4/children/1"
     },
     {
       "id": "00000000-0000-4000-e000-000000000022",
       "type": "image",
-      "depth": 4
+      "depth": 4,
+      "path": "nodes/0/children/7/children/4/children/1/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000023",
       "type": "figure",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/7/children/5"
     },
     {
       "id": "00000000-0000-4000-e000-000000000024",
       "type": "image",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/0/children/7/children/5/children/0"
     },
     {
       "id": "00000000-0000-4000-e000-000000000025",
       "type": "figure",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/7/children/6"
     },
     {
       "id": "00000000-0000-4000-e000-000000000026",
       "type": "image",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/7/children/7"
     },
     {
       "id": "00000000-0000-4000-e000-000000000027",
       "type": "image",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/7/children/8"
     },
     {
       "id": "00000000-0000-4000-e000-000000000040",
       "type": "heading",
-      "depth": 0
+      "depth": 0,
+      "path": "nodes/1"
     },
     {
       "id": "00000000-0000-4000-e000-000000000041",
       "type": "paragraph",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000022",
+      "type": "paragraph",
+      "depth": 0,
+      "path": "footnotes/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000023",
+      "type": "paragraph",
+      "depth": 0,
+      "path": "footnotes/1/children/0"
     }
   ],
   "minimal.cnd": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440001",
       "type": "heading",
-      "depth": 0
+      "depth": 0,
+      "path": "nodes/0"
     },
     {
       "id": "550e8400-e29b-41d4-a716-446655440002",
       "type": "paragraph",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/0"
     }
   ],
   "rich_content.cnd": [
     {
       "id": "00000000-0000-4000-d000-000000000001",
       "type": "heading",
-      "depth": 0
+      "depth": 0,
+      "path": "nodes/0"
     },
     {
       "id": "00000000-0000-4000-d000-000000000002",
       "type": "paragraph",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/0"
     },
     {
       "id": "00000000-0000-4000-d000-000000000003",
       "type": "terms",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/1"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000001",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/1/items/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000002",
+      "type": "paragraph",
+      "depth": 2,
+      "path": "nodes/0/children/1/items/1/children/0"
     },
     {
       "id": "00000000-0000-4000-d000-000000000004",
       "type": "figure",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/2"
     },
     {
       "id": "00000000-0000-4000-d000-000000000005",
       "type": "code",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/2/children/0"
     },
     {
       "id": "00000000-0000-4000-d000-000000000006",
       "type": "image",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/3"
     },
     {
       "id": "00000000-0000-4000-d000-000000000007",
       "type": "figure",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/4"
     },
     {
       "id": "00000000-0000-4000-d000-000000000008",
       "type": "image",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/4/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000003",
+      "type": "paragraph",
+      "depth": 0,
+      "path": "footnotes/0/children/0"
     }
   ],
   "structured.cnd": [
     {
       "id": "00000000-0000-4000-a000-000000000001",
       "type": "heading",
-      "depth": 0
+      "depth": 0,
+      "path": "nodes/0"
     },
     {
       "id": "00000000-0000-4000-a000-000000000002",
       "type": "heading",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/0"
     },
     {
       "id": "00000000-0000-4000-a000-000000000003",
       "type": "paragraph",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/0/children/0"
     },
     {
       "id": "00000000-0000-4000-a000-000000000005",
       "type": "figure",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/0/children/1"
     },
     {
       "id": "00000000-0000-4000-a000-000000000004",
       "type": "table",
-      "depth": 3
+      "depth": 3,
+      "path": "nodes/0/children/0/children/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000001",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/0/children/0/children/1/children/0/cells/0/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000002",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/0/children/0/children/1/children/0/cells/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000003",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/0/children/0/children/1/children/0/cells/2/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000004",
+      "type": "paragraph",
+      "depth": 4,
+      "path": "nodes/0/children/0/children/1/children/0/cells/3/children/0"
     }
   ],
   "unpaginated.cnd": [
     {
       "id": "00000000-0000-4000-f000-000000000001",
       "type": "heading",
-      "depth": 0
+      "depth": 0,
+      "path": "nodes/0"
     },
     {
       "id": "00000000-0000-4000-f000-000000000002",
       "type": "paragraph",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/0"
     },
     {
       "id": "00000000-0000-4000-f000-000000000003",
       "type": "figure",
-      "depth": 1
+      "depth": 1,
+      "path": "nodes/0/children/1"
     },
     {
       "id": "00000000-0000-4000-f000-000000000004",
       "type": "code",
-      "depth": 2
+      "depth": 2,
+      "path": "nodes/0/children/1/children/0"
+    },
+    {
+      "id": "00000000-0000-4000-c000-000000000001",
+      "type": "paragraph",
+      "depth": 0,
+      "path": "footnotes/0/children/0"
     }
   ]
 }
