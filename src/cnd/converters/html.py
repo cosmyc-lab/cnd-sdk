@@ -32,7 +32,7 @@ from cnd.core.nodes import (
     TableNode,
     TermsNode,
 )
-from cnd.core.render import NodeRenderer, expand_headings
+from cnd.core.render import NodeRenderer, expand_headings, holds_several_blocks
 from cnd.core.text import Edge, LinkRef, RichText
 from cnd.core.urls import is_safe_image_source, is_safe_url
 
@@ -126,12 +126,12 @@ class HtmlNodeRenderer(NodeRenderer):
 
     def _flow(self, nodes: list[CndNode]) -> str:
         """The content of an item, a cell or a definition. Tight like
-        Markdown: unless it holds several blocks (a nested list does not
-        count, a heading's section does), a plain paragraph renders as
-        bare text, without ``<p>``."""
+        Markdown: unless it holds several blocks
+        (``cnd.core.render.holds_several_blocks``), a plain paragraph
+        renders as bare text, without ``<p>``."""
+        if holds_several_blocks(nodes):
+            return "".join(self.render(node) for node in expand_headings(nodes))
         nodes = expand_headings(nodes)
-        if sum(not isinstance(node, ListNode) for node in nodes) > 1:
-            return "".join(self.render(node) for node in nodes)
         return "".join(
             self.render_text(node.text)
             if isinstance(node, ParagraphNode) and node.label is None and node.text.lang is None

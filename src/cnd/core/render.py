@@ -138,14 +138,24 @@ def _is_one_inline_block(nodes: list[CndNode]) -> bool:
     )
 
 
+def holds_several_blocks(nodes: list[CndNode]) -> bool:
+    """Whether an item, a cell or a definition holding ``nodes`` needs
+    its blocks apart, as a loose list item does.
+
+    A nested list does not count: ``1. Parent`` over a nested list stays
+    tight, as in CommonMark (docs/proposals/0013, "Lists and terms hold
+    blocks"). A nested list followed by any other block does: tight, the
+    block's first line would continue the nested list's last item."""
+    expanded = expand_headings(nodes)
+    if any(isinstance(node, ListNode) for node in expanded[:-1]):
+        return True
+    return sum(not isinstance(node, ListNode) for node in expanded) > 1
+
+
 def _is_loose(blocks_per_item: list[list[CndNode]]) -> bool:
-    """A list is tight unless an item holds several blocks. A nested list
-    does not count: ``1. Parent`` over a nested list stays tight, as in
-    CommonMark (docs/proposals/0013, "Lists and terms hold blocks")."""
-    return any(
-        sum(not isinstance(node, ListNode) for node in expand_headings(nodes)) > 1
-        for nodes in blocks_per_item
-    )
+    """A list is tight unless one of its items holds several blocks
+    (``holds_several_blocks``)."""
+    return any(holds_several_blocks(nodes) for nodes in blocks_per_item)
 
 
 class NodeRenderer(ABC):

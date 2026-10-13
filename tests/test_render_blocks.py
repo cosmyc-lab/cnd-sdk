@@ -464,3 +464,46 @@ class TestMathBlock:
     def test_text_only_is_the_same(self) -> None:
         node = self._math(numbering=Numbering(value="1"))
         assert MarkdownRenderer(text_only=True).render(node) == R.render(node)
+
+
+class TestBlockAfterANestedList:
+    @staticmethod
+    def _node():
+        return _list(item(para("parent"), _list(item("child")), para("after")), item("next"))
+
+    def test_markdown_list_is_loose(self) -> None:
+        out = R.render(self._node())
+        tokens = _parse(out)
+        after = next(i for i, t in enumerate(tokens) if t.type == "inline" and t.content == "after")
+        # The paragraph belongs to the outer item, not the nested one's.
+        assert tokens[after - 1].type == "paragraph_open"
+        outer_items = [t for t in tokens if t.type == "list_item_open" and t.level == 1]
+        assert len(outer_items) == 2
+        nested_close = next(i for i, t in enumerate(tokens) if t.type == "bullet_list_close" and t.level == 2)
+        assert nested_close < after
+        assert not tokens[after - 1].hidden  # loose: a real paragraph
+
+    def test_list_first_then_paragraph(self) -> None:
+        node = _list(item(_list(item("child")), para("after")))
+        tokens = _parse(R.render(node))
+        after = next(i for i, t in enumerate(tokens) if t.type == "inline" and t.content == "after")
+        nested_close = next(i for i, t in enumerate(tokens) if t.type == "bullet_list_close" and t.level == 2)
+        assert nested_close < after
+
+    def test_a_trailing_nested_list_stays_tight(self) -> None:
+        node = _list(item(para("parent"), _list(item("child"))), item("next"))
+        assert R.render(node) == "- parent\n  - child\n- next"
+
+    def test_html_item_wraps_its_paragraphs(self) -> None:
+        from cnd.converters.html import HtmlNodeRenderer
+
+        node = _list(item(_list(item("child")), para("after")))
+        assert HtmlNodeRenderer().render(node) == (
+            "<ul><li><ul><li>child</li></ul><p>after</p></li></ul>"
+        )
+
+    def test_html_trailing_nested_list_stays_tight(self) -> None:
+        from cnd.converters.html import HtmlNodeRenderer
+
+        node = _list(item(para("parent"), _list(item("child"))))
+        assert HtmlNodeRenderer().render(node) == "<ul><li>parent<ul><li>child</li></ul></li></ul>"
