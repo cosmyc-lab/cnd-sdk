@@ -11,12 +11,14 @@ from uuid import uuid4
 
 from markdown_it import MarkdownIt
 
+from factories import cell, item, para, rt
+
 from cnd.converters import MarkdownConverter
 from cnd.core.cnd import Cnd, DocMetadata
 from cnd.core.nodes import (
-    CodeNode, HeadingNode, ImageNode, ListItem, ListNode, ParagraphNode,
-    QuoteNode, TableCell, TableNode,
+    CodeNode, HeadingNode, ImageNode, ListNode, QuoteNode, TableNode,
 )
+from cnd.core.text import Numbering
 
 NESTED_FENCE_CODE = "# Skill\n\n```typ\n#set page()\n```\n\n## Layout\n\n````\nend"
 
@@ -26,7 +28,8 @@ def _id() -> dict:
 
 
 def _heading(level: int, text: str, children: list, number: str | None = None) -> HeadingNode:
-    return HeadingNode(type="heading", level=level, text=text, number=number,
+    numbering = Numbering(value=number) if number else None
+    return HeadingNode(type="heading", level=level, text=rt(text), numbering=numbering,
                        heading_path=[text], children=children, **_id())
 
 
@@ -35,23 +38,23 @@ def _document() -> Cnd:
         CodeNode(type="code", text=NESTED_FENCE_CODE, lang="markdown", **_id()),
     ], number="1.2")
     task3 = _heading(2, "Task three", [
-        ParagraphNode(type="paragraph", text="1. Keep the default folders", **_id()),
-        ParagraphNode(type="paragraph", text="Output: <name> — created|updated (<reason>)", **_id()),
-        ParagraphNode(type="paragraph", text="Globs: docs/**/*.md and my_var_name", **_id()),
+        para("1. Keep the default folders"),
+        para("Output: <name> — created|updated (<reason>)"),
+        para("Globs: docs/**/*.md and my_var_name"),
         ListNode(type="list", ordered=True, items=[
-            ListItem(text="first", number=1), ListItem(text="third", number=3),
+            item("first", number=1), item("third", number=3),
         ], **_id()),
         TableNode(type="table", cells=[
-            TableCell(row=0, col=0, text="Call", is_header=True),
-            TableCell(row=0, col=1, text="Meaning", is_header=True),
-            TableCell(row=1, col=0, text='badge(kind: "ok" | "warn")'),
-            TableCell(row=1, col=1, text="status"),
+            cell(0, 0, "Call", is_header=True),
+            cell(0, 1, "Meaning", is_header=True),
+            cell(1, 0, 'badge(kind: "ok" | "warn")'),
+            cell(1, 1, "status"),
         ], **_id()),
-        QuoteNode(type="quote", text="Ship it.\n- not a bullet", attribution="A reviewer", **_id()),
+        QuoteNode(type="quote", children=[para("Ship it.\n- not a bullet")], attribution=rt("A reviewer"), **_id()),
         ImageNode(type="image", path="team logo.png", alt="Team logo", **_id()),
     ], number="1.3")
     root = _heading(1, "Plan", [task2, task3], number="1")
-    return Cnd(cnd_version="0.4.0", built_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    return Cnd(cnd_version="0.5.0", built_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
                doc=DocMetadata(title="Structure check", authors=[]), nodes=[root])
 
 
@@ -126,11 +129,9 @@ def test_image_with_a_space_in_its_path_is_an_image() -> None:
 
 
 def test_nested_ordered_list_parses_as_two_lists() -> None:
-    node = ListNode(type="list", ordered=True, items=[
-        ListItem(text="a", children=[ListItem(text="a1"), ListItem(text="a2")]),
-        ListItem(text="b"),
-    ], **_id())
-    cnd = Cnd(cnd_version="0.4.0", built_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    nested = ListNode(type="list", ordered=True, items=[item("a1"), item("a2")], **_id())
+    node = ListNode(type="list", ordered=True, items=[item("a", nested), item("b")], **_id())
+    cnd = Cnd(cnd_version="0.5.0", built_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
               doc=DocMetadata(title="Nested", authors=[]), nodes=[node])
     body = MarkdownConverter().convert(cnd).text.split("\n---\n", 1)[1]
     tokens = MarkdownIt("commonmark").enable("table").parse(body)
@@ -138,8 +139,8 @@ def test_nested_ordered_list_parses_as_two_lists() -> None:
 
 
 def _paragraph_tokens(text: str):
-    node = ParagraphNode(type="paragraph", text=text, **_id())
-    cnd = Cnd(cnd_version="0.4.0", built_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    node = para(text)
+    cnd = Cnd(cnd_version="0.5.0", built_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
               doc=DocMetadata(title="Para", authors=[]), nodes=[node])
     body = MarkdownConverter().convert(cnd).text.split("\n---\n", 1)[1]
     return list(_all(MarkdownIt("commonmark").enable("table").parse(body)))

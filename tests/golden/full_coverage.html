@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-cnd-version="0.3.0" data-built-at="2026-07-15T08:30:00+00:00">
+<html lang="fr" data-cnd-version="0.5.0" data-built-at="2026-07-15T08:30:00+00:00">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,6 +18,11 @@ figcaption { font-size: .9em; opacity: .8; }
 table { border-collapse: collapse; }
 th, td { border: 1px solid currentColor; padding: .25rem .5rem; }
 pre { overflow-x: auto; padding: .75rem; }
+.cnd-layout { display: grid; gap: 1rem; }
+.cnd-admonition { border-left: .25rem solid currentColor; margin: 1rem 0;
+                  padding: .25rem 1rem; }
+.cnd-admonition-title { font-weight: bold; }
+.cnd-code-title { font-family: monospace; font-size: .9em; margin-bottom: 0; }
 .cnd-markers { font-size: .85em; opacity: .75; }
 .cnd-unresolved { text-decoration: underline wavy; }
 .cnd-missing-image { font-style: italic; opacity: .7; }
@@ -28,17 +33,17 @@ pre { overflow-x: auto; padding: .75rem; }
 <h1 id="ch-overview">1 Vue d&#x27;ensemble</h1>
 <p id="para-intro" lang="fr">Les mesures nominales sont récapitulées dans la table des mesures ; la structure atomique est illustrée plus bas.</p>
 <span class="cnd-markers"><a class="cnd-cite" href="#durand2025">[durand2025, p. 42]</a> <sup class="cnd-footnote"><a href="#fn-unit">fn-unit</a></sup> <a class="cnd-ref" href="#tab-mesures">[tab-mesures]</a> <a class="cnd-cite" href="#durand2025">[durand2025]</a> <a class="cnd-ref" href="#fig-atom">[fig-atom]</a></span>
-<ol><li>Étalonner les capteurs<ul><li>Vérifier le zéro</li><li>Vérifier la pleine échelle</li></ul></li><li>Lancer l&#x27;acquisition</li></ol>
+<ol><li>Étalonner les capteurs<ol><li>Vérifier le zéro</li><li>Vérifier la pleine échelle</li></ol></li><li>Lancer l&#x27;acquisition</li></ol>
 <ul><li>Alimentation 24 V redondée</li><li>Bus de terrain isolé galvaniquement</li></ul>
 <dl><dt>Banc</dt><dd>Ensemble mécanique portant les capteurs sous test.</dd><dt>Cycle</dt><dd>Séquence complète de montée et descente en charge.</dd><dt>Dérive</dt><dd>Écart de mesure observé entre deux étalonnages.</dd></dl>
-<blockquote lang="fr"><p>Mesurer, c&#x27;est comparer à une référence.</p><footer>Manuel de métrologie interne</footer></blockquote>
+<blockquote><p lang="fr">Mesurer, c&#x27;est comparer à une référence.</p><footer>Manuel de métrologie interne</footer></blockquote>
 <pre><code class="language-python">def moyenne(valeurs):
     return sum(valeurs) / len(valeurs)</code></pre>
 <div id="eq-erreur" class="cnd-math-block"><code class="cnd-math">e(t) = m(t) - r(t)</code><span class="cnd-number">(1)</span></div>
 <h2 id="sec-figures">1.1 Résultats et figures</h2>
 <span class="cnd-markers"><a class="cnd-ref" href="#fig-schema">[fig-schema]</a></span>
-<figure id="tab-mesures" data-kind="table"><table><tr><th>Capteur</th><th>Nominal</th></tr><tr><td>PT-01</td><td>10 bar</td></tr><tr><td>FT-02</td><td>250 L/min</td></tr></table><figcaption>Table 1: Mesures nominales par capteur.</figcaption></figure>
-<table id="grid-layout" role="presentation"><tr><th rowspan="2">Zone</th><th colspan="2">Relevés bruts</th></tr><tr><td>12.4</td><td>12.6</td></tr></table>
+<figure id="tab-mesures" data-kind="table"><table data-kind="content"><tr><th>Capteur</th><th>Nominal</th></tr><tr><td>PT-01</td><td>10 bar</td></tr><tr><td>FT-02</td><td>250 L/min</td></tr></table><figcaption>Table 1: Mesures nominales par capteur.</figcaption></figure>
+<div id="grid-layout" class="cnd-layout" style="grid-template-columns: repeat(3, 1fr)"><div style="grid-row: 1 / span 2; grid-column: 1 / span 1"><p>Zone</p></div><div style="grid-row: 1 / span 1; grid-column: 2 / span 2"><p>Relevés bruts</p></div><div style="grid-row: 2 / span 1; grid-column: 2 / span 1"><p>12.4</p></div><div style="grid-row: 2 / span 1; grid-column: 3 / span 1"><p>12.6</p></div></div>
 <figure id="fig-schema" data-kind="image"><img src="figures/banc.png" alt="Vue d&#x27;ensemble du banc de mesure"><figcaption>Figure 1: Schéma du banc de mesure.</figcaption></figure>
 <figure id="lst-config" data-kind="listing"><pre><code class="language-json">{
   &quot;frequence_hz&quot;: 10,
@@ -56,8 +61,8 @@ pre { overflow-x: auto; padding: .75rem; }
 <section class="cnd-footnotes">
 <h2>Footnotes</h2>
 <ol>
-<li id="fn-unit">Toutes les valeurs sont exprimées en unités SI.</li>
-<li id="fn-proto">Le prototype de la grille figure au dossier d&#x27;essais 2026-041.</li>
+<li id="fn-unit"><p>Toutes les valeurs sont exprimées en unités SI.</p></li>
+<li id="fn-proto"><p>Le prototype de la grille figure au dossier d&#x27;essais 2026-041.</p></li>
 </ol>
 </section>
 <section class="cnd-bibliography">

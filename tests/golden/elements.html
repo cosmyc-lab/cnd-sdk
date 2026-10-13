@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" data-cnd-version="0.5.0" data-built-at="2026-10-13T00:00:00+00:00">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elements of format 0.5</title>
+<meta name="status" content="Approved">
+<meta name="version" content="1.2">
+<meta name="client" content="ACME">
+<meta name="reference" content="PRJ-042">
+<style>
+:root { color-scheme: light dark; }
+body { margin: 0 auto; max-width: 46rem; padding: 2rem 1rem;
+       font-family: system-ui, sans-serif; line-height: 1.6; }
+figure { margin: 1.5rem 0; }
+figcaption { font-size: .9em; opacity: .8; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid currentColor; padding: .25rem .5rem; }
+pre { overflow-x: auto; padding: .75rem; }
+.cnd-layout { display: grid; gap: 1rem; }
+.cnd-admonition { border-left: .25rem solid currentColor; margin: 1rem 0;
+                  padding: .25rem 1rem; }
+.cnd-admonition-title { font-weight: bold; }
+.cnd-code-title { font-family: monospace; font-size: .9em; margin-bottom: 0; }
+.cnd-markers { font-size: .85em; opacity: .75; }
+.cnd-unresolved { text-decoration: underline wavy; }
+.cnd-missing-image { font-style: italic; opacity: .7; }
+</style>
+</head>
+<body>
+<article>
+<h1>Section 1 Elements of format 0.5</h1>
+<p>Pressure <strong>rose</strong> 10<sup>3</sup> times, see Theorem 1 and the note, after Knuth: <code class="math">E = m c^2</code> holds.</p>
+<span class="cnd-markers"><a class="cnd-ref" href="#thm-main">[thm-main]</a> <sup class="cnd-footnote"><a href="#fn-detail">fn-detail</a></sup> <a class="cnd-cite" href="#knuth1984">[knuth1984]</a></span>
+<aside class="cnd-admonition cnd-admonition-warning"><p class="cnd-admonition-title">Careful</p><p>Never edit a CND in place.</p></aside>
+<ol><li><input type="checkbox" disabled checked> Compile the source<ul><li>with fonts</li></ul></li><li><input type="checkbox" disabled> Validate the output</li></ol>
+<dl><dt><em>Mark</em></dt><dd><p>A standoff span with a kind.</p><p>Marks of different kinds may overlap.</p></dd></dl>
+<table data-kind="data"><tr><th>Station</th><th>hPa</th></tr><tr><td>Brest</td><td>1013</td></tr></table>
+<div class="cnd-layout" style="grid-template-columns: repeat(2, 1fr)"><div style="grid-row: 1 / span 1; grid-column: 1 / span 1"><img src="a.png" alt="Before"></div><div style="grid-row: 1 / span 1; grid-column: 2 / span 1"><img src="b.png" alt="After"></div></div>
+<figure id="thm-main" data-kind="theorem"><p>Energy and mass are equivalent.</p><figcaption>Theorem 1: Mass–energy equivalence<p class="cnd-description">States that energy equals mass times the speed of light squared.</p></figcaption></figure>
+<blockquote><p>First paragraph of the quote.</p><p>Second paragraph.</p><footer><em>A. Einstein</em></footer></blockquote>
+<div class="cnd-code"><p class="cnd-code-title">main.py</p><pre><code class="language-python">print(&#x27;hi&#x27;)
+</code></pre></div>
+<div class="cnd-math-block"><code class="cnd-math">a^2 + b^2 = c^2</code><span class="cnd-number">(1)</span></div>
+</article>
+<section class="cnd-footnotes">
+<h2>Footnotes</h2>
+<ol>
+<li id="fn-detail"><p>Details live here.</p><p id="fn-second">A second paragraph, with <code>code</code>.</p></li>
+</ol>
+</section>
+<section class="cnd-bibliography">
+<h2>Bibliography</h2>
+<ul>
+<li id="knuth1984">Knuth, D. <em>The TeXbook</em>. Addison-Wesley, 1984.</li>
+</ul>
+</section>
+</body>
+</html>

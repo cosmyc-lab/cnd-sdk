@@ -12,7 +12,7 @@ keywords:
   - "fixture"
 description: "Manifest de référence couvrant les cas limites du chunker : contenu pré-heading, imbrication profonde, refs intra/inter-chunks, tables complexes."
 lang: "fr"
-cnd_version: "0.3.0"
+cnd_version: "0.5.0"
 built_at: "2026-06-06T12:00:00+00:00"
 ---
 

@@ -9,26 +9,31 @@ decision, not something an outbound converter gets to do on its way past.
 is a plain ``NodeRenderer`` any caller may still use directly.
 """
 
+import re
 from html import escape
 
 from cnd.core.cnd import Cnd
+from cnd.core.inline import render_inline
 from cnd.core.nodes import (
+    AdmonitionNode,
+    Cell,
     CndNode,
     CodeNode,
     FigureNode,
     HeadingNode,
     ImageNode,
+    LayoutNode,
     ListItem,
     ListNode,
     MathNode,
     NodeBase,
     ParagraphNode,
     QuoteNode,
-    Cell,
     TableNode,
     TermsNode,
 )
-from cnd.core.render import NodeRenderer
+from cnd.core.render import NodeRenderer, expand_headings
+from cnd.core.text import RichText
 
 from cnd.converters.base import (
     CndConverter,
@@ -51,6 +56,11 @@ figcaption { font-size: .9em; opacity: .8; }
 table { border-collapse: collapse; }
 th, td { border: 1px solid currentColor; padding: .25rem .5rem; }
 pre { overflow-x: auto; padding: .75rem; }
+.cnd-layout { display: grid; gap: 1rem; }
+.cnd-admonition { border-left: .25rem solid currentColor; margin: 1rem 0;
+                  padding: .25rem 1rem; }
+.cnd-admonition-title { font-weight: bold; }
+.cnd-code-title { font-family: monospace; font-size: .9em; margin-bottom: 0; }
 .cnd-markers { font-size: .85em; opacity: .75; }
 .cnd-unresolved { text-decoration: underline wavy; }
 .cnd-missing-image { font-style: italic; opacity: .7; }
@@ -62,27 +72,60 @@ def _anchor(node: NodeBase) -> str:
     return f' id="{escape(node.label, quote=True)}"' if node.label else ""
 
 
+def _css_token(value: str) -> str:
+    """An open-vocabulary value as one CSS class token."""
+    return escape(re.sub(r"\s+", "-", value.strip()), quote=True)
+
+
+def _numbering(node: HeadingNode | MathNode | FigureNode) -> str:
+    numbering = node.numbering
+    if numbering is None:
+        return ""
+    return " ".join(part for part in (numbering.name, numbering.value) if part)
+
+
 class HtmlNodeRenderer(NodeRenderer):
     """Render one node as an HTML fragment. Text is always escaped.
 
     A node's ``label`` becomes the element's ``id``, which is what gives
     the HTML converter real in-document cross-reference links where the
     Markdown converter only has bracketed text. Node ``id`` (the UUID),
-    ``state_metadata`` and ``location`` are not emitted.
+    ``state_metadata`` and ``location`` are not emitted. A container
+    renders its nested nodes itself.
     """
+
+    def render_text(self, text: RichText) -> str:
+        return render_inline(text, "html")
+
+    def _blocks(self, nodes: list[CndNode]) -> str:
+        return "".join(self.render(node) for node in expand_headings(nodes))
+
+    def _flow(self, nodes: list[CndNode]) -> str:
+        """The content of an item, a cell or a definition. Tight like
+        Markdown: unless it holds several blocks (a nested list does not
+        count, a heading's section does), a plain paragraph renders as
+        bare text, without ``<p>``."""
+        nodes = expand_headings(nodes)
+        if sum(not isinstance(node, ListNode) for node in nodes) > 1:
+            return "".join(self.render(node) for node in nodes)
+        return "".join(
+            self.render_text(node.text)
+            if isinstance(node, ParagraphNode) and node.label is None and node.text.lang is None
+            else self.render(node)
+            for node in nodes
+        )
 
     def render_heading(self, node: HeadingNode) -> str:
         level = min(max(node.level, 1), 6)
-        prefix = " ".join(
-            part for part in (node.counter_label, node.number) if part
-        )
-        text = escape(node.text)
+        prefix = _numbering(node)
+        text = self.render_text(node.text)
         inner = f"{escape(prefix)} {text}" if prefix else text
         return f"<h{level}{_anchor(node)}>{inner}</h{level}>"
 
     def render_paragraph(self, node: ParagraphNode) -> str:
-        lang = f' lang="{escape(node.lang, quote=True)}"' if node.lang else ""
-        return f"<p{_anchor(node)}{lang}>{escape(node.text)}</p>"
+        lang = node.text.lang
+        lang_attr = f' lang="{escape(lang, quote=True)}"' if lang else ""
+        return f"<p{_anchor(node)}{lang_attr}>{self.render_text(node.text)}</p>"
 
     def render_table(self, node: TableNode) -> str:
         rows: dict[int, list[Cell]] = {}
@@ -91,44 +134,87 @@ class HtmlNodeRenderer(NodeRenderer):
         body = []
         for row in sorted(rows):
             cells = sorted(rows[row], key=lambda cell: cell.col)
-            body.append("<tr>" + "".join(_cell_html(cell) for cell in cells) + "</tr>")
-        role = ' role="presentation"' if node.kind == "grid" else ""
-        return f"<table{_anchor(node)}{role}>" + "".join(body) + "</table>"
+            body.append("<tr>" + "".join(self._cell(cell) for cell in cells) + "</tr>")
+        kind = f' data-kind="{escape(node.kind, quote=True)}"' if node.kind else ""
+        return f"<table{_anchor(node)}{kind}>" + "".join(body) + "</table>"
+
+    def _cell(self, cell: Cell) -> str:
+        tag = "th" if cell.is_header else "td"
+        attrs = ""
+        if cell.rowspan != 1:
+            attrs += f' rowspan="{cell.rowspan}"'
+        if cell.colspan != 1:
+            attrs += f' colspan="{cell.colspan}"'
+        return f"<{tag}{attrs}>{self._flow(cell.children)}</{tag}>"
+
+    def render_layout(self, node: LayoutNode) -> str:
+        """A CSS grid; each cell keeps its row, column and spans."""
+        cols = max((cell.col + max(cell.colspan, 1) for cell in node.cells), default=1)
+        cells = "".join(
+            f'<div style="grid-row: {cell.row + 1} / span {max(cell.rowspan, 1)}; '
+            f'grid-column: {cell.col + 1} / span {max(cell.colspan, 1)}">'
+            f"{self._blocks(cell.children)}</div>"
+            for cell in sorted(node.cells, key=lambda c: (c.row, c.col))
+        )
+        return (
+            f'<div{_anchor(node)} class="cnd-layout" '
+            f'style="grid-template-columns: repeat({cols}, 1fr)">{cells}</div>'
+        )
 
     def render_quote(self, node: QuoteNode) -> str:
-        lang = f' lang="{escape(node.lang, quote=True)}"' if node.lang else ""
-        inner = f"<p>{escape(node.text)}</p>"
-        if node.attribution:
-            inner += f"<footer>{escape(node.attribution)}</footer>"
-        return f"<blockquote{_anchor(node)}{lang}>{inner}</blockquote>"
+        inner = self._blocks(node.children)
+        if node.attribution is not None:
+            inner += f"<footer>{self.render_text(node.attribution)}</footer>"
+        return f"<blockquote{_anchor(node)}>{inner}</blockquote>"
+
+    def render_admonition(self, node: AdmonitionNode) -> str:
+        title = self.render_text(node.title) if node.title is not None else escape(node.kind)
+        return (
+            f'<aside{_anchor(node)} class="cnd-admonition '
+            f'cnd-admonition-{_css_token(node.kind)}">'
+            f'<p class="cnd-admonition-title">{title}</p>'
+            f"{self._blocks(node.children)}</aside>"
+        )
 
     def render_code(self, node: CodeNode) -> str:
         cls = f' class="language-{escape(node.lang, quote=True)}"' if node.lang else ""
-        return (
-            f"<pre{_anchor(node)}><code{cls}>{escape(node.text)}</code></pre>"
-        )
+        if node.title:
+            return (
+                f'<div{_anchor(node)} class="cnd-code">'
+                f'<p class="cnd-code-title">{escape(node.title)}</p>'
+                f"<pre><code{cls}>{escape(node.text)}</code></pre></div>"
+            )
+        return f"<pre{_anchor(node)}><code{cls}>{escape(node.text)}</code></pre>"
 
     def render_math(self, node: MathNode) -> str:
-        number = " ".join(part for part in (node.counter_label, node.number) if part)
-        tag = "div" if node.block else "span"
+        number = _numbering(node)
         inner = f'<code class="cnd-math">{escape(node.text)}</code>'
         if number:
             inner += f'<span class="cnd-number">{escape(number)}</span>'
-        return f'<{tag}{_anchor(node)} class="cnd-math-block">{inner}</{tag}>'
+        return f'<div{_anchor(node)} class="cnd-math-block">{inner}</div>'
 
     def render_figure(self, node: FigureNode) -> str:
-        parts = [self.render(child) for child in node.children]
+        parts = [self.render(child) for child in expand_headings(node.children)]
         if not node.children and node.raw is not None:
             parts.append(
                 f'<pre class="cnd-raw" data-format='
                 f'"{escape(node.raw.format, quote=True)}">'
                 f"<code>{escape(node.raw.value)}</code></pre>"
             )
-        caption = _caption_text(node)
+        caption = self._caption(node)
         if caption:
-            parts.append(f"<figcaption>{escape(caption)}</figcaption>")
+            parts.append(f"<figcaption>{caption}</figcaption>")
         kind = f' data-kind="{escape(node.kind, quote=True)}"' if node.kind else ""
         return f"<figure{_anchor(node)}{kind}>" + "".join(parts) + "</figure>"
+
+    def _caption(self, node: FigureNode) -> str:
+        """``Figure 3: caption``, then the description as a paragraph."""
+        counter = escape(_numbering(node))
+        caption = self.render_text(node.caption) if node.caption is not None else ""
+        title = ": ".join(part for part in (counter, caption) if part)
+        if node.description is not None:
+            title += f'<p class="cnd-description">{self.render_text(node.description)}</p>'
+        return title
 
     def render_image(self, node: ImageNode) -> str:
         alt = escape(node.alt or "", quote=True)
@@ -142,39 +228,21 @@ class HtmlNodeRenderer(NodeRenderer):
 
     def render_list(self, node: ListNode) -> str:
         tag = "ol" if node.ordered else "ul"
-        return f"<{tag}{_anchor(node)}>{_list_items(node.items)}</{tag}>"
+        items = "".join(self._item(item) for item in node.items)
+        return f"<{tag}{_anchor(node)}>{items}</{tag}>"
+
+    def _item(self, item: ListItem) -> str:
+        box = ""
+        if item.checked is not None:
+            box = f'<input type="checkbox" disabled{" checked" if item.checked else ""}> '
+        return f"<li>{box}{self._flow(item.children)}</li>"
 
     def render_terms(self, node: TermsNode) -> str:
         items = "".join(
-            f"<dt>{escape(item.term)}</dt><dd>{escape(item.description)}</dd>"
+            f"<dt>{self.render_text(item.term)}</dt><dd>{self._flow(item.children)}</dd>"
             for item in node.items
         )
         return f"<dl{_anchor(node)}>{items}</dl>"
-
-
-def _cell_html(cell: Cell) -> str:
-    tag = "th" if cell.is_header else "td"
-    attrs = ""
-    if cell.rowspan != 1:
-        attrs += f' rowspan="{cell.rowspan}"'
-    if cell.colspan != 1:
-        attrs += f' colspan="{cell.colspan}"'
-    return f"<{tag}{attrs}>{escape(cell.text)}</{tag}>"
-
-
-def _list_items(items: list[ListItem]) -> str:
-    out = []
-    for item in items:
-        inner = escape(item.text)
-        if item.children:
-            inner += f"<ul>{_list_items(item.children)}</ul>"
-        out.append(f"<li>{inner}</li>")
-    return "".join(out)
-
-
-def _caption_text(node: FigureNode) -> str | None:
-    counter = " ".join(part for part in (node.counter_label, node.number) if part)
-    return ": ".join(part for part in (counter, node.caption) if part) or None
 
 
 class HtmlConverter(CndConverter):
@@ -189,19 +257,22 @@ class HtmlConverter(CndConverter):
     Structure, all of it **non-normative** (spec §7):
 
     - ``<head>``: ``<title>`` and ``<meta>`` for authors, description,
-      keywords and date from ``cnd.doc``; ``cnd_version`` and
-      ``built_at`` as ``data-`` attributes on ``<html>``.
+      keywords, date, status, version and every ``doc.extra`` pair from
+      ``cnd.doc``; ``cnd_version`` and ``built_at`` as ``data-``
+      attributes on ``<html>``.
     - ``<article>``: the body, assembled by walking the tree in reading
-      order and delegating each node to the injected renderer. Figures
-      render once, from the wrapper node.
+      order and delegating each block to the injected renderer. A
+      container (figure, list, table, quote…) renders once, from the
+      container node; only headings are descended into.
     - ``<section class="cnd-footnotes">`` and
       ``<section class="cnd-bibliography">`` from the pools, in pool
-      order, each entry anchored on its label so markers link to it.
+      order, each entry anchored on its label so markers link to it. A
+      footnote's blocks render like body blocks.
     - Markers appended after each block in a ``<span class=
-      "cnd-markers">``, as real ``<a href="#label">`` links; a marker
-      whose label does not resolve degrades to a
-      ``<span class="cnd-unresolved">`` and is reported in
-      ``ConversionResult.warnings``.
+      "cnd-markers">``, as real ``<a href="#label">`` links, for the
+      edges of every text in the block; a marker whose label does not
+      resolve degrades to a ``<span class="cnd-unresolved">`` and is
+      reported in ``ConversionResult.warnings``.
 
     **Irreducibly dropped** — the same for every document
     (docs/proposals/0007):
@@ -219,8 +290,7 @@ class HtmlConverter(CndConverter):
       bibliography is emitted as reference strings, see
       ``format_bib_entry``.
     - ``RawSource`` survives only on a childless figure, as a ``<pre>``;
-      ``table.raw`` and ``math.raw`` are dropped in favour of the
-      structured content.
+      ``math.raw`` is dropped in favour of the structured content.
     - ``links`` — **not yet rendered by this converter**; unlike the rest
       of this list, this is a gap rather than an inherent limit: ``<a
       href>`` is native to HTML, so a future revision can render it
@@ -266,7 +336,7 @@ class HtmlConverter(CndConverter):
         lines.append("<article>")
         lines.extend(self._body(cnd, warnings))
         lines.append("</article>")
-        lines.extend(self._footnotes_section(cnd))
+        lines.extend(self._footnotes_section(cnd, warnings))
         lines.extend(self._bibliography_section(cnd, warnings))
         lines.append("</body>")
         lines.append("</html>")
@@ -291,20 +361,27 @@ class HtmlConverter(CndConverter):
             out.append(
                 f'<meta name="date" content="{format_date(doc.date)}">'
             )
+        pairs = [("status", doc.status), ("version", doc.version), *doc.extra.items()]
+        for name, value in pairs:
+            if value:
+                out.append(
+                    f'<meta name="{escape(name, quote=True)}" '
+                    f'content="{escape(value, quote=True)}">'
+                )
         return out
 
     # -- body -----------------------------------------------------------
 
     def _body(self, cnd: Cnd, warnings: list[str]) -> list[str]:
-        blocks: list[str] = []
-        for visit in iter_body(cnd):
-            rendered = self.renderer.render(visit.node)
-            markers = self._markers(cnd, visit.node, warnings)
-            if markers:
-                rendered = f"{rendered}\n{markers}"
-            if rendered:
-                blocks.append(rendered)
-        return blocks
+        blocks = [self._block(cnd, visit.node, warnings) for visit in iter_body(cnd)]
+        return [block for block in blocks if block]
+
+    def _block(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
+        rendered = self.renderer.render(node)
+        markers = self._markers(cnd, node, warnings)
+        if markers:
+            rendered = f"{rendered}\n{markers}"
+        return rendered
 
     def _markers(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
         rendered = [
@@ -318,6 +395,8 @@ class HtmlConverter(CndConverter):
 
     @staticmethod
     def _marker(marker: ResolvedMarker) -> str:
+        if marker.family == "links":
+            return ""  # not rendered yet: see the class docstring
         label = escape(marker.label)
         href = escape(marker.label, quote=True)
         if marker.family == "cites" and getattr(marker.link, "form", None) == "none":
@@ -335,13 +414,16 @@ class HtmlConverter(CndConverter):
 
     # -- pools ----------------------------------------------------------
 
-    def _footnotes_section(self, cnd: Cnd) -> list[str]:
+    def _footnotes_section(self, cnd: Cnd, warnings: list[str]) -> list[str]:
         if not cnd.footnotes:
             return []
         out = ['<section class="cnd-footnotes">', f"<h2>{escape(self.footnotes_title)}</h2>", "<ol>"]
         for note in cnd.footnotes:
             anchor = escape(note.label, quote=True)
-            out.append(f'<li id="{anchor}">{escape(note.text)}</li>')
+            body = "".join(
+                self._block(cnd, child, warnings) for child in expand_headings(note.children)
+            )
+            out.append(f'<li id="{anchor}">{body}</li>')
         out.extend(["</ol>", "</section>"])
         return out
 
@@ -358,7 +440,6 @@ class HtmlConverter(CndConverter):
             if warning:
                 warnings.append(warning)
             anchor = escape(entry.label, quote=True)
-            out.append(f'<li id="{anchor}">{escape(reference)}</li>')
+            out.append(f'<li id="{anchor}">{self.renderer.render_text(reference)}</li>')
         out.extend(["</ul>", "</section>"])
         return out
-

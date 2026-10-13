@@ -834,9 +834,12 @@ The reference SDK provides a renderer hierarchy in `cnd.core.render`
   `"inline"`, `"auto"`), orthogonal to the output format: `"placeholder"`
   emits a parseable `[[figure:<id> …]]` placeholder carrying what the node
   holds except a table's body cells (kind, counter word, number, caption,
-  description, header row, size, row labels, child summary;
+  description, table kind, header row, size, row labels, child summary;
   docs/proposals/0012), `"inline"` renders the cells/children as text,
-  and `"auto"` defers to the table's `kind` (§6.3).
+  and `"auto"` defers to the table's `kind` (§6.3): inline for `"content"`,
+  a placeholder for `"data"`, an unset kind or an unknown one.
+  `text_only=True` selects the text-only output described below;
+  `MarkdownConverter` takes the same option.
 
 **Policy for marks and new elements.** Every renderer and converter
 renders what it supports and leaves the text of anything else unchanged.
@@ -845,7 +848,10 @@ renders what it supports and leaves the text of anything else unchanged.
   `*…*`, `` `…` `` and `~~…~~`; `math` as `$…$`. The four marks without
   CommonMark or GFM syntax — `sup`, `sub`, `underline`, `highlight` —
   render as inline HTML (`<sup>`, `<sub>`, `<u>`, `<mark>`) by default; a
-  text-only option drops them to plain text. Where two marks cross, one
+  text-only option drops them to plain text. A mark Markdown cannot
+  delimit where it sits (a closing `**` between punctuation and a letter,
+  say) renders as its HTML tag, or as plain text under the text-only
+  option. Where two marks cross, one
   is split at the crossing point so the output nests. An `admonition`
   with a known kind renders as a GFM alert (`> [!WARNING]`), an unknown
   kind as a quote whose first line is the title in bold. A checked or

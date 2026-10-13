@@ -5,12 +5,13 @@ import pytest
 
 from cnd.core.cnd import Cnd
 from cnd.core.node_text import (
+    cell_plain_text,
     format_figure_placeholder,
-    render_list_markdown,
     render_table_markdown,
     table_node_placeholder,
 )
 from cnd.core.nodes import (
+    Cell,
     CodeNode,
     FigureNode,
     HeadingNode,
@@ -19,14 +20,15 @@ from cnd.core.nodes import (
     ListNode,
     MathNode,
     NodeLocation,
+    Numbering,
     ParagraphNode,
     QuoteNode,
-    TableCell,
     TableNode,
     TermItem,
     TermsNode,
 )
 from cnd.core.render import MarkdownRenderer, NodeRenderer
+from factories import cell, item, para, rt
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 ALL_FIXTURES = sorted(FIXTURES_DIR.glob("*.cnd"))
@@ -45,9 +47,13 @@ def _base(**kwargs):
     return defaults
 
 
+def _list(*items: ListItem, ordered: bool = False) -> ListNode:
+    return ListNode(type="list", ordered=ordered, items=list(items), **_base())
+
+
 class TestRendererAbc:
     def test_nodes_have_no_to_text(self) -> None:
-        node = ParagraphNode(type="paragraph", text="Hello", **_base())
+        node = ParagraphNode(type="paragraph", text=rt("Hello"), **_base())
         assert not hasattr(node, "to_text")
 
     def test_incomplete_subclass_cannot_be_instantiated(self) -> None:
@@ -60,7 +66,7 @@ class TestRendererAbc:
 
     def test_render_dispatches_by_node_type(self) -> None:
         renderer = MarkdownRenderer()
-        node = ParagraphNode(type="paragraph", text="Hello world", **_base())
+        node = ParagraphNode(type="paragraph", text=rt("Hello world"), **_base())
         assert renderer.render(node) == renderer.render_paragraph(node)
 
 
@@ -71,22 +77,22 @@ class TestMarkdownRenderer:
         node = HeadingNode(
             type="heading",
             level=2,
-            number="1.1",
-            text="Interfaces",
+            numbering=Numbering(value="1.1"),
+            text=rt("Interfaces"),
             heading_path=["1 X", "1.1 Interfaces"],
             **_base(),
         )
         assert self.renderer.render(node) == "## Interfaces"
 
     def test_paragraph(self) -> None:
-        node = ParagraphNode(type="paragraph", text="Hello world", **_base())
+        node = ParagraphNode(type="paragraph", text=rt("Hello world"), **_base())
         assert self.renderer.render(node) == "Hello world"
 
     def test_quote_with_attribution(self) -> None:
         node = QuoteNode(
             type="quote",
-            text="Programs must be written for people to read.",
-            attribution="Ada Lovelace",
+            children=[para("Programs must be written for people to read.")],
+            attribution=rt("Ada Lovelace"),
             **_base(),
         )
         assert self.renderer.render(node) == (
@@ -105,7 +111,7 @@ class TestMarkdownRenderer:
         node = ListNode(
             type="list",
             ordered=False,
-            items=[ListItem(text="Alpha"), ListItem(text="Beta")],
+            items=[item("Alpha"), item("Beta")],
             **_base(),
         )
         assert self.renderer.render(node) == "- Alpha\n- Beta"
@@ -114,8 +120,8 @@ class TestMarkdownRenderer:
         node = TermsNode(
             type="terms",
             items=[
-                TermItem(term="Endpoint", description="A stable URL."),
-                TermItem(term="Token", description="A bearer secret."),
+                TermItem(term=rt("Endpoint"), children=[para("A stable URL.")]),
+                TermItem(term=rt("Token"), children=[para("A bearer secret.")]),
             ],
             **_base(),
         )
@@ -139,30 +145,30 @@ class TestMarkdownRenderer:
 
 class TestTableRendering:
     _CELLS = [
-        TableCell(row=0, col=0, text="A", is_header=True),
-        TableCell(row=1, col=0, text="B"),
+        cell(0, 0, "A", is_header=True),
+        cell(1, 0, "B"),
     ]
 
-    def test_placeholder_mode_ignores_content_kind(self) -> None:
-        node = TableNode(type="table", content_kind="content", cells=self._CELLS, **_base())
+    def test_placeholder_mode_ignores_the_table_kind(self) -> None:
+        node = TableNode(type="table", kind="content", cells=self._CELLS, **_base())
         assert MarkdownRenderer(tables="placeholder").render(node).startswith("[[figure:")
 
     def test_default_mode_is_placeholder(self) -> None:
-        node = TableNode(type="table", content_kind="content", cells=self._CELLS, **_base())
+        node = TableNode(type="table", kind="content", cells=self._CELLS, **_base())
         assert MarkdownRenderer().render(node) == table_node_placeholder(node)
 
-    def test_inline_mode_renders_markdown_regardless_of_content_kind(self) -> None:
-        node = TableNode(type="table", content_kind="data", cells=self._CELLS, **_base())
+    def test_inline_mode_renders_markdown_regardless_of_the_table_kind(self) -> None:
+        node = TableNode(type="table", kind="data", cells=self._CELLS, **_base())
         assert MarkdownRenderer(tables="inline").render(node) == "| A |\n| --- |\n| B |"
 
-    def test_auto_mode_inlines_when_content_kind_is_content(self) -> None:
-        node = TableNode(type="table", content_kind="content", cells=self._CELLS, **_base())
+    def test_auto_mode_inlines_when_the_table_kind_is_content(self) -> None:
+        node = TableNode(type="table", kind="content", cells=self._CELLS, **_base())
         assert MarkdownRenderer(tables="auto").render(node) == "| A |\n| --- |\n| B |"
 
-    def test_auto_mode_placeholders_when_content_kind_is_data_or_unset(self) -> None:
+    def test_auto_mode_placeholders_when_the_table_kind_is_data_or_unset(self) -> None:
         renderer = MarkdownRenderer(tables="auto")
-        data = TableNode(type="table", content_kind="data", cells=self._CELLS, **_base())
-        unset = TableNode(type="table", content_kind=None, cells=self._CELLS, **_base())
+        data = TableNode(type="table", kind="data", cells=self._CELLS, **_base())
+        unset = TableNode(type="table", kind=None, cells=self._CELLS, **_base())
         assert renderer.render(data).startswith("[[figure:")
         assert renderer.render(unset).startswith("[[figure:")
 
@@ -173,15 +179,15 @@ class TestTableRendering:
     def test_placeholder_uses_kind_and_header_row(self) -> None:
         node = TableNode(
             type="table",
-            kind="grid",
+            kind="data",
             cells=[
-                TableCell(row=0, col=0, text="Name", is_header=True),
-                TableCell(row=0, col=1, text="Value", is_header=True),
+                cell(0, 0, "Name", is_header=True),
+                cell(0, 1, "Value", is_header=True),
             ],
             **_base(),
         )
         rendered = MarkdownRenderer().render(node)
-        assert 'kind="grid"' in rendered
+        assert 'kind="table" table_kind="data"' in rendered
         assert 'header="Name | Value"' in rendered
 
 
@@ -192,8 +198,8 @@ class TestFigureRendering:
     def test_placeholder_includes_caption_number_and_kind(self) -> None:
         node = self._figure(
             kind="image",
-            caption="Diagram",
-            number="1",
+            caption=rt("Diagram"),
+            numbering=Numbering(value="1"),
             children=[ImageNode(type="image", path="a.png", alt="Alt", **_base())],
         )
         rendered = MarkdownRenderer().render(node)
@@ -214,18 +220,18 @@ class TestFigureRendering:
     def test_placeholder_for_single_table_child_includes_header_row(self) -> None:
         table = TableNode(
             type="table",
-            cells=[TableCell(row=0, col=0, text="Name", is_header=True)],
+            cells=[cell(0, 0, "Name", is_header=True)],
             **_base(),
         )
-        node = self._figure(kind="table", caption="Params", children=[table])
+        node = self._figure(kind="table", caption=rt("Params"), children=[table])
         rendered = MarkdownRenderer().render(node)
         assert 'header="Name"' in rendered
 
     def test_inline_renders_children_with_caption_line(self) -> None:
         image = ImageNode(type="image", path="a.png", alt="Alt", **_base())
         node = self._figure(
-            kind="image", caption="Diagram", number="1",
-            counter_label="Figure", children=[image]
+            kind="image", caption=rt("Diagram"),
+            numbering=Numbering(value="1", name="Figure"), children=[image]
         )
         rendered = MarkdownRenderer(figures="inline").render(node)
         assert rendered == "![Alt](a.png)\n\n*Figure 1: Diagram*"
@@ -237,11 +243,11 @@ class TestFigureRendering:
     def test_auto_inlines_wrapped_content_table(self) -> None:
         table = TableNode(
             type="table",
-            content_kind="content",
-            cells=[TableCell(row=0, col=0, text="A", is_header=True)],
+            kind="content",
+            cells=[cell(0, 0, "A", is_header=True)],
             **_base(),
         )
-        node = self._figure(kind="table", caption="Params", children=[table])
+        node = self._figure(kind="table", caption=rt("Params"), children=[table])
         renderer = MarkdownRenderer(figures="auto", tables="auto")
         rendered = renderer.render(node)
         assert "| A |" in rendered
@@ -250,8 +256,8 @@ class TestFigureRendering:
     def test_auto_placeholders_wrapped_data_table(self) -> None:
         table = TableNode(
             type="table",
-            content_kind="data",
-            cells=[TableCell(row=0, col=0, text="A", is_header=True)],
+            kind="data",
+            cells=[cell(0, 0, "A", is_header=True)],
             **_base(),
         )
         node = self._figure(kind="table", children=[table])
@@ -260,10 +266,10 @@ class TestFigureRendering:
     def test_nested_figures_render_inline(self) -> None:
         inner = self._figure(
             kind="image",
-            caption="Sub",
+            caption=rt("Sub"),
             children=[ImageNode(type="image", path="b.png", **_base())],
         )
-        outer = self._figure(kind="image", caption="Main", children=[inner])
+        outer = self._figure(kind="image", caption=rt("Main"), children=[inner])
         rendered = MarkdownRenderer(figures="inline").render(outer)
         assert "![](b.png)" in rendered
         assert "*Sub*" in rendered
@@ -272,38 +278,41 @@ class TestFigureRendering:
 
 class TestNodeTextHelpers:
     def test_render_list_markdown_nested(self) -> None:
-        items = [ListItem(text="Parent", children=[ListItem(text="Child")])]
-        assert render_list_markdown(items, ordered=True) == "1. Parent\n   1. Child"
+        node = _list(item("Parent", _list(item("Child"), ordered=True)), ordered=True)
+        assert MarkdownRenderer().render(node) == "1. Parent\n   1. Child"
 
     def test_nested_bullets_keep_two_space_indent(self) -> None:
-        items = [ListItem(text="a", children=[ListItem(text="b", children=[ListItem(text="c")])])]
-        assert render_list_markdown(items, ordered=False) == "- a\n  - b\n    - c"
+        node = _list(item("a", _list(item("b", _list(item("c"))))))
+        assert MarkdownRenderer().render(node) == "- a\n  - b\n    - c"
 
     def test_nested_ordered_indent_follows_the_parent_marker(self) -> None:
-        items = [ListItem(text="p", number=10, children=[ListItem(text="c", children=[ListItem(text="d")])])]
-        assert render_list_markdown(items, ordered=True) == "10. p\n    1. c\n       1. d"
+        node = _list(
+            item("p", _list(item("c", _list(item("d"), ordered=True)), ordered=True), number=10),
+            ordered=True,
+        )
+        assert MarkdownRenderer().render(node) == "10. p\n    1. c\n       1. d"
 
     def test_format_figure_placeholder(self) -> None:
         figure_id = uuid4()
         placeholder = format_figure_placeholder(
             figure_id=figure_id,
-            kind="grid",
+            kind="layout",
             caption="Layout",
             number="Figure 3",
             summary="two images",
         )
         assert str(figure_id) in placeholder
-        assert 'kind="grid"' in placeholder
+        assert 'kind="layout"' in placeholder
         assert 'summary="two images"' in placeholder
 
     def test_render_table_markdown_simple_grid(self) -> None:
         node = TableNode(
             type="table",
             cells=[
-                TableCell(row=0, col=0, text="Name", is_header=True),
-                TableCell(row=0, col=1, text="Value", is_header=True),
-                TableCell(row=1, col=0, text="Torque"),
-                TableCell(row=1, col=1, text="12 Nm"),
+                cell(0, 0, "Name", is_header=True),
+                cell(0, 1, "Value", is_header=True),
+                cell(1, 0, "Torque"),
+                cell(1, 1, "12 Nm"),
             ],
             **_base(),
         )
@@ -323,9 +332,9 @@ class TestNodeTextHelpers:
         node = TableNode(
             type="table",
             cells=[
-                TableCell(row=0, col=0, text="A", colspan=2),
-                TableCell(row=1, col=0, text="B"),
-                TableCell(row=1, col=1, text="C"),
+                cell(0, 0, "A", colspan=2),
+                cell(1, 0, "B"),
+                cell(1, 1, "C"),
             ],
             **_base(),
         )
@@ -367,7 +376,7 @@ class TestRenderFixtures:
         table = next(
             visit.node for visit in cnd.iter() if isinstance(visit.node, TableNode)
         )
-        assert table.content_kind == "content"
+        assert table.kind == "content"
         rendered = MarkdownRenderer(tables="auto").render(table)
 
         assert not rendered.startswith("[[figure:")
@@ -401,34 +410,31 @@ class TestCodeFence:
 
 
 class TestListNumbers:
-    def _items(self, *pairs: tuple[str, int | None]) -> list[ListItem]:
-        return [ListItem(text=t, number=n) for t, n in pairs]
+    def _render(self, *pairs: tuple[str, int | None], ordered: bool) -> str:
+        items = [item(t, number=n) for t, n in pairs]
+        return MarkdownRenderer().render(_list(*items, ordered=ordered))
 
     def test_ordered_items_keep_their_numbers(self) -> None:
-        out = render_list_markdown(self._items(("a", 1), ("b", 3), ("c", 7)), ordered=True)
+        out = self._render(("a", 1), ("b", 3), ("c", 7), ordered=True)
         assert out == "1. a\n3. b\n7. c"
 
     def test_list_starting_at_five(self) -> None:
-        out = render_list_markdown(self._items(("a", 5), ("b", 6)), ordered=True)
+        out = self._render(("a", 5), ("b", 6), ordered=True)
         assert out == "5. a\n6. b"
 
     def test_missing_numbers_fall_back_to_position(self) -> None:
-        out = render_list_markdown(self._items(("a", None), ("b", None)), ordered=True)
+        out = self._render(("a", None), ("b", None), ordered=True)
         assert out == "1. a\n2. b"
 
     def test_bullets_ignore_numbers(self) -> None:
-        out = render_list_markdown(self._items(("a", 4)), ordered=False)
+        out = self._render(("a", 4), ordered=False)
         assert out == "- a"
-
-    def test_escape_callback_applies_to_item_text(self) -> None:
-        out = render_list_markdown(self._items(("x", None)), ordered=False, escape=str.upper)
-        assert out == "- X"
 
 
 class TestTableCells:
     def _table(self, *rows: list[str]) -> TableNode:
         cells = [
-            TableCell(row=r, col=c, text=t, is_header=(r == 0))
+            cell(r, c, t, is_header=(r == 0))
             for r, row in enumerate(rows)
             for c, t in enumerate(row)
         ]
@@ -447,27 +453,27 @@ class TestTableCells:
         assert out.splitlines()[2] == "| a<br>b |"
 
     def test_escape_callback_runs_before_pipe_escaping(self) -> None:
-        out = render_table_markdown(self._table(["k"], ["a|b"]), escape=lambda s: s + "!")
+        out = render_table_markdown(self._table(["k"], ["a|b"]), cell_text=lambda c: cell_plain_text(c) + "!")
         assert out.splitlines()[2] == "| a\\|b! |"
 
 
 class TestRendererEscapeFlag:
     def test_default_renderer_does_not_escape(self) -> None:
-        node = ParagraphNode(type="paragraph", text="1. a *b* <c>", **_base())
+        node = ParagraphNode(type="paragraph", text=rt("1. a *b* <c>"), **_base())
         assert MarkdownRenderer().render(node) == "1. a *b* <c>"
 
     def test_escape_flag_escapes_paragraph_heading_list_terms(self) -> None:
         r = MarkdownRenderer(escape=True)
-        assert r.render(ParagraphNode(type="paragraph", text="1. a", **_base())) == "1\\. a"
-        heading = HeadingNode(type="heading", level=2, text="Use *this*", heading_path=["Use *this*"], **_base())
+        assert r.render(ParagraphNode(type="paragraph", text=rt("1. a"), **_base())) == "1\\. a"
+        heading = HeadingNode(type="heading", level=2, text=rt("Use *this*"), heading_path=["Use *this*"], **_base())
         assert r.render(heading) == "## Use \\*this\\*"
-        lst = ListNode(type="list", items=[ListItem(text="<x>")], **_base())
+        lst = ListNode(type="list", items=[item("<x>")], **_base())
         assert r.render(lst) == "- \\<x>"
-        terms = TermsNode(type="terms", items=[TermItem(term="a_", description="*b*")], **_base())
+        terms = TermsNode(type="terms", items=[TermItem(term=rt("a_"), children=[para("*b*")])], **_base())
         assert r.render(terms) == "**a\\_**\n: \\*b\\*"
 
     def test_escape_flag_reaches_table_cells(self) -> None:
-        cells = [TableCell(row=0, col=0, text="h", is_header=True), TableCell(row=1, col=0, text="*x*")]
+        cells = [cell(0, 0, "h", is_header=True), cell(1, 0, "*x*")]
         table = TableNode(type="table", cells=cells, **_base())
         out = MarkdownRenderer(tables="inline", escape=True).render(table)
         assert out.splitlines()[2] == "| \\*x\\* |"
@@ -479,14 +485,14 @@ class TestRendererEscapeFlag:
 
 class TestEscapeTrailingMarkup:
     def test_term_ending_in_backslash(self) -> None:
-        terms = TermsNode(type="terms", items=[TermItem(term="a\\", description="d")], **_base())
+        terms = TermsNode(type="terms", items=[TermItem(term=rt("a\\"), children=[para("d")])], **_base())
         assert MarkdownRenderer(escape=True).render(terms) == "**a\\\\**\n: d"
 
     def test_figure_caption_ending_in_backslash(self) -> None:
         code = CodeNode(type="code", text="x", lang=None, **_base())
         fig = FigureNode(
-            type="figure", children=[code], caption="C:\\", number="1",
-            counter_label="Figure", **_base(),
+            type="figure", children=[code], caption=rt("C:\\"),
+            numbering=Numbering(value="1", name="Figure"), **_base(),
         )
         out = MarkdownRenderer(figures="inline", escape=True).render(fig)
         assert out.splitlines()[-1] == "*Figure 1: C:\\\\*"
@@ -502,25 +508,25 @@ class TestEscapeTrailingMarkup:
         ],
     )
     def test_heading_closing_hashes(self, text: str, expected: str) -> None:
-        node = HeadingNode(type="heading", level=2, text=text, heading_path=[text], **_base())
+        node = HeadingNode(type="heading", level=2, text=rt(text), heading_path=[text], **_base())
         assert MarkdownRenderer(escape=True).render(node) == expected
 
     def test_heading_unescaped_is_unchanged(self) -> None:
-        node = HeadingNode(type="heading", level=2, text="C #", heading_path=["C #"], **_base())
+        node = HeadingNode(type="heading", level=2, text=rt("C #"), heading_path=["C #"], **_base())
         assert MarkdownRenderer().render(node) == "## C #"
 
 
 class TestQuoteImageFigure:
     def test_quote_lines_are_prefixed(self) -> None:
-        q = QuoteNode(type="quote", text="one\n\ntwo", attribution="Someone", **_base())
+        q = QuoteNode(type="quote", children=[para("one"), para("two")], attribution=rt("Someone"), **_base())
         assert MarkdownRenderer().render(q) == "> one\n>\n> two\n>\n> — Someone"
 
     def test_quote_normalises_carriage_returns(self) -> None:
-        q = QuoteNode(type="quote", text="a\rb\r\nc", attribution="x\ry", **_base())
+        q = QuoteNode(type="quote", children=[para("a\rb\r\nc")], attribution=rt("x\ry"), **_base())
         assert MarkdownRenderer().render(q) == "> a\n> b\n> c\n>\n> — x\n> y"
 
     def test_quote_escapes_when_flagged(self) -> None:
-        q = QuoteNode(type="quote", text="1. not a list", **_base())
+        q = QuoteNode(type="quote", children=[para("1. not a list")], **_base())
         assert MarkdownRenderer(escape=True).render(q) == "> 1\\. not a list"
 
     def test_image_path_with_space_is_bracketed(self) -> None:
@@ -536,8 +542,8 @@ class TestQuoteImageFigure:
         assert MarkdownRenderer().render(img) == "![A](img/a.png)"
 
     def test_childless_figure_inline_renders_caption(self) -> None:
-        fig = FigureNode(type="figure", kind="image", caption="Release pipeline", number="1",
-                         counter_label="Figure", children=[], **_base())
+        fig = FigureNode(type="figure", kind="image", caption=rt("Release pipeline"),
+                         numbering=Numbering(value="1", name="Figure"), children=[], **_base())
         assert MarkdownRenderer(figures="inline").render(fig) == "*Figure 1: Release pipeline*"
 
     def test_childless_uncaptioned_figure_keeps_placeholder(self) -> None:
@@ -546,28 +552,28 @@ class TestQuoteImageFigure:
 
     @pytest.mark.parametrize("escape", [False, True])
     def test_multiline_attribution_stays_in_quote(self, escape: bool) -> None:
-        q = QuoteNode(type="quote", text="body", attribution="- x\n> y\n\nz", **_base())
+        q = QuoteNode(type="quote", children=[para("body")], attribution=rt("- x\n> y\n\nz"), **_base())
         out = MarkdownRenderer(escape=escape).render(q)
         assert all(line.startswith(">") for line in out.split("\n"))
         assert out.split("\n")[-2] == ">"
 
     def test_quote_empty_body_line_escaped(self) -> None:
-        q = QuoteNode(type="quote", text="a\n\nb", **_base())
+        q = QuoteNode(type="quote", children=[para("a"), para("b")], **_base())
         assert MarkdownRenderer(escape=True).render(q) == "> a\n>\n> b"
 
 
 class TestHeadingNumbers:
     def _h(self, **kw) -> HeadingNode:
-        return HeadingNode(type="heading", level=2, text="Scope", heading_path=["Scope"], **_base(), **kw)
+        return HeadingNode(type="heading", level=2, text=rt("Scope"), heading_path=["Scope"], **_base(), **kw)
 
     def test_numbers_off_by_default(self) -> None:
-        assert MarkdownRenderer().render(self._h(number="4.1")) == "## Scope"
+        assert MarkdownRenderer().render(self._h(numbering=Numbering(value="4.1"))) == "## Scope"
 
     def test_number_prefixes_text(self) -> None:
-        assert MarkdownRenderer(heading_numbers=True).render(self._h(number="4.1")) == "## 4.1 Scope"
+        assert MarkdownRenderer(heading_numbers=True).render(self._h(numbering=Numbering(value="4.1"))) == "## 4.1 Scope"
 
     def test_counter_label_and_number(self) -> None:
-        out = MarkdownRenderer(heading_numbers=True).render(self._h(number="3", counter_label="Chapter"))
+        out = MarkdownRenderer(heading_numbers=True).render(self._h(numbering=Numbering(value="3", name="Chapter")))
         assert out == "## Chapter 3 Scope"
 
     def test_unnumbered_heading_unchanged(self) -> None:
@@ -578,13 +584,13 @@ class TestHeadingNumbers:
         [("1. Intro", "## 2 1\\. Intro"), ("Intro #", "## 2 Intro \\#")],
     )
     def test_prefix_is_added_after_escaping(self, text: str, expected: str) -> None:
-        node = HeadingNode(type="heading", level=2, text=text, heading_path=[text], **_base(), number="2")
+        node = HeadingNode(type="heading", level=2, text=rt(text), heading_path=[text], numbering=Numbering(value="2"), **_base())
         assert MarkdownRenderer(escape=True, heading_numbers=True).render(node) == expected
 
 
-def _grid(rows: list[list[str]], *, header: bool = True) -> list[TableCell]:
+def _grid(rows: list[list[str]], *, header: bool = True) -> list[Cell]:
     return [
-        TableCell(row=r, col=c, text=text, is_header=header and r == 0)
+        cell(r, c, text, is_header=header and r == 0)
         for r, row in enumerate(rows)
         for c, text in enumerate(row)
     ]
@@ -628,21 +634,21 @@ class TestPlaceholderContext:
 
     def test_row_headers_are_row_labels_not_header_rows(self) -> None:
         cells = _grid([["", "2024"], ["France", "3"], ["Spain", "4"]], header=False)
-        for cell in cells:
-            cell.is_header = cell.row == 0 or cell.col == 0
+        for c in cells:
+            c.is_header = c.row == 0 or c.col == 0
         node = TableNode(type="table", cells=cells, **_base())
         assert 'row_labels="France | Spain"' in MarkdownRenderer().render(node)
 
     def test_figure_placeholder_carries_counter_label_and_table_context(self) -> None:
         table = TableNode(
             type="table",
-            content_kind="data",
+            kind="data",
             cells=_grid([["Country", "GDP"], ["France", "3"]]),
             **_base(),
         )
         node = FigureNode(
-            type="figure", kind="table", caption="GDP", number="3",
-            counter_label="Table", children=[table], **_base(),
+            type="figure", kind="table", caption=rt("GDP"),
+            numbering=Numbering(value="3", name="Table"), children=[table], **_base(),
         )
         rendered = MarkdownRenderer().render(node)
         assert rendered.startswith(f"[[figure:{node.id} ")
@@ -652,7 +658,7 @@ class TestPlaceholderContext:
 
     def test_attribute_values_cannot_break_the_placeholder(self) -> None:
         node = FigureNode(
-            type="figure", kind="image", caption='Say "hi"\nthen ]] leave \\ now',
+            type="figure", kind="image", caption=rt('Say "hi"\nthen ]] leave \\ now'),
             children=[], raw={"format": "typst", "value": "#x"}, **_base(),
         )
         rendered = MarkdownRenderer().render(node)

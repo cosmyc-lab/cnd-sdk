@@ -5,7 +5,9 @@ Target 1 of docs/proposals/0007, built directly on
 """
 
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
-from cnd.core.render import MarkdownRenderer, NodeRenderer
+from cnd.core.nodes import CndNode, HeadingNode, ParagraphNode
+from cnd.core.render import MarkdownRenderer, NodeRenderer, expand_headings
+from cnd.core.text import RichText
 
 from cnd.converters.base import (
     CndConverter,
@@ -19,13 +21,17 @@ from cnd.converters.base import (
 __all__ = ["MarkdownConverter", "format_bib_entry"]
 
 
-def format_bib_entry(entry: BibEntry) -> tuple[str, str | None]:
-    """The reference string for ``entry``, plus a warning when composed.
+def format_bib_entry(entry: BibEntry) -> tuple[RichText, str | None]:
+    """The reference text for ``entry``, plus a warning when composed.
+
+    The caller renders the returned ``RichText`` in its own dialect
+    (``NodeRenderer.render_text``), which is how a journal title set in
+    italics stays italic.
 
     **This is not a citation-style implementation.** ``formatted`` — the
-    reference string as it was displayed in the built document, produced
-    by whatever style engine the producer ran — is preferred whenever it
-    is present, and is emitted verbatim.
+    reference as it was displayed in the built document, produced by
+    whatever style engine the producer ran — is preferred whenever it is
+    present, and is returned verbatim, marks included.
 
     Since CND 0.3.0 ``formatted`` is nullable: a hand author or a
     markdown producer has no style engine and emits structured fields
@@ -38,7 +44,7 @@ def format_bib_entry(entry: BibEntry) -> tuple[str, str | None]:
     engine's job and is out of scope for the SDK (docs/proposals/0007).
     Callers who need real styling must run one and set ``formatted``.
     """
-    if entry.formatted:
+    if entry.formatted is not None and entry.formatted.value:
         return entry.formatted, None
     parts: list[str] = []
     if entry.authors:
@@ -58,8 +64,8 @@ def format_bib_entry(entry: BibEntry) -> tuple[str, str | None]:
         f"composed a minimal unstyled reference from the lifted fields"
     )
     if not parts:
-        return entry.label, warning
-    return ". ".join(parts), warning
+        return RichText(value=entry.label), warning
+    return RichText(value=". ".join(parts)), warning
 
 
 class MarkdownConverter(CndConverter):
@@ -68,43 +74,46 @@ class MarkdownConverter(CndConverter):
     Output shape, all of it **non-normative** (spec §7):
 
     - YAML front matter from ``cnd.doc`` (title, authors, date, keywords,
-      description, lang) plus ``cnd_version`` and ``built_at``.
+      description, lang, status, version, and ``extra`` as a mapping)
+      plus ``cnd_version`` and ``built_at``.
     - The body, assembled by walking the tree in reading order and
-      delegating each node to the injected ``NodeRenderer``. Figures are
-      rendered once, by the renderer, from the wrapper node; the walk
-      does not descend into them.
-    - A footnotes section (``[^label]: text``) and a bibliography section,
-      both emitted from the pools in pool order — pools are out of tree
-      and out of reading order (spec §8).
-    - Per-node markers appended on their own line under each block:
-      ``[label]`` for ``refs``, pandoc-style ``[@label]`` / ``@label``
-      for ``cites``, ``[^label]`` for ``footnotes``, and ``[href](href)``
-      for ``links`` — the href is the only text a ``LinkRef`` carries, so
-      it stands in for the display text a Markdown link normally has.
-      Markers are ordered by ``text_span`` where one exists, then by
-      family (spec §8). A ``links`` marker is **appended**, like the
-      other three families, never spliced into the text at its span:
-      splicing would make marker position renderer-specific again and
-      would rewrite every existing golden document for a change that
-      only one family needs.
+      delegating each block to the injected ``NodeRenderer``. A container
+      (figure, list, table, quote…) renders once, from the container
+      node; only headings are descended into.
+    - A footnotes section (``[^label]: …``, further blocks indented four
+      spaces) and a bibliography section, both emitted from the pools in
+      pool order — pools are out of tree and out of reading order
+      (spec §8). Footnote blocks and references go through the renderer,
+      like the body.
+    - Per-block markers appended on their own line under each block, for
+      the edges of every text in the block: ``[label]`` for ``refs``,
+      pandoc-style ``[@label]`` / ``@label`` for ``cites``, ``[^label]``
+      for ``footnotes``, and ``[href](href)`` for ``links`` — the href is
+      the only text a ``LinkRef`` carries, so it stands in for the display
+      text a Markdown link normally has. Markers are ordered text by text,
+      then by ``text_span`` where one exists, then by family (spec §8). A
+      ``links`` marker is **appended**, like the other three families,
+      never spliced into the text at its span: splicing would make marker
+      position renderer-specific again and would rewrite every existing
+      golden document for a change that only one family needs.
 
     The default renderer is ``MarkdownRenderer(tables="inline",
     figures="inline", escape=True, heading_numbers=True)``: a standalone
     document wants its content, not the ``[[figure:…]]`` placeholders
-    that serve chunking pipelines. It escapes free text (paragraphs,
-    headings, list items, terms, table cells, quotes, captions) so that a
+    that serve chunking pipelines. It escapes free text so that a
     Markdown parser reads the structure the CND has and not structure
-    the prose happens to spell; code and math text are emitted verbatim,
-    and the footnote and bibliography sections are not escaped yet.
-    It keeps heading ``number`` and ``counter_label`` as a prefix on the
-    heading line. Inject another renderer to change any of that.
+    the prose happens to spell; code and math are emitted verbatim. It
+    keeps heading numbering as a prefix on the heading line.
+    ``text_only=True`` makes it a Markdown output with no HTML at all
+    (see ``MarkdownRenderer``). Inject another renderer to change any of
+    that; ``text_only`` then belongs to the renderer you inject.
 
     **Irreducibly dropped** — properties of Markdown as a target, the
     same for every document (docs/proposals/0007):
 
     - ``text_span`` — markers are appended under the block, not spliced
       into the text at their standoff offsets, so marker *position*
-      inside a node's text is lost. Their relative order is preserved.
+      inside a text is lost. Their relative order is preserved.
       This holds for ``links`` exactly as it does for the other three
       families.
     - ``CiteRef.form`` — only the ``none`` (silent citation) and
@@ -115,9 +124,10 @@ class MarkdownConverter(CndConverter):
     - Node ``id`` and ``label``: Markdown has no element identity, so
       cross-reference markers degrade to plain bracketed labels rather
       than links.
-    - ``RawSource`` (``raw`` on table, math, figure) and
+    - ``RawSource`` (``raw`` on math, figure and a ``math`` mark) and
       ``BibEntry.fields``: the producer's verbatim source and the full
-      structured bibliography entry have no Markdown target.
+      structured bibliography entry have no Markdown target, except that
+      a ``math`` mark renders its source between ``$``.
     - Whatever the injected renderer itself drops.
 
     This conversion does **not** round-trip. Nothing reconstructs a CND
@@ -131,17 +141,24 @@ class MarkdownConverter(CndConverter):
         self,
         renderer: NodeRenderer | None = None,
         *,
+        text_only: bool = False,
         footnotes_title: str = "Footnotes",
         bibliography_title: str = "Bibliography",
     ) -> None:
-        super().__init__(renderer)
+        if renderer is not None and text_only:
+            raise ValueError("text_only shapes the default renderer; set it on the renderer you inject")
+        super().__init__(renderer if renderer is not None else self.default_renderer(text_only=text_only))
         self.footnotes_title = footnotes_title
         self.bibliography_title = bibliography_title
 
     @classmethod
-    def default_renderer(cls) -> NodeRenderer:
+    def default_renderer(cls, *, text_only: bool = False) -> NodeRenderer:
         return MarkdownRenderer(
-            tables="inline", figures="inline", escape=True, heading_numbers=True
+            tables="inline",
+            figures="inline",
+            escape=True,
+            heading_numbers=True,
+            text_only=text_only,
         )
 
     def convert(self, cnd: Cnd) -> ConversionResult:
@@ -149,7 +166,7 @@ class MarkdownConverter(CndConverter):
         sections = [
             self._front_matter(cnd),
             self._body(cnd, warnings),
-            self._footnotes_section(cnd),
+            self._footnotes_section(cnd, warnings),
             self._bibliography_section(cnd, warnings),
         ]
         text = "\n\n".join(section for section in sections if section)
@@ -172,6 +189,16 @@ class MarkdownConverter(CndConverter):
             lines.append(f"description: {_yaml_scalar(doc.description)}")
         if doc.lang:
             lines.append(f"lang: {_yaml_scalar(doc.lang)}")
+        if doc.status:
+            lines.append(f"status: {_yaml_scalar(doc.status)}")
+        if doc.version:
+            lines.append(f"version: {_yaml_scalar(doc.version)}")
+        if doc.extra:
+            lines.append("extra:")
+            lines.extend(
+                f"  {_yaml_scalar(key)}: {_yaml_scalar(value)}"
+                for key, value in doc.extra.items()
+            )
         lines.append(f"cnd_version: {_yaml_scalar(cnd.cnd_version)}")
         lines.append(f"built_at: {_yaml_scalar(cnd.built_at.isoformat())}")
         lines.append("---")
@@ -180,33 +207,24 @@ class MarkdownConverter(CndConverter):
     # -- body -----------------------------------------------------------
 
     def _body(self, cnd: Cnd, warnings: list[str]) -> str:
-        blocks: list[str] = []
-        for visit in iter_body(cnd):
-            rendered = self.renderer.render(visit.node).strip()
-            markers = self._marker_line(cnd, visit.node, warnings)
-            if markers and rendered:
-                rendered = f"{rendered}\n{markers}"
-            elif markers:
-                rendered = markers
-            if rendered:
-                blocks.append(rendered)
-        return "\n\n".join(blocks)
+        blocks = [self._block(cnd, visit.node, warnings) for visit in iter_body(cnd)]
+        return "\n\n".join(block for block in blocks if block)
 
-    def _marker_line(self, cnd: Cnd, node, warnings: list[str]) -> str:
-        markers = resolve_markers(cnd, node, warnings)
-        # ``links`` is href-keyed, not label-keyed (spec §5), so it never
-        # goes through label resolution: ``resolve_markers`` only ever
-        # produces refs/cites/footnotes markers. Build the links markers
-        # here, with no resolution and no warning — a links edge is never
-        # invalid for naming something the CND doesn't carry — then merge
-        # and re-sort with the same ``sort_key`` the other three families
-        # already use (spec §8), so there is exactly one ordering rule.
-        markers.extend(
-            ResolvedMarker(family="links", link=link, target=None)
-            for link in node.links
-        )
-        markers.sort(key=lambda marker: marker.sort_key)
-        rendered = [self._marker(marker) for marker in markers]
+    def _block(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
+        """One block and, on its own line under it, its markers."""
+        rendered = self.renderer.render(node).strip()
+        markers = self._marker_line(cnd, node, warnings)
+        if markers and rendered:
+            # Only a paragraph or a heading takes its markers on the next
+            # line. Under any other block (list, table, quote, admonition,
+            # figure, code, math) a bare next line would read as a table
+            # row or a lazy continuation, so a blank line separates them.
+            tight = isinstance(node, (ParagraphNode, HeadingNode))
+            return f"{rendered}{chr(10) if tight else chr(10) * 2}{markers}"
+        return markers or rendered
+
+    def _marker_line(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
+        rendered = [self._marker(marker) for marker in resolve_markers(cnd, node, warnings)]
         return " ".join(part for part in rendered if part)
 
     @staticmethod
@@ -232,12 +250,21 @@ class MarkdownConverter(CndConverter):
 
     # -- pools ----------------------------------------------------------
 
-    def _footnotes_section(self, cnd: Cnd) -> str:
+    def _footnotes_section(self, cnd: Cnd, warnings: list[str]) -> str:
         if not cnd.footnotes:
             return ""
         lines = [f"## {self.footnotes_title}", ""]
-        lines.extend(_footnote_definition(note) for note in cnd.footnotes)
+        lines.extend(self._footnote_definition(cnd, note, warnings) for note in cnd.footnotes)
         return "\n".join(lines)
+
+    def _footnote_definition(self, cnd: Cnd, note: Footnote, warnings: list[str]) -> str:
+        """``[^label]: first block``; every further line is indented four
+        spaces, so several blocks stay inside the one footnote."""
+        blocks = [self._block(cnd, child, warnings) for child in expand_headings(note.children)]
+        body = "\n\n".join(block for block in blocks if block)
+        lines = body.split("\n")
+        rest = [f"    {line}" if line else "" for line in lines[1:]]
+        return "\n".join([f"[^{note.label}]: {lines[0]}".rstrip(), *rest])
 
     def _bibliography_section(self, cnd: Cnd, warnings: list[str]) -> str:
         if not cnd.bibliography:
@@ -247,13 +274,8 @@ class MarkdownConverter(CndConverter):
             reference, warning = format_bib_entry(entry)
             if warning:
                 warnings.append(warning)
-            lines.append(f"- **{entry.label}** — {reference}")
+            lines.append(f"- **{entry.label}** — {self.renderer.render_text(reference)}")
         return "\n".join(lines)
-
-
-def _footnote_definition(note: Footnote) -> str:
-    text = note.text.replace("\n", "\n    ")
-    return f"[^{note.label}]: {text}"
 
 
 def _yaml_scalar(value: str) -> str:
