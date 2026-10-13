@@ -223,3 +223,109 @@ class TestMarkdownLinkMarker:
         ])
         out = MarkdownRenderer(tables="inline").render(table)
         assert "cnd-link" not in out
+
+
+class _Nesting(HTMLParser):
+    """The deepest ``<a>`` nesting seen."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.depth = self.deepest = 0
+
+    def handle_starttag(self, tag, attrs) -> None:
+        if tag == "a":
+            self.depth += 1
+            self.deepest = max(self.deepest, self.depth)
+
+    def handle_endtag(self, tag) -> None:
+        if tag == "a":
+            self.depth -= 1
+
+
+def _deepest_anchor(html: str) -> int:
+    parser = _Nesting()
+    parser.feed(html)
+    return parser.deepest
+
+
+class TestNestedLinks:
+    @pytest.mark.parametrize(("outer", "inner"), [
+        ([0, 10], [3, 6]),   # inside
+        ([0, 6], [3, 10]),   # crossing
+        ([3, 10], [0, 6]),   # crossing, listed second but starts first
+        ([0, 10], [0, 10]),  # equal
+        ([0, 10], [0, 4]),   # inside, same start
+    ])
+    def test_never_nested_anchors(self, outer, inner) -> None:
+        links = [LinkRef(href="https://o.example", text_span=outer),
+                 LinkRef(href="https://i.example", text_span=inner)]
+        text = rt("0123456789", marks=[Mark(start=2, end=8, kind="strong")], links=links)
+        html = HtmlConverter().convert(_cnd([para(text)])).text
+        assert _deepest_anchor(html) == 1
+        hrefs = [a[0]["href"] for a in _anchors(html)]
+        # Both links survive: one inline, the other in the marker line.
+        assert "https://o.example" in hrefs and "https://i.example" in hrefs
+
+    def test_the_dropped_inner_link_goes_to_the_marker_line(self) -> None:
+        links = [LinkRef(href="https://o.example", text_span=[0, 10]),
+                 LinkRef(href="https://i.example", text_span=[3, 6])]
+        html = HtmlConverter().convert(_cnd([para(rt("0123456789", links=links))])).text
+        assert '<p><a class="cnd-link" href="https://o.example">0123456789</a></p>' in html
+        assert (
+            '<span class="cnd-markers"><a class="cnd-link" href="https://i.example">'
+            "https://i.example</a></span>"
+        ) in html
+
+
+class TestNoLinkIsLost:
+    """A spanned link that does not render inline goes to the marker line."""
+
+    @staticmethod
+    def _markers(text) -> str:
+        html = HtmlConverter().convert(_cnd([para(text)])).text
+        start = html.find('<span class="cnd-markers">')
+        return html[start:html.find("</span>", start) + 7] if start >= 0 else ""
+
+    @pytest.mark.parametrize("span", [[2, 2], [9, 12], [3, 1], [1]])
+    def test_empty_clamped_or_malformed_span(self, span) -> None:
+        text = rt("abcd", links=[LinkRef(href="https://e.com", text_span=span)])
+        assert 'href="https://e.com">https://e.com</a>' in self._markers(text)
+
+    @pytest.mark.parametrize("kind", ["code", "math"])
+    def test_span_inside_an_atom(self, kind) -> None:
+        text = rt("abcdef", marks=[Mark(start=1, end=5, kind=kind)],
+                  links=[LinkRef(href="https://e.com", text_span=[2, 4])])
+        assert 'href="https://e.com">https://e.com</a>' in self._markers(text)
+
+    def test_unsafe_spanned_href_is_plain_text_in_the_marker_line(self) -> None:
+        text = rt("click", links=[LinkRef(href="javascript:alert(1)", text_span=[0, 5])])
+        markers = self._markers(text)
+        assert markers == '<span class="cnd-markers">javascript:alert(1)</span>'
+
+    def test_a_wrapped_link_is_not_repeated(self) -> None:
+        text = rt("abcd", links=[LinkRef(href="https://e.com", text_span=[0, 4])])
+        assert self._markers(text) == ""
+
+    def test_nested_texts_of_a_container(self) -> None:
+        from cnd.core.nodes import ListNode
+        from factories import item
+
+        inner = rt("0123456789", links=[LinkRef(href="https://o.example", text_span=[0, 10]),
+                                        LinkRef(href="https://i.example", text_span=[3, 6])])
+        lst = ListNode(type="list", id=para().id, items=[item(para(inner))])
+        html = HtmlConverter().convert(_cnd([lst])).text
+        assert _deepest_anchor(html) == 1
+        assert {a[0]["href"] for a in _anchors(html)} == {"https://o.example", "https://i.example"}
+
+    def test_an_injected_renderer_without_inline_links_gets_every_link(self) -> None:
+        from cnd.core.render import MarkdownRenderer
+
+        text = rt("abcd", links=[LinkRef(href="https://e.com", text_span=[0, 4])])
+        html = HtmlConverter(MarkdownRenderer()).convert(_cnd([para(text)])).text
+        assert 'href="https://e.com">https://e.com</a>' in html
+
+    def test_links_false_renderer_gets_every_link_in_the_marker_line(self) -> None:
+        text = rt("abcd", links=[LinkRef(href="https://e.com", text_span=[0, 4])])
+        html = HtmlConverter(HtmlNodeRenderer(links=False)).convert(_cnd([para(text)])).text
+        assert '<p>abcd</p>' in html
+        assert 'href="https://e.com">https://e.com</a>' in html
