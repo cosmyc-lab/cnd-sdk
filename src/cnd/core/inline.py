@@ -278,14 +278,16 @@ class _MarkdownWriter:
                 out.append(escape_block(chunk) if self.escape else chunk)
                 previous = None
                 continue
+            # Judged on what was written, not on the syntax chosen: a mark
+            # dropped to plain text can still end with a nested "*".
             touches_star = (
                 previous is not None
-                and previous[1].startswith("*")
+                and previous[1].endswith("*")
                 and previous[0].end == child.start
             )
-            rendered, syntax = self._piece(child, touches_star)
+            rendered, _ = self._piece(child, touches_star)
             out.append(rendered)
-            previous = (child, syntax)
+            previous = (child, rendered)
         return "".join(out)
 
     def _piece(self, piece: _Piece, touches_star: bool) -> tuple[str, str]:

@@ -248,3 +248,11 @@ class TestFlankingOnTheRenderedEdge:
         out = md(rt("x ab y", marks=[m(2, 4, "emph"), m(2, 4, "strike")]))
         assert out == "x *~~ab~~* y"
         assert parsed(out) == "<p>x <em><s>ab</s></em> y</p>"
+
+    def test_a_mark_dropped_to_plain_text_still_blocks_a_star_merge(self) -> None:
+        # Under text_only the strong falls back to plain text that ends in
+        # the emph's "*"; the next emph must not open right after it.
+        text = rt("abcdefgh", marks=[m(0, 5, "strong"), m(3, 8, "emph")])
+        out = md(text, text_only=True)
+        assert out == "abc*de*fgh"
+        assert parsed(out) == "<p>abc<em>de</em>fgh</p>"
