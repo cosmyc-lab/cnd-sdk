@@ -46,5 +46,4 @@ def elements_cnd_path() -> Path:
 # branch merges into main.
 collect_ignore = [
     "test_cli.py",
-    "test_node_display_visitor.py",
 ]

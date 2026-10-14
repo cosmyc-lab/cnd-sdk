@@ -1,7 +1,11 @@
 import io
+from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 
 from rich.console import Console
+
+from factories import para, rt
 
 from ids import (
     HEADING001_ID,
@@ -15,8 +19,9 @@ from ids import (
     TABLE001_ID,
 )
 
-from cnd.core.cnd import Cnd
+from cnd.core.cnd import Cnd, DocMetadata
 from cnd.core.nodes import HeadingNode
+from cnd.core.text import LinkRef
 from cnd.visitors.node_display_visitor import NodeDisplayVisitor
 
 
@@ -58,7 +63,7 @@ class TestNodeDisplayVisitor:
 
         text = output.getvalue()
         assert "Test Document" in text
-        assert "v0.3.0" in text
+        assert "v0.5.0" in text
         assert "sha256:abc123def45678" in text
 
     def test_tree_mode_shows_hierarchy(
@@ -121,15 +126,18 @@ class TestNodeDisplayVisitor:
         assert "lang=fr" in text
         assert "cells=4" in text
         assert "Paramètres nominaux de fonctionnement." in text
-        # The counter word ("Table") is not in the data — `number` is the
-        # resolved value alone and `kind` carries the selector.
+        # The counter word is data in 0.5 (`numbering.name`) and shows on its
+        # own; the display never composes "Table 1" out of word and value.
         assert "number=1" in text
+        assert "counter=Table" in text
         assert "Table 1" not in text
         assert "page=1" in text
         assert "child=1/2" in text
-        assert "on-page=3/5" in text
-        assert "doc=3/5" in text
-        assert "doc=5/5" in text
+        # Nine nodes now: the table's four cells each hold a paragraph.
+        assert "on-page=3/9" in text
+        assert "doc=3/9" in text
+        assert "doc=5/9" in text
+        assert "doc=9/9" in text
 
     def test_can_hide_refs_and_location(
         self, structured_cnd_path: Path,
@@ -305,3 +313,84 @@ class TestPoolPanels:
         text = output.getvalue()
         assert "Bibliography" not in text
         assert "Footnotes" not in text
+
+
+class TestFormatZeroFiveElements:
+    """Every 0.5 element is dispatched and shown: admonition, layout,
+    marks, checkboxes, code titles, figure descriptions, document status,
+    version and extra metadata, and footnotes that hold blocks."""
+
+    def _text(self, path: Path, **kwargs) -> tuple[str, NodeDisplayVisitor]:
+        output, console = _capture_output()
+        visitor = NodeDisplayVisitor(console=console, **kwargs)
+        visitor.visit(_load(path))
+        return output.getvalue(), visitor
+
+    def test_admonition_and_layout_have_their_own_panels(
+        self, elements_cnd_path: Path,
+    ) -> None:
+        text, visitor = self._text(elements_cnd_path, show_tree=False)
+
+        assert "ADMONITION" in text and "LAYOUT" in text
+        assert "kind=warning" in text
+        assert "Careful" in text
+        assert visitor._counts["admonition"] == 1
+        assert visitor._counts["layout"] == 1
+        # Every node of the body is shown, nested content included.
+        assert sum(visitor._counts.values()) == 27
+
+    def test_rich_text_details(self, elements_cnd_path: Path) -> None:
+        text, _ = self._text(elements_cnd_path, truncate_text=False)
+
+        assert "marks=strong,sup,math" in text
+        assert "@thm-main[29:38]" in text
+        assert "@knuth1984[59:64]" in text
+        assert "@fn-detail[43:51]" in text
+
+    def test_element_details(self, elements_cnd_path: Path) -> None:
+        text, _ = self._text(elements_cnd_path, truncate_text=False)
+
+        assert "checked=1/2" in text
+        assert "title=main.py" in text
+        assert "counter=Theorem" in text
+        assert "description=States that energy" in text
+
+    def test_document_metadata(self, elements_cnd_path: Path) -> None:
+        text, _ = self._text(elements_cnd_path)
+
+        assert "Approved" in text
+        assert "1.2" in text
+        assert "ACME" in text and "PRJ-042" in text
+
+    def test_footnote_blocks_are_previewed(self, elements_cnd_path: Path) -> None:
+        text, _ = self._text(elements_cnd_path, truncate_text=False)
+
+        assert "@fn-detail" in text
+        assert "Details live here. A second paragraph, with code." in text
+        assert "2 block(s)" in text
+        assert "referenced by 1" in text
+
+    def test_a_hyperlink_shows_its_href(self) -> None:
+        cnd = Cnd(
+            cnd_version="0.5.0",
+            built_at=datetime(2026, 10, 14, tzinfo=timezone.utc),
+            doc=DocMetadata(title="T"),
+            nodes=[
+                para(
+                    rt(
+                        "See the site.",
+                        links=[LinkRef(href="https://example.org", text_span=[8, 12])],
+                    )
+                )
+            ],
+        )
+        output, console = _capture_output()
+
+        visitor = NodeDisplayVisitor(console=console, truncate_text=False)
+        visitor.visit(cnd)
+
+        text = output.getvalue()
+        assert "links" in text
+        assert "https://example.org[8:12]" in text
+        # A hyperlink resolves nowhere: it is not counted as a cross-ref.
+        assert visitor._refs_total == 0
