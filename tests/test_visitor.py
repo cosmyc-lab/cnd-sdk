@@ -255,3 +255,89 @@ class TestEveryNodeType:
         Recorder().visit(_load(elements_cnd_path))
 
         assert seen == ["admonition", "layout"]
+
+
+class _PathsVisitor(BaseVisitor):
+    """Records each visited node's text, path and slot."""
+
+    def __init__(self) -> None:
+        self.seen: list[tuple[str, tuple, str | None]] = []
+
+    def visit_paragraph(self, node: ParagraphNode, ctx: NodeTraverseContext) -> None:
+        self.seen.append((node.text.value, ctx.path, ctx.slot))
+
+    def visit_quote(self, node, ctx: NodeTraverseContext) -> None:
+        self.seen.append(("quote", ctx.path, ctx.slot))
+
+
+def _cnd_with_a_note() -> Cnd:
+    from datetime import datetime, timezone
+    from uuid import uuid4
+
+    from factories import para
+
+    from cnd.core.cnd import DocMetadata, Footnote
+    from cnd.core.nodes import QuoteNode
+
+    return Cnd(
+        cnd_version="0.5.0",
+        built_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        doc=DocMetadata(title="T"),
+        nodes=[para("body")],
+        footnotes=[
+            Footnote(id=uuid4(), label="fn-a", children=[para("note a")]),
+            Footnote(
+                id=uuid4(),
+                label="fn-b",
+                children=[
+                    QuoteNode(id=uuid4(), type="quote", children=[para("quoted")])
+                ],
+            ),
+        ],
+    )
+
+
+class TestFullWalk:
+    """``visit(cnd, full=True)`` is the full walk of spec §8: the body,
+    then each footnote's content, with document paths and the footnote
+    slot. Walking ``cnd.footnotes[i].children`` by hand would give
+    ``("nodes", 0)`` paths that point into the body."""
+
+    def test_the_default_walk_is_the_body_only(self) -> None:
+        visitor = _PathsVisitor()
+        visitor.visit(_cnd_with_a_note())
+        assert visitor.seen == [("body", ("nodes", 0), None)]
+
+    def test_full_walk_visits_footnote_content_with_spec_paths(self) -> None:
+        visitor = _PathsVisitor()
+        visitor.visit(_cnd_with_a_note(), full=True)
+        assert visitor.seen == [
+            ("body", ("nodes", 0), None),
+            ("note a", ("footnotes", 0, "children", 0), "footnotes"),
+            ("quote", ("footnotes", 1, "children", 0), "footnotes"),
+            ("quoted", ("footnotes", 1, "children", 0, "children", 0), "children"),
+        ]
+
+    def test_full_walk_matches_iter_all(self) -> None:
+        cnd = _cnd_with_a_note()
+        visitor = _PathsVisitor()
+        visitor.visit(cnd, full=True)
+        assert [path for _, path, _ in visitor.seen] == [
+            visit.ctx.path for visit in cnd.iter_all()
+        ]
+
+    def test_pruning_reaches_into_footnotes(self) -> None:
+        class NoQuoteContent(_PathsVisitor):
+            def should_stop_descent(self, node, ctx) -> bool:
+                return node.type == "quote"
+
+        visitor = NoQuoteContent()
+        visitor.visit(_cnd_with_a_note(), full=True)
+        assert "quoted" not in [text for text, _, _ in visitor.seen]
+        assert "quote" in [text for text, _, _ in visitor.seen]
+
+    def test_full_needs_a_cnd(self) -> None:
+        from factories import para
+
+        with pytest.raises(ValueError, match="full"):
+            _PathsVisitor().visit([para("x")], full=True)

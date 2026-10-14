@@ -1000,13 +1000,15 @@ changed.
 **Conformance.** The fixture corpus carries `CND → expected walk`
 vectors (`fixtures/traversal.json`): for every fixture, the full walk as
 a sequence of `id`, `type`, `depth` and `path`. An implementation proves
-its walk order by reproducing them; `cnd inspect` shows the order a CND
-actually walks in.
+its walk order by reproducing them. `cnd inspect` shows the body walk
+only, not the footnotes' content; `cnd hash --nodes` lists every node
+hash in full-walk order.
 
 The reference SDK implements the body walk as `Cnd.iter()` /
 `iter_nodes()` and the full walk as `Cnd.iter_all()`, with
 `child_slots(node)` listing a node's slots, `BaseVisitor` dispatching a
-`visit_<type>` hook per node type and `should_stop_descent()` to prune.
+`visit_<type>` hook per node type over the body walk, or over the full walk
+with `visit(cnd, full=True)`, and `should_stop_descent()` to prune.
 `Cnd.incoming(label)` is the derived reverse index (§5) and
 `Cnd.resolve(label)` the label index (§5), both built over the full walk,
 lazily, and cached. `NodeDisplayVisitor` (requires the `display` extra)

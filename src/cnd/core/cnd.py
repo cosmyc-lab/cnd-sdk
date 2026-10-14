@@ -168,19 +168,27 @@ class Cnd(BaseModel):
             _totals=self._position_totals,
         )
 
-    def iter_all(self) -> Iterator[NodeTraverse]:
+    def iter_all(
+        self,
+        *,
+        max_depth: int | None = None,
+        stop_predicate: StopPredicate | None = None,
+    ) -> Iterator[NodeTraverse]:
         """The body walk, then the content of every footnote.
 
         Footnote content nodes are nodes in every respect (ids, labels,
         locations) but stay out of the body walk, so a consumer splitting
         the body never mixes notes into running text (docs/proposals/0013).
         Positions inside a footnote count within that footnote; ``slot`` is
-        ``"footnotes"`` and ``slot_index`` the pool index.
+        ``"footnotes"`` and ``slot_index`` the pool index. ``max_depth`` and
+        ``stop_predicate`` apply to the body and to each footnote alike.
         """
-        yield from self.iter()
+        yield from self.iter(max_depth=max_depth, stop_predicate=stop_predicate)
         for index, note in enumerate(self.footnotes):
             yield from iter_nodes(
                 note.children,
+                max_depth=max_depth,
+                stop_predicate=stop_predicate,
                 _base_path=("footnotes", index, "children"),
                 _slot="footnotes",
                 _slot_index=index,
