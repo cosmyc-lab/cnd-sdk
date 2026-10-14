@@ -10,8 +10,12 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 
+from cnd import Cnd, content_hash
+from cnd.builder import build
 from cnd.cli import main
+from cnd.declaration import DECLARATION_VERSION, Declaration
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -42,7 +46,7 @@ class TestValidate:
         broken = json.loads((FIXTURES / "rich_content.cnd").read_text())
         # A cites edge pointing at a figure: the label resolves — labels are
         # unique document-wide — but not in the family's domain.
-        broken["nodes"][0]["children"][0]["cites"][0]["label"] = "lst-api"
+        broken["nodes"][0]["children"][0]["text"]["cites"][0]["label"] = "lst-api"
         path = tmp_path / "broken.cnd"
         path.write_text(json.dumps(broken))
 
@@ -62,7 +66,7 @@ class TestValidate:
         self, capsys, tmp_path: Path,
     ) -> None:
         path = tmp_path / "bad.cnd"
-        path.write_text('{"cnd_version": "0.3.0"}')
+        path.write_text('{"cnd_version": "0.5.0"}')
 
         code, _, err = _run(capsys, "validate", path)
 
@@ -184,16 +188,26 @@ class TestBuild:
 
         assert code == 0
         built = json.loads(out)
-        assert built["cnd_version"] == "0.4.0"
+        assert built["cnd_version"] == "0.5.0"
         assert built["nodes"][0]["type"] == "heading"
-        # Engine off by default: nothing numbered.
-        assert built["nodes"][0]["number"] is None
+        # Engine off by default: nothing numbered, so nothing written.
+        assert "numbering" not in built["nodes"][0]
 
     def test_numbering_flag_runs_the_counter_engine(self, capsys) -> None:
         code, out, _ = _run(capsys, "build", "--numbering", self.DECL)
 
         assert code == 0
-        assert json.loads(out)["nodes"][0]["number"] == "1"
+        assert json.loads(out)["nodes"][0]["numbering"] == {"value": "1"}
+
+    def test_the_output_omits_default_valued_fields(self, capsys) -> None:
+        """The SDK writer (docs/proposals/0013): no empty list, no null and
+        no empty object is written, and the CND is the one `build` makes."""
+        code, out, _ = _run(capsys, "build", self.DECL)
+
+        assert code == 0
+        assert ": []" not in out and ": null" not in out and ": {}" not in out
+        decl = Declaration.model_validate(yaml.safe_load(self.DECL.read_text()))
+        assert content_hash(Cnd.model_validate_json(out)) == content_hash(build(decl))
 
     def test_output_flag_writes_a_file(self, capsys, tmp_path: Path) -> None:
         target = tmp_path / "article.cnd"
@@ -202,16 +216,17 @@ class TestBuild:
 
         assert code == 0
         assert out == ""
-        assert json.loads(target.read_text())["cnd_version"] == "0.4.0"
+        assert json.loads(target.read_text())["cnd_version"] == "0.5.0"
 
     def test_unbuildable_declaration_exits_nonzero_with_rules(
         self, capsys, tmp_path: Path,
     ) -> None:
         decl = {
-            "declaration_version": "0.1.0",
+            "declaration_version": DECLARATION_VERSION,
             "doc": {"title": "T"},
             "nodes": [
-                {"type": "paragraph", "text": "a", "refs": [{"label": "ghost"}]},
+                {"type": "paragraph",
+                 "text": {"value": "a", "refs": [{"label": "ghost"}]}},
             ],
         }
         path = tmp_path / "bad.decl.json"
@@ -227,7 +242,7 @@ class TestBuild:
         self, capsys, tmp_path: Path,
     ) -> None:
         decl = {
-            "declaration_version": "0.1.0",
+            "declaration_version": DECLARATION_VERSION,
             "doc": {"title": "T"},
             "nodes": [{"type": "paragraph", "text": "a", "capton": "typo"}],
         }
@@ -238,6 +253,28 @@ class TestBuild:
 
         assert code == 1
         assert "capton" in err
+
+    def test_authored_numbering_needs_the_flag(
+        self, capsys, tmp_path: Path,
+    ) -> None:
+        decl = {
+            "declaration_version": DECLARATION_VERSION,
+            "doc": {"title": "T"},
+            "nodes": [{"type": "math", "text": "x", "numbering": {"name": "Eq."}}],
+        }
+        path = tmp_path / "eq.decl.json"
+        path.write_text(json.dumps(decl))
+
+        code, _, err = _run(capsys, "build", path)
+        assert code == 1
+        assert "numbering-without-engine" in err
+
+        code, out, _ = _run(capsys, "build", "--numbering", path)
+        assert code == 0
+        assert json.loads(out)["nodes"][0]["numbering"] == {
+            "value": "(1)",
+            "name": "Eq.",
+        }
 
     def test_yaml_without_pyyaml_names_the_extra(
         self, capsys, monkeypatch,
@@ -257,3 +294,21 @@ class TestBuild:
 
         assert code == 1
         assert "cnd-sdk[yaml]" in err
+
+
+class TestInspect:
+    def test_the_whole_corpus_inspects(self, capsys) -> None:
+        """Terminal inspection is a conformance verb (ADR 0020): every
+        0.5 node type is displayed, none falls through."""
+        code, out, _ = _run(capsys, "inspect", *_corpus())
+
+        assert code == 0
+        assert "ADMONITION" in out.upper() and "LAYOUT" in out.upper()
+
+    def test_an_unreadable_file_fails_without_crashing(
+        self, capsys, tmp_path: Path,
+    ) -> None:
+        code, _, err = _run(capsys, "inspect", tmp_path / "absent.cnd")
+
+        assert code == 1
+        assert "cannot read" in err

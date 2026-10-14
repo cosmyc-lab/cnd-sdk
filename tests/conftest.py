@@ -45,5 +45,4 @@ def elements_cnd_path() -> Path:
 # removes the entries it ports, and the list must be empty before that
 # branch merges into main.
 collect_ignore = [
-    "test_cli.py",
 ]

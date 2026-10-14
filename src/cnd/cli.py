@@ -79,9 +79,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "validate",
         help="check the invariants JSON Schema cannot express",
         description=(
-            "Global label uniqueness, per-family link domains, "
-            "all-or-nothing pagination, and the bibliography content floor "
-            "(spec sections 5, 9). Shape errors are the schema's job and are "
+            "Id and label uniqueness, per-family link domains, text spans "
+            "and marks, all-or-nothing pagination, the bibliography content "
+            "floor and doc.extra (spec section 9), over the body and the "
+            "footnotes' content. Shape errors are the schema's job and are "
             "reported as parse failures."
         ),
     )
@@ -101,7 +102,10 @@ def _build_parser() -> argparse.ArgumentParser:
     digest.add_argument(
         "--nodes",
         action="store_true",
-        help="also print each node hash, in reading order",
+        help=(
+            "also print each node hash, in full-walk order: the body, then "
+            "each footnote's content (spec section 8)"
+        ),
     )
     digest.set_defaults(run=_run_hash)
 
@@ -132,9 +136,9 @@ def _build_parser() -> argparse.ArgumentParser:
         description=(
             "The declarative door: reads a declaration (JSON, or YAML with "
             "the yaml extra), derives everything the declaration omits, and "
-            "emits a validated CND. Numbering is opt-in — the declarative "
-            "door serves unnumbered sources, so inventing counters is a "
-            "choice, never a default."
+            "emits a validated CND, default-valued fields omitted. Numbering "
+            "is opt-in — the declarative door serves unnumbered sources, so "
+            "inventing counters is a choice, never a default."
         ),
     )
     produce.add_argument("file", type=Path, metavar="DECL")
@@ -277,7 +281,7 @@ def _run_hash(args: argparse.Namespace) -> int:
             continue
         entry = {"file": str(path), "content_hash": content_hash(cnd)}
         if args.nodes:
-            entry["node_hashes"] = [node_hash(v.node) for v in cnd.iter()]
+            entry["node_hashes"] = [node_hash(v.node) for v in cnd.iter_all()]
         results.append(entry)
 
     if args.json:
@@ -311,7 +315,7 @@ def _run_build(args: argparse.Namespace) -> int:
             )
         return EXIT_NONCONFORMANT
 
-    payload = cnd.model_dump_json(indent=2)
+    payload = cnd.to_json(indent=2)
     if args.output is not None:
         args.output.write_text(payload + "\n")
     else:
