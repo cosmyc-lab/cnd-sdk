@@ -26,6 +26,17 @@ pass is never reconsidered by a later one:
 
 Ties within a pass — equal-hash duplicates, two nodes competing for one
 slot — break by reading order: the earliest unmatched candidate wins.
+
+**On format 0.5** (docs/proposals/0013) the passes and keys are those of
+v1; only the node set and the path are finer. The matcher walks the full
+walk (spec §8): every node of the body, including those inside list
+items, term items, cells, quotes and admonitions, then the content of
+every footnote. The structural path is the spec §8 path, so the first
+paragraphs of two different cells sit in two different slots. On a tree
+whose only slots are ``children`` it gives exactly the equalities the
+earlier sibling-index path gave, which is why the version stays ``v1``.
+Finer nodes make the matcher finer too: an edited list item is matched
+and reported on its own, where a whole list used to be marked changed.
 """
 
 from collections.abc import Callable, Iterable
@@ -47,17 +58,22 @@ PASS_HASH_PATH: MatchPass = "hash+path"
 PASS_HASH: MatchPass = "hash"
 PASS_PATH_TYPE: MatchPass = "path+type"
 
-StructuralPath = tuple[int, ...]
-"""A node's slot in the tree: 1-based sibling indices from the root down."""
+StructuralPath = tuple[str | int, ...]
+"""A node's slot: its spec §8 path, such as ``("nodes", 0, "children", 4,
+"cells", 2, "children", 0)``. Inside a footnote the pool index is
+replaced by the footnote's label (``("footnotes", "fn-a", "children",
+0)``): a pool is keyed by label and its order is not document order, so
+reordering the pool must not move the notes' content (see ``entries``)."""
 
 
 @dataclass(frozen=True)
 class NodeEntry:
     """One node of a CND with everything the matcher keys on.
 
-    ``order`` is the node's 1-based position in reading order and is what
-    breaks ties: the tree is normatively in reading order, so "earliest
-    candidate" is a document fact rather than a walk artifact.
+    ``order`` is the node's 1-based position in the full walk (the body in
+    reading order, then each footnote's content) and is what breaks ties:
+    the tree is normatively in reading order, so "earliest candidate" is a
+    document fact rather than a walk artifact.
     """
 
     node: CndNode
@@ -123,27 +139,33 @@ class PoolMatching:
 
 
 def entries(cnd: Cnd) -> list[NodeEntry]:
-    """Every node of ``cnd`` in reading order, keyed for matching.
+    """Every node of ``cnd`` in full-walk order (the body, then each
+    footnote's content), keyed for matching.
 
-    The structural path is derived from the traversal context rather than
-    from a second walk: the walk is depth-first pre-order, so truncating
-    the running path to the current depth and appending the sibling index
-    yields the absolute slot of every node.
+    The structural path is the traversal context's ``path``, with one
+    deliberate difference: a footnote's pool index is replaced by its
+    label. Pool entries match on their label and a pool has no "moved"
+    (``PoolDiff``), so the content of a note must not be reported moved
+    because the pool was reordered.
     """
-    result: list[NodeEntry] = []
-    path: list[int] = []
-    for order, visit in enumerate(cnd.iter(), start=1):
-        del path[visit.ctx.depth :]
-        path.append(visit.ctx.sibling_index)
-        result.append(
-            NodeEntry(
-                node=visit.node,
-                path=tuple(path),
-                hash=node_hash(visit.node),
-                order=order,
-            )
+    return [
+        NodeEntry(
+            node=visit.node,
+            path=_matching_path(cnd, visit.ctx.path),
+            hash=node_hash(visit.node),
+            order=order,
         )
-    return result
+        for order, visit in enumerate(cnd.iter_all(), start=1)
+    ]
+
+
+def _matching_path(cnd: Cnd, path: tuple[str | int, ...]) -> StructuralPath:
+    """``path`` with a footnote's pool index replaced by its label."""
+    if path[0] == "footnotes":
+        index = path[1]
+        assert isinstance(index, int)
+        return ("footnotes", cnd.footnotes[index].label, *path[2:])
+    return path
 
 
 def pool_entries(pool: Iterable["BibEntry | Footnote"]) -> list[PoolEntry]:

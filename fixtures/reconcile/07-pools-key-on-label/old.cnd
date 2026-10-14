@@ -1,5 +1,6 @@
 {
-  "cnd_version": "0.3.0",
+  "id": "00000000-0000-4000-c007-000000000900",
+  "cnd_version": "0.5.0",
   "built_at": "2026-07-23T00:00:00Z",
   "doc": {
     "title": "Reconcile fixture"
@@ -7,22 +8,39 @@
   "nodes": [
     {
       "id": "00000000-0000-4000-c007-000000000001",
+      "label": "p",
       "type": "paragraph",
-      "text": "alpha",
-      "label": "p"
+      "text": {
+        "value": "alpha"
+      }
     }
   ],
-  "bibliography": [],
   "footnotes": [
     {
       "id": "00000000-0000-4000-c007-000000000100",
       "label": "fn-a",
-      "text": "first"
+      "children": [
+        {
+          "id": "00000000-0000-4000-c007-000000000200",
+          "type": "paragraph",
+          "text": {
+            "value": "first"
+          }
+        }
+      ]
     },
     {
       "id": "00000000-0000-4000-c007-000000000101",
       "label": "fn-b",
-      "text": "second"
+      "children": [
+        {
+          "id": "00000000-0000-4000-c007-000000000201",
+          "type": "paragraph",
+          "text": {
+            "value": "second"
+          }
+        }
+      ]
     }
   ]
 }

@@ -128,18 +128,36 @@
       "footnotes": []
     },
     "07-pools-key-on-label": {
-      "why": "Pool entries carry a required label, so the pool diff is exact and order-independent.",
+      "why": "Pool entries carry a required label, so the pool diff is exact and order-independent. A footnote's content is nodes: the rewritten note is reported as a changed paragraph, its entry stays unchanged.",
       "nodes": [
         {
           "status": "unchanged",
           "matched_by": "label",
           "old_id": "00000000-0000-4000-c007-000000000001",
           "new_id": "00000000-0000-4000-c007-000000000002"
+        },
+        {
+          "status": "changed",
+          "matched_by": "path+type",
+          "old_id": "00000000-0000-4000-c007-000000000201",
+          "new_id": "00000000-0000-4000-c007-000000000202"
+        },
+        {
+          "status": "added",
+          "matched_by": null,
+          "old_id": null,
+          "new_id": "00000000-0000-4000-c007-000000000203"
+        },
+        {
+          "status": "removed",
+          "matched_by": null,
+          "old_id": "00000000-0000-4000-c007-000000000200",
+          "new_id": null
         }
       ],
       "footnotes": [
         {
-          "status": "changed",
+          "status": "unchanged",
           "label": "fn-b"
         },
         {
@@ -148,6 +166,93 @@
         },
         {
           "status": "removed",
+          "label": "fn-a"
+        }
+      ]
+    },
+    "08-list-item-edited": {
+      "why": "Format 0.5 is finer: the list itself is unchanged and only the item's paragraph is changed, where 0.4 marked the whole list changed.",
+      "nodes": [
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c008-000000000001",
+          "new_id": "00000000-0000-4000-c008-000000000005"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c008-000000000002",
+          "new_id": "00000000-0000-4000-c008-000000000006"
+        },
+        {
+          "status": "changed",
+          "matched_by": "path+type",
+          "old_id": "00000000-0000-4000-c008-000000000003",
+          "new_id": "00000000-0000-4000-c008-000000000007"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c008-000000000004",
+          "new_id": "00000000-0000-4000-c008-000000000008"
+        }
+      ],
+      "footnotes": []
+    },
+    "09-cells-are-distinct-slots": {
+      "why": "The edited paragraph pairs with the paragraph of its own cell; the emptied cell's paragraph is removed.",
+      "nodes": [
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c009-000000000001",
+          "new_id": "00000000-0000-4000-c009-000000000004"
+        },
+        {
+          "status": "changed",
+          "matched_by": "path+type",
+          "old_id": "00000000-0000-4000-c009-000000000003",
+          "new_id": "00000000-0000-4000-c009-000000000005"
+        },
+        {
+          "status": "removed",
+          "matched_by": null,
+          "old_id": "00000000-0000-4000-c009-000000000002",
+          "new_id": null
+        }
+      ],
+      "footnotes": []
+    },
+    "10-footnote-content": {
+      "why": "Footnote content is matched like body content. The pool was reordered, yet the untouched note is unchanged in place and the edited one pairs with its own note's paragraph.",
+      "nodes": [
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c010-000000000001",
+          "new_id": "00000000-0000-4000-c010-000000000002"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c010-000000000201",
+          "new_id": "00000000-0000-4000-c010-000000000202"
+        },
+        {
+          "status": "changed",
+          "matched_by": "path+type",
+          "old_id": "00000000-0000-4000-c010-000000000200",
+          "new_id": "00000000-0000-4000-c010-000000000203"
+        }
+      ],
+      "footnotes": [
+        {
+          "status": "unchanged",
+          "label": "fn-b"
+        },
+        {
+          "status": "unchanged",
           "label": "fn-a"
         }
       ]

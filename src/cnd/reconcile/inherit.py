@@ -30,7 +30,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from cnd.core.cnd import BibEntry, Cnd, Footnote
-from cnd.core.nodes import CndNode, FigureNode, HeadingNode
+from cnd.core.nodes import CndNode, child_slots
 from cnd.reconcile.match import PASS_LABEL, match_nodes, match_pool
 
 
@@ -90,7 +90,7 @@ def reconcile(
     result = new.model_copy(deep=True)
     _check(result, remap)
     _apply(result, remap)
-    total = sum(1 for _ in result.iter()) + len(result.bibliography) + len(
+    total = sum(1 for _ in result.iter_all()) + len(result.bibliography) + len(
         result.footnotes
     )
     return Reconciliation(
@@ -133,7 +133,7 @@ def _check(cnd: Cnd, remap: dict[UUID, UUID]) -> None:
 
 def _all_ids(cnd: Cnd) -> set[UUID]:
     return (
-        {visit.node.id for visit in cnd.iter()}
+        {visit.node.id for visit in cnd.iter_all()}
         | {entry.id for entry in cnd.bibliography}
         | {note.id for note in cnd.footnotes}
     )
@@ -143,9 +143,11 @@ def _apply(cnd: Cnd, remap: dict[UUID, UUID]) -> None:
     """Rewrite ids in place on the already-copied CND.
 
     Nodes and pool entries only: the link families carry labels, so no
-    edge needs touching (docs/adr/0017).
+    edge needs touching (docs/adr/0017). The nodes are every node of the
+    body and of the footnotes' content, wherever they sit.
     """
-    for node in _walk(cnd.nodes):
+    content = [child for note in cnd.footnotes for child in note.children]
+    for node in _walk([*cnd.nodes, *content]):
         replacement = remap.get(node.id)
         if replacement is not None:
             node.id = replacement
@@ -156,13 +158,14 @@ def _apply(cnd: Cnd, remap: dict[UUID, UUID]) -> None:
 
 
 def _walk(nodes: list[CndNode]):
-    """Every node in the tree. A plain recursive walk rather than
-    ``Cnd.iter``: that one caches derived positions on the instance, and
+    """Every node in the tree, through every container slot (children,
+    list and term items, cells). A plain recursive walk rather than
+    ``Cnd.iter_all``: that one caches derived state on the instance, and
     rewriting ids underneath a cache invites a stale one."""
     for node in nodes:
         yield node
-        if isinstance(node, (HeadingNode, FigureNode)):
-            yield from _walk(node.children)
+        for slot in child_slots(node):
+            yield from _walk(slot.nodes)
 
 
 __all__ = ["ReconcileError", "Reconciliation", "reconcile"]

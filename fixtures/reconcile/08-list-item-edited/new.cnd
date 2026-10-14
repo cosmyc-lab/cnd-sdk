@@ -1,0 +1,49 @@
+{
+  "id": "00000000-0000-4000-c008-000000000901",
+  "cnd_version": "0.5.0",
+  "built_at": "2026-07-23T00:00:00Z",
+  "doc": {
+    "title": "Reconcile fixture"
+  },
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-c008-000000000005",
+      "type": "list",
+      "items": [
+        {
+          "children": [
+            {
+              "id": "00000000-0000-4000-c008-000000000006",
+              "type": "paragraph",
+              "text": {
+                "value": "alpha"
+              }
+            }
+          ]
+        },
+        {
+          "children": [
+            {
+              "id": "00000000-0000-4000-c008-000000000007",
+              "type": "paragraph",
+              "text": {
+                "value": "beta edited"
+              }
+            }
+          ]
+        },
+        {
+          "children": [
+            {
+              "id": "00000000-0000-4000-c008-000000000008",
+              "type": "paragraph",
+              "text": {
+                "value": "gamma"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

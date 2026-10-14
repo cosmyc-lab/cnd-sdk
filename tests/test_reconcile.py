@@ -15,14 +15,19 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from factories import cell, item, para, rt
+
 from cnd import (
     BibEntry,
     Cnd,
     DocMetadata,
     Footnote,
     HeadingNode,
+    ListNode,
     NodeRef,
     ParagraphNode,
+    TableNode,
+    edges_of,
     validate,
 )
 from cnd.reconcile import (
@@ -38,7 +43,7 @@ from cnd.reconcile import (
 
 def _para(text: str, *, label: str | None = None, id: UUID | None = None):
     return ParagraphNode(
-        type="paragraph", id=id or uuid4(), text=text, label=label
+        type="paragraph", id=id or uuid4(), text=rt(text), label=label
     )
 
 
@@ -47,16 +52,30 @@ def _heading(text: str, *, children=None, label: str | None = None):
         type="heading",
         id=uuid4(),
         level=1,
-        text=text,
+        text=rt(text),
         label=label,
         heading_path=[text],
         children=list(children or []),
     )
 
 
+def _list(*items) -> ListNode:
+    return ListNode(type="list", id=uuid4(), items=list(items))
+
+
+def _table(*cells) -> TableNode:
+    return TableNode(type="table", id=uuid4(), cells=list(cells))
+
+
+def _text(node) -> str | None:
+    """The plain value of a node's ``text``, for nodes that have one."""
+    text = getattr(node, "text", None)
+    return text.value if text is not None else None
+
+
 def _cnd(nodes, *, bibliography=(), footnotes=()) -> Cnd:
     return Cnd(
-        cnd_version="0.3.0",
+        cnd_version="0.5.0",
         built_at=datetime(2026, 7, 23),
         doc=DocMetadata(title="T"),
         nodes=list(nodes),
@@ -72,7 +91,7 @@ def _rebuild(cnd: Cnd) -> Cnd:
     (docs/adr/0015), so a rebuild produces a CND whose every id is new.
     """
     rebuilt = cnd.model_copy(deep=True)
-    for visit in rebuilt.iter():
+    for visit in rebuilt.iter_all():
         visit.node.id = uuid4()
     for entry in (*rebuilt.bibliography, *rebuilt.footnotes):
         entry.id = uuid4()
@@ -84,7 +103,7 @@ def _by_text(report: CndDiff, text: str):
     found = [
         change
         for change in report.nodes
-        if change.new is not None and getattr(change.new.node, "text", None) == text
+        if change.new is not None and _text(change.new.node) == text
     ]
     assert len(found) == 1, f"expected one change for {text!r}, got {len(found)}"
     return found[0]
@@ -93,14 +112,45 @@ def _by_text(report: CndDiff, text: str):
 # --- structural paths -------------------------------------------------
 
 
-def test_structural_path_is_absolute_sibling_indices():
+def test_structural_path_is_the_spec_path():
     cnd = _cnd(
         [
             _para("first"),
             _heading("Section", children=[_para("nested"), _para("also nested")]),
         ]
     )
-    assert [entry.path for entry in entries(cnd)] == [(1,), (2,), (2, 1), (2, 2)]
+    assert [entry.path for entry in entries(cnd)] == [
+        ("nodes", 0),
+        ("nodes", 1),
+        ("nodes", 1, "children", 0),
+        ("nodes", 1, "children", 1),
+    ]
+
+
+def test_the_path_enters_items_and_cells():
+    """Two first paragraphs of two cells (or items) sit in two slots."""
+    cnd = _cnd([_list(item("a"), item("b")), _table(cell(0, 0, "c"), cell(0, 1, "d"))])
+    assert [entry.path for entry in entries(cnd)] == [
+        ("nodes", 0),
+        ("nodes", 0, "items", 0, "children", 0),
+        ("nodes", 0, "items", 1, "children", 0),
+        ("nodes", 1),
+        ("nodes", 1, "cells", 0, "children", 0),
+        ("nodes", 1, "cells", 1, "children", 0),
+    ]
+
+
+def test_footnote_content_is_keyed_by_the_note_label():
+    """Deliberately not ``ctx.path``: the pool index would make a pool
+    reorder move every note's content."""
+    cnd = _cnd(
+        [_para("body")],
+        footnotes=[Footnote(id=uuid4(), label="fn-a", children=[_para("note")])],
+    )
+    assert [entry.path for entry in entries(cnd)] == [
+        ("nodes", 0),
+        ("footnotes", "fn-a", "children", 0),
+    ]
 
 
 # --- one test per matching pass ---------------------------------------
@@ -138,7 +188,7 @@ def test_pass_2_hash_and_path_beats_reading_order_on_a_tie():
     new = _cnd([_para("brand new"), _para("duplicate")])
 
     matching = match_nodes(old, new)
-    paired = [m for m in matching.matches if m.new.path == (2,)]
+    paired = [m for m in matching.matches if m.new.path == ("nodes", 1)]
     assert len(paired) == 1
     assert paired[0].matched_by == "hash+path"
     assert paired[0].old.node.id == second.id
@@ -150,7 +200,7 @@ def test_pass_3_hash_alone_recovers_a_node_an_insertion_shifted():
 
     matching = match_nodes(old, new)
     assert {m.matched_by for m in matching.matches} == {"hash"}
-    assert [m.new.node.text for m in matching.matches] == ["alpha", "beta"]
+    assert [_text(m.new.node) for m in matching.matches] == ["alpha", "beta"]
 
 
 def test_pass_4_path_and_type_matches_an_edit_in_place():
@@ -160,8 +210,8 @@ def test_pass_4_path_and_type_matches_an_edit_in_place():
 
     matching = match_nodes(old, new)
     by_pass = {m.matched_by: m for m in matching.matches}
-    assert by_pass["path+type"].new.node.text == "edited wording"
-    assert by_pass["hash+path"].new.node.text == "keep me"
+    assert _text(by_pass["path+type"].new.node) == "edited wording"
+    assert _text(by_pass["hash+path"].new.node) == "keep me"
 
 
 def test_pass_4_does_not_match_a_different_type_in_the_same_slot():
@@ -179,7 +229,7 @@ def test_pass_5_leaves_a_genuinely_new_node_unmatched():
     new = _cnd([_para("alpha"), _para("appended")])
 
     report = diff(old, new)
-    assert [change.new.node.text for change in report.added] == ["appended"]
+    assert [_text(change.new.node) for change in report.added] == ["appended"]
     assert report.removed == ()
 
 
@@ -204,13 +254,16 @@ def test_rebuild_with_fresh_ids_is_entirely_unchanged():
             _para("intro"),
             _heading("Section", children=[_para("nested")]),
         ],
-        bibliography=[BibEntry(id=uuid4(), label="smith2024", formatted="Smith 2024")],
-        footnotes=[Footnote(id=uuid4(), label="fn-a", text="a note")],
+        bibliography=[
+            BibEntry(id=uuid4(), label="smith2024", formatted=rt("Smith 2024"))
+        ],
+        footnotes=[Footnote(id=uuid4(), label="fn-a", children=[_para("a note")])],
     )
     new = _rebuild(old)
 
     report = diff(old, new)
-    assert len(report.unchanged) == len(report.nodes) == 3
+    # intro, Section, nested, and the footnote's paragraph.
+    assert len(report.unchanged) == len(report.nodes) == 4
     assert report.is_empty
     assert report.matcher_version == MATCHER_VERSION
     # Every node was matched to a *different* id: the point of the pass.
@@ -224,8 +277,8 @@ def test_editing_one_node_leaves_the_others_alone():
     new = _cnd([_para("alpha"), _para("beta, revised"), _para("gamma")])
 
     report = diff(old, new)
-    assert [change.new.node.text for change in report.changed] == ["beta, revised"]
-    assert [change.new.node.text for change in report.unchanged] == ["alpha", "gamma"]
+    assert [_text(change.new.node) for change in report.changed] == ["beta, revised"]
+    assert [_text(change.new.node) for change in report.unchanged] == ["alpha", "gamma"]
     assert report.added == report.removed == ()
     assert _by_text(report, "beta, revised").matched_by == "path+type"
 
@@ -237,8 +290,8 @@ def test_inserting_at_the_top_shifts_the_rest_without_losing_them():
     new = _cnd([_para("inserted"), _para("alpha"), _para("beta")])
 
     report = diff(old, new)
-    assert [change.new.node.text for change in report.added] == ["inserted"]
-    assert [change.new.node.text for change in report.moved] == ["alpha", "beta"]
+    assert [_text(change.new.node) for change in report.added] == ["inserted"]
+    assert [_text(change.new.node) for change in report.moved] == ["alpha", "beta"]
     assert report.removed == ()
     assert all(change.matched_by == "hash" for change in report.moved)
 
@@ -251,11 +304,11 @@ def test_moving_a_node_into_a_section_is_a_move_not_a_rewrite():
     report = diff(old, new)
     # The heading moved up a slot too, so both nodes are moved; only the
     # re-parented one is the subject here.
-    assert {change.new.node.text for change in report.moved} == {"Section", "body"}
+    assert {_text(change.new.node) for change in report.moved} == {"Section", "body"}
     change = _by_text(report, "body")
     assert change.status == "moved"
-    assert change.old.path == (1,)
-    assert change.new.path == (1, 1)
+    assert change.old.path == ("nodes", 0)
+    assert change.new.path == ("nodes", 0, "children", 0)
     assert change.old.node.id == body.id
 
 
@@ -266,7 +319,7 @@ def test_a_changed_node_that_also_moved_is_reported_as_changed():
 
     report = diff(old, new)
     assert [change.new.node.label for change in report.changed] == ["par-beta"]
-    assert [change.new.node.text for change in report.moved] == ["alpha"]
+    assert [_text(change.new.node) for change in report.moved] == ["alpha"]
 
 
 def test_documented_limitation_edit_plus_insertion_above_defeats_the_matcher():
@@ -284,12 +337,12 @@ def test_documented_limitation_edit_plus_insertion_above_defeats_the_matcher():
     )
 
     report = diff(old, new)
-    assert sorted(change.new.node.text for change in report.added) == [
+    assert sorted(_text(change.new.node) for change in report.added) == [
         "beta, revised",
         "inserted",
     ]
-    assert [change.old.node.text for change in report.removed] == ["beta"]
-    assert [change.new.node.text for change in report.moved] == ["alpha", "gamma"]
+    assert [_text(change.old.node) for change in report.removed] == ["beta"]
+    assert [_text(change.new.node) for change in report.moved] == ["alpha", "gamma"]
     assert report.changed == ()
 
 
@@ -306,7 +359,7 @@ def test_the_same_case_with_a_label_is_matched_exactly():
     )
 
     report = diff(old, new)
-    assert [change.new.node.text for change in report.added] == ["inserted"]
+    assert [_text(change.new.node) for change in report.added] == ["inserted"]
     assert report.removed == ()
     assert _by_text(report, "beta, revised").matched_by == "label"
 
@@ -320,6 +373,66 @@ def test_diff_order_is_new_reading_order_then_removals():
     assert statuses == ["unchanged", "moved", "removed"]
 
 
+# --- finer granularity (format 0.5) -----------------------------------
+
+
+def test_an_edited_list_item_is_reported_on_its_own():
+    """The list hashes without its items' content, so editing one item
+    changes the item's paragraph and nothing else."""
+    old = _cnd([_list(item("alpha"), item("beta"), item("gamma"))])
+    new = _cnd([_list(item("alpha"), item("beta, revised"), item("gamma"))])
+
+    report = diff(old, new)
+    assert [_text(change.new.node) for change in report.changed] == ["beta, revised"]
+    assert [change.new.node.type for change in report.unchanged] == [
+        "list",
+        "paragraph",
+        "paragraph",
+    ]
+
+
+def test_two_cells_are_two_slots():
+    """Cell 0 emptied, cell 1 edited: the edit pairs with its own cell's
+    paragraph, never with the first paragraph of another cell."""
+    first = _para("first cell")
+    second = _para("second cell")
+    old = _cnd([_table(cell(0, 0, children=[first]), cell(0, 1, children=[second]))])
+    new = _cnd([_table(cell(0, 0), cell(0, 1, "second cell, edited"))])
+
+    report = diff(old, new)
+    edited = _by_text(report, "second cell, edited")
+    assert edited.matched_by == "path+type"
+    assert edited.old.node.id == second.id
+    assert [change.old.node.id for change in report.removed] == [first.id]
+
+
+def test_footnote_content_is_matched_like_the_body():
+    old = _cnd(
+        [_para("body")],
+        footnotes=[Footnote(id=uuid4(), label="fn-a", children=[_para("note")])],
+    )
+    new = _cnd(
+        [_para("body")],
+        footnotes=[Footnote(id=uuid4(), label="fn-a", children=[_para("note, edited")])],
+    )
+
+    report = diff(old, new)
+    assert _by_text(report, "note, edited").status == "changed"
+    # The entry holds no text of its own: the change is the paragraph's.
+    assert [change.label for change in report.footnotes.unchanged] == ["fn-a"]
+
+
+def test_reordering_the_footnote_pool_changes_nothing():
+    note_a = Footnote(id=uuid4(), label="fn-a", children=[_para("first")])
+    note_b = Footnote(id=uuid4(), label="fn-b", children=[_para("second")])
+    old = _cnd([_para("alpha")], footnotes=[note_a, note_b])
+    new = _rebuild(_cnd([_para("alpha")], footnotes=[note_b, note_a]))
+
+    report = diff(old, new)
+    assert all(change.status == "unchanged" for change in report.nodes)
+    assert report.is_empty
+
+
 # --- pools ------------------------------------------------------------
 
 
@@ -327,19 +440,19 @@ def test_pool_entries_match_on_their_label_exactly():
     old = _cnd(
         [_para("alpha")],
         bibliography=[
-            BibEntry(id=uuid4(), label="smith2024", formatted="Smith, 2024"),
-            BibEntry(id=uuid4(), label="dropped2020", formatted="Gone, 2020"),
+            BibEntry(id=uuid4(), label="smith2024", formatted=rt("Smith, 2024")),
+            BibEntry(id=uuid4(), label="dropped2020", formatted=rt("Gone, 2020")),
         ],
-        footnotes=[Footnote(id=uuid4(), label="fn-a", text="a note")],
+        footnotes=[Footnote(id=uuid4(), label="fn-a", children=[_para("a note")])],
     )
     new = _cnd(
         [_para("alpha")],
         bibliography=[
             # Same label, rewritten: changed, never added/removed.
-            BibEntry(id=uuid4(), label="smith2024", formatted="Smith, J. (2024)"),
-            BibEntry(id=uuid4(), label="nguyen2023", formatted="Nguyen, 2023"),
+            BibEntry(id=uuid4(), label="smith2024", formatted=rt("Smith, J. (2024)")),
+            BibEntry(id=uuid4(), label="nguyen2023", formatted=rt("Nguyen, 2023")),
         ],
-        footnotes=[Footnote(id=uuid4(), label="fn-a", text="a note")],
+        footnotes=[Footnote(id=uuid4(), label="fn-a", children=[_para("a note")])],
     )
 
     report = diff(old, new)
@@ -352,8 +465,8 @@ def test_pool_entries_match_on_their_label_exactly():
 
 
 def test_reordering_a_pool_changes_nothing():
-    entry_a = BibEntry(id=uuid4(), label="a2020", formatted="A, 2020")
-    entry_b = BibEntry(id=uuid4(), label="b2021", formatted="B, 2021")
+    entry_a = BibEntry(id=uuid4(), label="a2020", formatted=rt("A, 2020"))
+    entry_b = BibEntry(id=uuid4(), label="b2021", formatted=rt("B, 2021"))
     old = _cnd([_para("alpha")], bibliography=[entry_a, entry_b])
     new = _cnd([_para("alpha")], bibliography=[entry_b, entry_a])
 
@@ -452,7 +565,7 @@ class TestConformanceVectors:
 
 def _doc(nodes, **kwargs) -> Cnd:
     return Cnd(
-        cnd_version="0.3.0",
+        cnd_version="0.5.0",
         built_at=datetime(2026, 7, 23),
         doc=DocMetadata(title="T"),
         nodes=nodes,
@@ -461,7 +574,7 @@ def _doc(nodes, **kwargs) -> Cnd:
 
 
 def _p(node_id: UUID, text: str, label: str | None = None) -> ParagraphNode:
-    return ParagraphNode(id=node_id, type="paragraph", text=text, label=label)
+    return ParagraphNode(id=node_id, type="paragraph", text=rt(text), label=label)
 
 
 class TestReconcile:
@@ -498,16 +611,41 @@ class TestReconcile:
     def test_pool_entries_inherit_too(self) -> None:
         previous = _doc(
             [_p(UUID(int=1), "a")],
-            footnotes=[Footnote(id=UUID(int=10), label="fn", text="note")],
+            footnotes=[
+                Footnote(
+                    id=UUID(int=10), label="fn", children=[_p(UUID(int=11), "note")]
+                )
+            ],
         )
         new = _doc(
             [_p(UUID(int=1), "a")],
-            footnotes=[Footnote(id=UUID(int=90), label="fn", text="edited")],
+            footnotes=[
+                Footnote(
+                    id=UUID(int=90), label="fn", children=[_p(UUID(int=91), "edited")]
+                )
+            ],
         )
 
         result = reconcile(new, previous)
 
         assert result.cnd.footnotes[0].id == UUID(int=10)
+        # Footnote content is nodes: matched (path+type) and inherited too.
+        assert result.cnd.footnotes[0].children[0].id == UUID(int=11)
+
+    def test_a_node_nested_in_a_container_inherits(self) -> None:
+        """The remap reaches every slot, not only heading and figure
+        children: here a paragraph inside a list item."""
+        previous = _doc(
+            [ListNode(type="list", id=UUID(int=1), items=[item(_p(UUID(int=2), "x"))])]
+        )
+        new = _doc(
+            [ListNode(type="list", id=UUID(int=91), items=[item(_p(UUID(int=92), "x"))])]
+        )
+
+        result = reconcile(new, previous)
+
+        assert [v.node.id for v in result.cnd.iter()] == [UUID(int=1), UUID(int=2)]
+        assert result.inherited == 2 and result.minted == 0
 
     def test_edges_need_no_rewriting(self) -> None:
         """Edges name their target by label (ADR 0017), so the remap never
@@ -522,16 +660,15 @@ class TestReconcile:
                 ParagraphNode(
                     id=UUID(int=92),
                     type="paragraph",
-                    text="source",
-                    refs=[NodeRef(label="t")],
+                    text=rt("source", refs=[NodeRef(label="t")]),
                 ),
             ]
         )
 
         result = reconcile(new, previous)
 
-        source = [n.node for n in result.cnd.iter() if n.node.refs][0]
-        assert source.refs[0].label == "t"
+        source = [n.node for n in result.cnd.iter() if edges_of(n.node)][0]
+        assert source.text.refs[0].label == "t"
         assert result.cnd.resolve("t").id == UUID(int=1)
 
     def test_only_exact_refuses_heuristic_pairings(self) -> None:
@@ -566,6 +703,22 @@ class TestReconcileGuards:
         with pytest.raises(ReconcileError, match="collides"):
             reconcile(new, previous)
 
+    def test_the_collision_guard_sees_footnote_content(self) -> None:
+        """A kept id inside a footnote counts as taken: the guard reads the
+        full walk."""
+        previous = _doc([_p(UUID(int=1), "alpha")])
+        new = _doc(
+            [_p(UUID(int=91), "alpha")],
+            footnotes=[
+                Footnote(
+                    id=UUID(int=95), label="fn", children=[_p(UUID(int=1), "note")]
+                )
+            ],
+        )
+
+        with pytest.raises(ReconcileError, match="collides"):
+            reconcile(new, previous)
+
     def test_a_non_injective_remap_is_refused(self) -> None:
         """The matcher cannot produce this today — each old entry is
         consumed once — so the guard is exercised directly. A guard that
@@ -596,5 +749,5 @@ class TestReconcileAgainstTheCorpus:
             result = reconcile(new, previous)
 
             assert validate(result.cnd) == [], directory.name
-            ids = [v.node.id for v in result.cnd.iter()]
+            ids = [v.node.id for v in result.cnd.iter_all()]
             assert len(set(ids)) == len(ids), f"{directory.name}: duplicate ids"
