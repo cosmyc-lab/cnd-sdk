@@ -68,7 +68,8 @@ copy it into a project (e.g. as a root file `cnd.typ`), then:
 
 `cnd.table(body, kind: ...)` records the table's `kind` for the emitter:
 `"data"` (each row a record) or `"content"` (cells to read), the CND's
-`table.kind` (spec §6.3).
+`table.kind` (spec §6.3). The hint lasts for the table only: afterwards a
+document-level `kind` you set is back, and nested hints unwind in order.
 
 `cnd.decorative(body)` marks content as purely decorative — a logo, an
 ornament, an icon — so no producer emits it (spec §2, "Decorative
