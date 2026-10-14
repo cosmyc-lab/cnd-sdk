@@ -21,7 +21,8 @@ pass is never reconsidered by a later one:
 3. ``node_hash`` alone — moved but unchanged; recovers the nodes an
    insertion shifted;
 4. structural path + ``type`` — same slot, edited content;
-5. otherwise unmatched (a new node on the ``new`` side, a removed one on
+5. (v2) ``node_hash`` alone, for containers only — see below;
+6. otherwise unmatched (a new node on the ``new`` side, a removed one on
    the ``old`` side).
 
 Ties within a pass — equal-hash duplicates, two nodes competing for one
@@ -44,7 +45,11 @@ hashes, which stops a surviving container taking the id of a deleted
 twin. Headings and figures are left out on purpose: their hash already
 carries their text or caption, and a heading whose section changed has
 not itself changed (spec §10), so a moved heading stays recognisable.
-The remaining limit: two headings or figures with identical titles can
+A last
+pass (reported as ``hash``) then pairs the containers still unmatched on
+their node hash alone, so a container whose nested content was edited and
+that also shifted position keeps its id; twins have already paired
+through the digest. The remaining limit: two headings or figures with identical titles can
 still swap. The node hash itself is unchanged.
 """
 
@@ -247,6 +252,7 @@ def match_entries(
         (PASS_HASH_PATH, _key_hash_path),
         (PASS_HASH, _key_hash),
         (PASS_PATH_TYPE, _key_path_type),
+        (PASS_HASH, _key_container_hash),
     ):
         paired, remaining_old, remaining_new = _run_pass(
             remaining_old, remaining_new, key
@@ -307,6 +313,13 @@ def _key_hash_path(entry: NodeEntry) -> Optional[tuple]:
 
 def _key_hash(entry: NodeEntry) -> Optional[tuple]:
     return (entry.hash, entry.subtree)
+
+
+def _key_container_hash(entry: NodeEntry) -> Optional[tuple]:
+    """Last pass: a container that kept its own hash, whatever its nested
+    content did. ``subtree`` is empty for non-containers (and for headings
+    and figures), which this pass leaves alone."""
+    return (entry.hash,) if entry.subtree else None
 
 
 def _key_path_type(entry: NodeEntry) -> Optional[tuple]:

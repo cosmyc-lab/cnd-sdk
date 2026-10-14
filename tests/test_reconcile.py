@@ -451,6 +451,37 @@ def test_a_container_never_takes_a_deleted_twins_id(build):
     assert [c.old.node.id for c in report.removed if c.old.node.type == first.type] == [first.id]
 
 
+def test_an_edited_table_that_also_shifted_keeps_its_id():
+    table = _table(cell(0, 0, "a"), cell(0, 1, "b"))
+    old = _cnd([_para("p"), table])
+    new = _cnd([_para("new"), _para("p"), _table(cell(0, 0, "a"), cell(0, 1, "B!"))])
+
+    report = diff(old, new)
+    change = next(c for c in report.nodes if c.new.node.type == "table")
+    assert change.old.node.id == table.id
+    assert change.status == "moved"
+
+
+def test_a_quote_that_gained_a_heading_and_moved_keeps_its_id():
+    quote = _quote(_para("q"))
+    old = _cnd([_para("p"), quote])
+    new = _cnd([_para("new"), _para("p"), _quote(_heading("H"), _para("q"))])
+
+    report = diff(old, new)
+    change = next(c for c in report.nodes if c.new.node.type == "quote")
+    assert change.old.node.id == quote.id
+
+
+def test_an_edited_list_inside_a_heading_that_shifted_keeps_its_id():
+    inner = _list(item("x"))
+    old = _cnd([_heading("H", children=[inner])])
+    new = _cnd([_para("ins"), _heading("H", children=[_list(item("x!"))])])
+
+    report = diff(old, new)
+    change = next(c for c in report.nodes if c.new.node.type == "list")
+    assert change.old.node.id == inner.id
+
+
 def test_reordering_the_footnote_pool_changes_nothing():
     note_a = Footnote(id=uuid4(), label="fn-a", children=[_para("first")])
     note_b = Footnote(id=uuid4(), label="fn-b", children=[_para("second")])
@@ -518,7 +549,7 @@ def test_diffing_against_an_empty_document(empty_side: str):
 class TestConformanceVectors:
     """`(old, new) -> expected matching` vectors (docs/adr/0018, 0020 §4).
 
-    Matching v1 is a versioned reference algorithm rather than a normative
+    Matching v2 is a versioned reference algorithm rather than a normative
     rule, and that is precisely why it needs vectors: a normative rule can
     be read off the spec, a heuristic can only be reproduced by pinning its
     output. A second implementation claiming "matching v2" reproduces these
