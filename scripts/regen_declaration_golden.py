@@ -17,7 +17,6 @@ of one.
     uv run python scripts/regen_declaration_golden.py
 """
 
-import json
 from pathlib import Path
 
 import yaml
@@ -43,11 +42,9 @@ def main() -> None:
         )
         built = build(decl, numbering=numbering)
         path = FIXTURES / cnd_name
-        path.write_text(
-            json.dumps(json.loads(built.model_dump_json()), indent=2, ensure_ascii=False)
-            + "\n",
-            encoding="utf-8",
-        )
+        # The SDK's own writer: default-valued fields omitted, the shape
+        # `cnd build` emits (docs/proposals/0013).
+        path.write_text(built.to_json() + "\n", encoding="utf-8")
         print(f"wrote {path.relative_to(ROOT)}")
 
 
