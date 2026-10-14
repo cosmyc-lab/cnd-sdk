@@ -66,9 +66,11 @@ copy it into a project (e.g. as a root file `cnd.typ`), then:
 #cnd.decorative(image("logo.png", width: 2cm))
 ```
 
-`cnd.table(body, kind: ...)` records the table's `kind` for the emitter:
-`"data"` (each row a record) or `"content"` (cells to read), the CND's
-`table.kind` (spec §6.3).
+`cnd.table(body, kind: ...)` records the table's kind for the emitter:
+`"data"` (each row a record) or `"content"` (cells to read). The state
+carries it under the dedicated key `table-kind`, which an emitter reads
+and the CND writes as `table.kind` (spec §6.3); your own metadata, a
+document-level `kind` included, is never touched.
 
 `cnd.decorative(body)` marks content as purely decorative — a logo, an
 ornament, an icon — so no producer emits it (spec §2, "Decorative
