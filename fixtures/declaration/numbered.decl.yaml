@@ -2,13 +2,15 @@
 # a skipped heading level (1 -> 3, shown as "1.0.1" — the house style
 # shows the gap rather than papering over it), per-kind figure counters
 # (the kind-less figure wrapping a table draws from the "table" counter,
-# not "image"), and block-vs-inline math (only block math is numbered).
+# not "image"), an authored counter word (`numbering.name`), and math:
+# every math node is numbered, inline math is a mark and is not, and an
+# equation inside a footnote counts after the body (full-walk order).
 #
 # numbered.cnd is this declaration's expected build output (`cnd build
 # --numbering`). Compare the two after erasing every `id` and `built_at`:
 # ids are minted fresh per build (docs/adr/0015), and `built_at` is a
 # timestamp — neither is reproducible across builds.
-declaration_version: "0.1.0"
+declaration_version: "0.2.0"
 
 doc:
   title: Numbered, declared
@@ -31,11 +33,12 @@ nodes:
         caption: Raw readings
         children:
           - type: table
+            kind: data
             cells:
-              - { row: 0, col: 0, is_header: true, text: run }
-              - { row: 0, col: 1, is_header: true, text: value }
-              - { row: 1, col: 0, text: "1" }
-              - { row: 1, col: 1, text: "3.14" }
+              - { row: 0, col: 0, is_header: true, children: [{ type: paragraph, text: run }] }
+              - { row: 0, col: 1, is_header: true, children: [{ type: paragraph, text: value }] }
+              - { row: 1, col: 0, children: [{ type: paragraph, text: "1" }] }
+              - { row: 1, col: 1, children: [{ type: paragraph, text: "3.14" }] }
 
       - type: heading
         level: 3
@@ -43,17 +46,44 @@ nodes:
         children:
           - type: math
             text: E = mc^2
-            block: true
           - type: paragraph
-            text: An inline aside follows.
-          - type: math
-            text: a^2 + b^2
-            block: false
+            text:
+              value: "An inline aside follows: a^2 + b^2."
+              marks:
+                - start: 25
+                  end: 34
+                  kind: math
+                  raw: { format: typst, value: "a^2 + b^2" }
+              footnotes:
+                - label: fn-eq
+          - type: figure
+            label: lst-open
+            kind: code
+            # The displayed counter word. Authored, not derived: the
+            # builder has no localized name for a "code" figure, so if the
+            # author wants "Listing 1" rather than nothing, the word lives
+            # here.
+            numbering: { name: Listing }
+            caption: Opening frame
+            children:
+              - type: code
+                text: "OPEN v1\n"
+                lang: text
 
       - type: figure
         kind: image
         caption: The second image
         children:
-          - type: image
-            path: detail.png
-            alt: Detail view
+          - type: layout
+            cells:
+              - { row: 0, col: 0, children: [{ type: image, path: detail.png, alt: Detail view }] }
+              - { row: 0, col: 1, children: [{ type: image, path: overview.png, alt: Overview }] }
+
+footnotes:
+  - label: fn-eq
+    children:
+      - type: paragraph
+        text: The aside rests on
+      - type: math
+        label: eq-note
+        text: c^2 = a^2 + b^2

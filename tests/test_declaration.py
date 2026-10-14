@@ -16,7 +16,12 @@ import yaml
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 
-from cnd.declaration import DECLARATION_VERSION, Declaration
+from cnd.declaration import (
+    DECLARATION_VERSION,
+    DeclParagraphNode,
+    Declaration,
+    RichText,
+)
 
 ROOT = Path(__file__).parent.parent
 SCHEMA_PATH = ROOT / "schema" / "cnd-declaration.schema.json"
@@ -63,10 +68,10 @@ class TestNothingTheBuilderDerivesIsCarried:
     merely *allowed* these fields to be absent would not prove it — these
     assert they cannot be *present*."""
 
-    # `counter_label` is NOT here: it has an authored half the builder
-    # cannot derive, so the declaration keeps it (Fable review). `number`
-    # stays — its resolved-ordinal form is dropped; the list-item override
-    # lives on DeclListItem, not a node.
+    # The counter word is NOT here: it has an authored half the builder
+    # cannot derive, so the declaration keeps it as `numbering.name`.
+    # `number` stays — its resolved-ordinal form is dropped; the list-item
+    # override lives on DeclListItem, not a node.
     DERIVED_NODE_FIELDS = ("id", "location", "number", "heading_path")
 
     def _node_properties(self) -> set[str]:
@@ -94,6 +99,21 @@ class TestNothingTheBuilderDerivesIsCarried:
         assert "id" not in defs["DeclBibEntry"]["properties"]
         assert "id" not in defs["DeclFootnote"]["properties"]
 
+    def test_the_entries_that_hold_nodes_carry_no_id(self) -> None:
+        """List items, term items and cells hold nodes; they are declared
+        fresh so that their children carry no id either."""
+        defs = _committed_schema()["$defs"]
+
+        for entry in ("DeclListItem", "DeclTermItem", "DeclCell"):
+            assert "id" not in defs[entry]["properties"], entry
+        assert "ParagraphNode" not in defs, "a CND node leaked into the schema"
+
+    def test_numbering_carries_no_value(self) -> None:
+        """The value is the counter engine's; only the word is authored."""
+        numbering = _committed_schema()["$defs"]["DeclNumbering"]
+
+        assert set(numbering["properties"]) == {"name"}
+
 
 class TestUnknownFieldsAreRejected:
     """A stray field is a rejection, not a silent drop — the point of an
@@ -101,7 +121,7 @@ class TestUnknownFieldsAreRejected:
 
     def _decl(self, node: dict) -> dict:
         return {
-            "declaration_version": "0.1.0",
+            "declaration_version": DECLARATION_VERSION,
             "doc": {"title": "T"},
             "nodes": [node],
         }
@@ -128,7 +148,7 @@ class TestUnknownFieldsAreRejected:
         with pytest.raises(ValidationError, match="bibliografy"):
             Declaration.model_validate(
                 {
-                    "declaration_version": "0.1.0",
+                    "declaration_version": DECLARATION_VERSION,
                     "doc": {"title": "T"},
                     "nodes": [],
                     "bibliografy": [],
@@ -152,17 +172,50 @@ class TestUnknownFieldsAreRejected:
     def test_strictness_is_partial_at_the_reused_value_objects(self) -> None:
         """A documented limit, pinned so it is a known boundary and not a
         surprise: a stray key *inside* a reused CND value object (here a
-        table cell) is not caught, because forbidding on it would change
+        rich text) is not caught, because forbidding on it would change
         CND parsing (docs: `_Strict`)."""
         decl = Declaration.model_validate(
             self._decl(
-                {
-                    "type": "table",
-                    "cells": [{"row": 0, "col": 0, "text": "x", "txet": "typo"}],
-                }
+                {"type": "paragraph", "text": {"value": "x", "marsk": []}}
             )
         )
-        assert decl.nodes[0].cells[0].text == "x"
+        assert decl.nodes[0].text.value == "x"
+
+    def test_a_typo_inside_a_cell_is_now_rejected(self) -> None:
+        """Cells hold nodes, so the declaration declares its own strict
+        cell: the boundary moved past it."""
+        with pytest.raises(ValidationError, match="txet"):
+            Declaration.model_validate(
+                self._decl(
+                    {"type": "table", "cells": [{"row": 0, "col": 0, "txet": "x"}]}
+                )
+            )
+
+    def test_a_typo_inside_a_list_item_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="chekced"):
+            Declaration.model_validate(
+                self._decl({"type": "list", "items": [{"chekced": True}]})
+            )
+
+    def test_a_numbering_value_is_rejected(self) -> None:
+        """A declaration cannot smuggle in the value the engine resolves."""
+        with pytest.raises(ValidationError, match="value"):
+            Declaration.model_validate(
+                self._decl(
+                    {"type": "figure", "numbering": {"name": "Listing", "value": "3"}}
+                )
+            )
+
+    def test_the_0_4_fields_are_rejected(self) -> None:
+        """`counter_label`, a node-level `refs` and a list item's `text`
+        were 0.4 shapes; a 0.4 declaration fails loudly, not silently."""
+        for node in (
+            {"type": "figure", "counter_label": "Listing"},
+            {"type": "paragraph", "text": "x", "refs": [{"label": "a"}]},
+            {"type": "list", "items": [{"text": "x"}]},
+        ):
+            with pytest.raises(ValidationError):
+                Declaration.model_validate(self._decl(node))
 
 
 class TestWhatTheDeclarationKeeps:
@@ -180,18 +233,18 @@ class TestWhatTheDeclarationKeeps:
 
         assert "number" in item
 
-    def test_counter_label_is_kept_on_every_counter_bearing_node(self) -> None:
+    def test_numbering_is_kept_on_every_counter_bearing_node(self) -> None:
         """The authored counter word — with no `kind` on a heading or
         equation it is purely authored, so dropping it while keeping the
         list-number override would split the same authored/derived line two
-        opposite ways (Fable review)."""
+        opposite ways."""
         defs = _committed_schema()["$defs"]
 
         for node in ("DeclHeadingNode", "DeclMathNode", "DeclFigureNode"):
-            assert "counter_label" in defs[node]["properties"], node
+            assert "numbering" in defs[node]["properties"], node
 
     def test_the_resolved_number_is_still_stripped_from_those_nodes(self) -> None:
-        """`counter_label` returns but `number` (the running counter value)
+        """`numbering.name` is kept but `number` (the running counter value)
         stays out — it has no authored half on a heading/math/figure."""
         defs = _committed_schema()["$defs"]
 
@@ -225,3 +278,66 @@ class TestVersioning:
             yaml.safe_load(next(iter(_declarations())).read_text())
         )
         assert built.declaration_version == DECLARATION_VERSION
+
+
+#: Every RichText slot of the CND, as (declaration model, field).
+RICH_TEXT_SLOTS = [
+    ("DeclHeadingNode", "text"),
+    ("DeclParagraphNode", "text"),
+    ("DeclQuoteNode", "attribution"),
+    ("DeclFigureNode", "caption"),
+    ("DeclFigureNode", "description"),
+    ("DeclAdmonitionNode", "title"),
+    ("DeclTermItem", "term"),
+    ("DeclBibEntry", "formatted"),
+]
+
+
+class TestShorthand:
+    """Wherever the CND holds a RichText, a declaration accepts a plain
+    string or the full object (docs/proposals/0013, "Declaration")."""
+
+    @pytest.mark.parametrize(("model", "field"), RICH_TEXT_SLOTS)
+    def test_the_schema_accepts_both_forms(self, model: str, field: str) -> None:
+        prop = _committed_schema()["$defs"][model]["properties"][field]
+        forms = {
+            option.get("type") or option.get("$ref") for option in prop["anyOf"]
+        }
+
+        assert {"string", "#/$defs/RichText"} <= forms
+
+    def test_a_string_and_its_object_build_the_same_text(self) -> None:
+        short = DeclParagraphNode(type="paragraph", text="Hello")
+        full = DeclParagraphNode(type="paragraph", text={"value": "Hello"})
+
+        assert short.text == full.text == RichText(value="Hello")
+
+    def test_the_object_form_carries_marks_and_every_link_family(self) -> None:
+        """The full form is the CND's own RichText, so hyperlinks are
+        declarable too (the gap ADR 0024 left open)."""
+        decl = Declaration.model_validate(
+            {
+                "declaration_version": DECLARATION_VERSION,
+                "doc": {"title": "T"},
+                "nodes": [
+                    {
+                        "type": "paragraph",
+                        "text": {
+                            "value": "See the site.",
+                            "marks": [{"start": 0, "end": 3, "kind": "strong"}],
+                            "links": [
+                                {"href": "https://example.org", "text_span": [8, 12]}
+                            ],
+                        },
+                    }
+                ],
+            }
+        )
+        text = decl.nodes[0].text
+
+        assert text.marks[0].kind == "strong"
+        assert text.links[0].href == "https://example.org"
+
+    def test_the_value_is_kept_byte_for_byte(self) -> None:
+        raw = "  two  spaces\tand a tab \n trailing "
+        assert DeclParagraphNode(type="paragraph", text=raw).text.value == raw
