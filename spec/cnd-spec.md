@@ -99,8 +99,8 @@ part of the document. A producer MUST NOT emit it: it yields no node, no
 text inside another text, no pool entry, and no link edge.
 Everything nested inside decorative content is decorative, whatever its
 kind. A label inside it does not exist in the CND, so a reference to it
-from kept content yields no edge (its rendered text, if any, stays in the
-`value` of the kept text). A footnote declared inside it gets no pool
+from kept content yields no edge (the text the reference displays, if
+any, stays in the `value` of the kept text). A footnote declared inside it gets no pool
 entry, and no marker — its own or a re-reference — yields an edge to it;
 a kept footnote keeps the label the built document shows, even when a
 decorative one consumed a number before it. A marker written inside
@@ -215,7 +215,7 @@ Every slot that holds prose is a `RichText` object (§6, principle 1).
 | `links` | array of [`LinkRef`](#5-cross-references-and-link-families) | Outgoing hyperlinks, resolving nowhere in the CND. |
 
 ```json
-{ "type": "paragraph",
+{ "id": "…", "type": "paragraph",
   "text": { "value": "See Figure 2: the rate rose 103 times.",
             "marks": [ { "start": 30, "end": 31, "kind": "sup" } ],
             "refs":  [ { "label": "fig-rate", "text_span": [4, 12] } ] } }
@@ -236,7 +236,7 @@ Every slot that holds prose is a `RichText` object (§6, principle 1).
   `lang` covers a whole text; a foreign phrase
   inside a sentence is not modeled.
 - **Empty lists may be omitted.** Every list field defaults to empty, so
-  a plain paragraph is `{"type": "paragraph", "text": {"value": "…"}}`.
+  a plain paragraph is `{"id": "…", "type": "paragraph", "text": {"value": "…"}}`.
   Omitting an empty list and writing it out are the same content and
   hash the same (§10).
 
@@ -1239,11 +1239,25 @@ escaping, link notation).
 Because the declaration is authored by hand, an **unknown field is
 rejected rather than dropped** — a `capton` typed for `caption` raises
 instead of vanishing, so the mistake surfaces exactly where it is meant
-to be corrected. (This strictness reaches the declaration's own node and
-top-level fields; a stray key inside a value object it shares with the
-CND, like a table cell, is not caught.) Hyperlinks in declarations remain
-out of scope: the declarative door does not yet have a way to express
-one (docs/adr/0024).
+to be corrected. (This strictness reaches the declaration's own models:
+nodes, list items, term items, cells, footnotes, `numbering` and the top
+level. A stray key inside a value object it shares with the CND — a
+`RichText`, a mark, a link edge, the document metadata — is not caught.)
+
+**Hyperlinks.** The full object form of a text is the CND's own
+`RichText`, so a declaration carries `links` exactly as it carries
+`refs`, `cites` and `footnotes`. The gap docs/adr/0024 recorded — the
+declarative door had no way to express a hyperlink — is closed by rich
+text.
+
+**Numbering.** A counter-bearing node (`heading`, `math`, `figure`) may
+author `numbering: {name: "Listing"}`, the word without its value. The
+builder's counter engine, when it runs, numbers every heading, figure
+and equation in full-walk order (§8) and pairs each value with the
+authored word, if any. When the engine does not run, an authored
+`numbering` cannot be built — a CND cannot hold a word without a value —
+and the builder reports it rather than dropping it. A list item's
+`number` stays an authored override of the sequential ordinal.
 
 One constraint the builder inherits from carrying spans: a mark or an
 edge's `text_span` indexes into the `value` of its `RichText` (§4.1),
