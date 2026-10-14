@@ -30,17 +30,23 @@ _LABEL_SAFE_PUNCTUATION = frozenset("-._:")
 
 def markdown_label(label: str) -> str:
     """``label`` as the converter writes it in Markdown: letters, digits
-    (any script) and ``-._:`` as they are, every other character
-    percent-encoded as UTF-8 (``%`` included).
+    (any script) and ``-._:`` as they are when case folding leaves them
+    unchanged, every other character percent-encoded as UTF-8 (``%``
+    included).
 
     A label is free text (spec §4), but a GFM footnote label stops at a
     space or a ``]`` and a bracketed marker must not turn into a link or
     HTML. The mapping is injective — ``urllib.parse.unquote`` undoes it —
-    so two labels never meet, and a footnote marker and its definition,
+    and it stays injective under Unicode case folding, which is how
+    CommonMark and GFM compare labels: an upper-case letter, ``ß``, a
+    final sigma or a ligature is encoded, so ``Fn`` and ``fn`` never
+    fold to one label (only the hex digits of an escape fold, and they
+    decode the same either way). A footnote marker and its definition,
     written through this one function, still match.
     """
     return "".join(
-        ch if ch.isalnum() or ch in _LABEL_SAFE_PUNCTUATION
+        ch
+        if (ch.isalnum() or ch in _LABEL_SAFE_PUNCTUATION) and ch.casefold() == ch
         else "".join(f"%{byte:02X}" for byte in ch.encode("utf-8", "surrogatepass"))
         for ch in label
     )

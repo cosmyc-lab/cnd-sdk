@@ -93,9 +93,42 @@ class TestMarkdownLabels:
         assert not {"html_inline", "html_block"} & set(types)
         assert types.count("heading_open") == 2
 
-    @pytest.mark.parametrize("label", ["fig-1", "eq:2", "fig_1", "durand2025", "fig-é", "Ünïcode.v2"])
+    @pytest.mark.parametrize("label", ["fig-1", "eq:2", "fig_1", "durand2025", "fig-é", "ünïcode.v2"])
     def test_ordinary_labels_are_unchanged(self, label: str) -> None:
         assert markdown_label(label) == label
+
+    @pytest.mark.parametrize(
+        "pair",
+        [
+            ("Fn", "fn"),
+            ("FIG-1", "fig-1"),
+            ("ß", "ss"),
+            ("ß", "SS"),
+            ("\u212a", "k"),  # KELVIN SIGN folds to k
+            ("ς", "σ"),  # final sigma folds to sigma
+            ("Ünïcode", "ünïcode"),
+            ("ﬁx", "fix"),  # the fi ligature folds to "fi"
+        ],
+    )
+    def test_labels_differing_only_by_case_stay_apart(self, pair: tuple[str, str]) -> None:
+        """CommonMark and GFM match labels after Unicode case folding, so
+        two distinct labels must not fold to one mapped label (CND-38)."""
+        a, b = pair
+        assert markdown_label(a).casefold() != markdown_label(b).casefold()
+
+    def test_mapped_labels_are_fixed_points_of_case_folding_except_hex(self) -> None:
+        """Every kept character folds to itself; only the upper-case hex
+        digits of an escape fold, and those decode the same either way."""
+        for label in HOSTILE + ["Fn", "ß", "\u212a", "ς", "ﬁx", "Ünïcode.v2"]:
+            mapped = markdown_label(label)
+            assert unquote(mapped.casefold()) == unquote(mapped) == label
+
+    def test_case_variants_resolve_to_their_own_footnote(self) -> None:
+        """Footnotes ``Fn`` and ``fn`` keep separate definitions under a
+        case-insensitive reader: no two definition labels fold alike."""
+        labels = ["Fn", "fn", "ß", "ss", "SS"]
+        defs = {markdown_label(label).casefold() for label in labels}
+        assert len(defs) == len(labels)
 
     def test_the_mapping_is_injective(self) -> None:
         """``unquote`` undoes it, so no two labels map to one."""
