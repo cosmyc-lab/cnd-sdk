@@ -107,10 +107,10 @@ the corpus matches, carrying all four vector kinds the same ADR requires
 (foreign format → declaration) is not here and never will be: it belongs
 with the producers, not the hub (same ADR, §2).
 
-`diff` sits apart from the other four: matching v1 is a **versioned
+`diff` sits apart from the other four: matching v2 is a **versioned
 reference algorithm, not a normative rule**
 ([`docs/adr/0018`](docs/adr/0018-reconciliation-reference-algorithm.md)).
-Reproducing `matching.json` proves an implementation runs v1 — it is not
+Reproducing `matching.json` proves an implementation runs v2 — it is not
 something the format requires of anyone.
 
 ## Reconciliation

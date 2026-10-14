@@ -1,4 +1,4 @@
-"""Node matching across two CNDs — reference algorithm "matching v1"
+"""Node matching across two CNDs — reference algorithm "matching v2"
 (docs/adr/0018).
 
 The matcher answers "is this the same node as in the previous build?"
@@ -27,27 +27,33 @@ pass is never reconsidered by a later one:
 Ties within a pass — equal-hash duplicates, two nodes competing for one
 slot — break by reading order: the earliest unmatched candidate wins.
 
-**On format 0.5** (docs/proposals/0013) the passes and keys are those of
-v1; only the node set and the path are finer. The matcher walks the full
-walk (spec §8): every node of the body, including those inside list
-items, term items, cells, quotes and admonitions, then the content of
-every footnote. The structural path is the spec §8 path, so the first
-paragraphs of two different cells sit in two different slots. On a tree
-whose only slots are ``children`` it gives exactly the equalities the
-earlier sibling-index path gave, which is why the version stays ``v1``.
-Finer nodes make the matcher finer too: an edited list item is matched
-and reported on its own, where a whole list used to be marked changed.
+**Matching v2** (format 0.5, docs/proposals/0013) keeps the passes of v1
+and changes what they run over. The matcher walks the full walk (spec
+§8): every node of the body, including those inside list items, term
+items, cells, quotes and admonitions, then the content of every
+footnote. The structural path is the spec §8 path, so the first
+paragraphs of two different cells sit in two different slots; inside a
+footnote the pool index is replaced by the note's label, so reordering
+the pool moves nothing. Finer nodes make the matcher finer too: an
+edited list item is matched and reported on its own, where a whole list
+used to be marked changed. Finally, a node hash excludes nested nodes
+(spec §10), so two containers of the same shape hash alike; in the two
+hash passes a node with child slots is therefore keyed on its node hash
+plus a digest of its descendants' hashes, which stops a surviving
+container taking the id of a deleted twin. The node hash itself is
+unchanged.
 """
 
+import hashlib
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Literal, Optional
 
 from cnd.core.cnd import BibEntry, Cnd, Footnote
 from cnd.core.hashing import node_hash, pool_entry_hash
-from cnd.core.nodes import CndNode
+from cnd.core.nodes import CndNode, child_slots
 
-MATCHER_VERSION = "v1"
+MATCHER_VERSION = "v2"
 """The version of the reference algorithm implemented here (docs/adr/0018)."""
 
 MatchPass = Literal["label", "hash+path", "hash", "path+type"]
@@ -80,6 +86,9 @@ class NodeEntry:
     path: StructuralPath
     hash: str
     order: int
+    subtree: str = ""
+    """Digest of the hashes of every nested node, in order; empty for a
+    node without child slots. A matching key only, never a content hash."""
 
     @property
     def label(self) -> Optional[str]:
@@ -148,15 +157,49 @@ def entries(cnd: Cnd) -> list[NodeEntry]:
     (``PoolDiff``), so the content of a note must not be reported moved
     because the pool was reordered.
     """
-    return [
-        NodeEntry(
-            node=visit.node,
-            path=_matching_path(cnd, visit.ctx.path),
-            hash=node_hash(visit.node),
-            order=order,
+    hashes: dict[int, str] = {}
+    subtrees: dict[int, str] = {}
+    result: list[NodeEntry] = []
+    for order, visit in enumerate(cnd.iter_all(), start=1):
+        node = visit.node
+        result.append(
+            NodeEntry(
+                node=node,
+                path=_matching_path(cnd, visit.ctx.path),
+                hash=_hash_of(node, hashes),
+                order=order,
+                subtree=_subtree_of(node, hashes, subtrees),
+            )
         )
-        for order, visit in enumerate(cnd.iter_all(), start=1)
-    ]
+    return result
+
+
+def _hash_of(node: CndNode, hashes: dict[int, str]) -> str:
+    if id(node) not in hashes:
+        hashes[id(node)] = node_hash(node)
+    return hashes[id(node)]
+
+
+def _subtree_of(
+    node: CndNode, hashes: dict[int, str], subtrees: dict[int, str]
+) -> str:
+    """Digest of the descendants' hashes in preorder, slot by slot."""
+    if id(node) in subtrees:
+        return subtrees[id(node)]
+    slots = child_slots(node)
+    if not slots:
+        subtrees[id(node)] = ""
+        return ""
+    parts: list[str] = []
+    for slot in slots:
+        parts.append("[")
+        for child in slot.nodes:
+            parts.append(_hash_of(child, hashes))
+            parts.append(_subtree_of(child, hashes, subtrees))
+        parts.append("]")
+    digest = hashlib.sha256("|".join(parts).encode()).hexdigest()
+    subtrees[id(node)] = digest
+    return digest
 
 
 def _matching_path(cnd: Cnd, path: tuple[str | int, ...]) -> StructuralPath:
@@ -174,7 +217,7 @@ def pool_entries(pool: Iterable["BibEntry | Footnote"]) -> list[PoolEntry]:
 
 
 def match_nodes(old: Cnd, new: Cnd) -> NodeMatching:
-    """Pair the nodes of ``old`` and ``new`` under matching v1."""
+    """Pair the nodes of ``old`` and ``new`` under matching v2."""
     return match_entries(entries(old), entries(new))
 
 
@@ -251,11 +294,11 @@ def _key_label(entry: NodeEntry) -> Optional[tuple]:
 
 
 def _key_hash_path(entry: NodeEntry) -> Optional[tuple]:
-    return (entry.hash, entry.path)
+    return (entry.hash, entry.subtree, entry.path)
 
 
 def _key_hash(entry: NodeEntry) -> Optional[tuple]:
-    return (entry.hash,)
+    return (entry.hash, entry.subtree)
 
 
 def _key_path_type(entry: NodeEntry) -> Optional[tuple]:

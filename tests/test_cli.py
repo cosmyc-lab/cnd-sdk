@@ -157,7 +157,7 @@ class TestDiff:
         _, out, _ = _run(capsys, "diff", *self._pair("01-label-survives-edit-and-move"))
 
         assert "via label" in out
-        assert "matching v1" in out
+        assert "matching v2" in out
 
     def test_an_identical_pair_reports_nothing_changed(self, capsys) -> None:
         code, out, _ = _run(

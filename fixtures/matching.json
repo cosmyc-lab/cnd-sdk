@@ -1,5 +1,5 @@
 {
-  "matcher_version": "v1",
+  "matcher_version": "v2",
   "cases": {
     "01-label-survives-edit-and-move": {
       "why": "A labelled node is paired even when both its content and its slot changed.",
@@ -175,7 +175,7 @@
       "nodes": [
         {
           "status": "unchanged",
-          "matched_by": "hash+path",
+          "matched_by": "path+type",
           "old_id": "00000000-0000-4000-c008-000000000001",
           "new_id": "00000000-0000-4000-c008-000000000005"
         },
@@ -205,7 +205,7 @@
       "nodes": [
         {
           "status": "unchanged",
-          "matched_by": "hash+path",
+          "matched_by": "path+type",
           "old_id": "00000000-0000-4000-c009-000000000001",
           "new_id": "00000000-0000-4000-c009-000000000004"
         },

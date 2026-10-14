@@ -1,4 +1,4 @@
-"""Reconciliation — matching v1 and the diff built on it (docs/adr/0018).
+"""Reconciliation — matching v2 and the diff built on it (docs/adr/0018).
 
 Two kinds of test live here. The per-pass tests pin *which* key matched a
 pair, and each is built so that only the pass under test can match the
@@ -26,6 +26,7 @@ from cnd import (
     ListNode,
     NodeRef,
     ParagraphNode,
+    QuoteNode,
     TableNode,
     edges_of,
     validate,
@@ -302,9 +303,12 @@ def test_moving_a_node_into_a_section_is_a_move_not_a_rewrite():
     new = _cnd([_heading("Section", children=[_para("body")])])
 
     report = diff(old, new)
-    # The heading moved up a slot too, so both nodes are moved; only the
-    # re-parented one is the subject here.
-    assert {_text(change.new.node) for change in report.moved} == {"Section", "body"}
+    # The heading moved up a slot and gained a child. A container is keyed
+    # on its nested content too (matching v2), so the hash passes no longer
+    # pair it, and it moved slot, so path+type does not either: it is
+    # reported added. The re-parented paragraph is the subject here.
+    assert {_text(change.new.node) for change in report.moved} == {"body"}
+    assert _by_text(report, "Section").status == "added"
     change = _by_text(report, "body")
     assert change.status == "moved"
     assert change.old.path == ("nodes", 0)
@@ -422,6 +426,34 @@ def test_footnote_content_is_matched_like_the_body():
     assert [change.label for change in report.footnotes.unchanged] == ["fn-a"]
 
 
+def _quote(*children) -> QuoteNode:
+    return QuoteNode(type="quote", id=uuid4(), children=list(children))
+
+
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda a, b: _list(item(a), item(b)),
+        lambda a, b: _quote(_para(a), _para(b)),
+        lambda a, b: _table(cell(0, 0, a), cell(0, 1, b)),
+    ],
+    ids=["list", "quote", "table"],
+)
+def test_a_container_never_takes_a_deleted_twins_id(build):
+    """Containers hash without their nested nodes, so two of the same shape
+    hash alike: the matcher keys them on the nested content too."""
+    first = build("a1", "a2")
+    second = build("b1", "b2")
+    old = _cnd([first, second])
+    new = _cnd([build("b1", "b2")])
+
+    report = diff(old, new)
+    survivor = next(c for c in report.nodes if c.new is not None and c.new.node.type == first.type)
+    assert survivor.old.node.id == second.id
+    assert survivor.status != "changed"
+    assert [c.old.node.id for c in report.removed if c.old.node.type == first.type] == [first.id]
+
+
 def test_reordering_the_footnote_pool_changes_nothing():
     note_a = Footnote(id=uuid4(), label="fn-a", children=[_para("first")])
     note_b = Footnote(id=uuid4(), label="fn-b", children=[_para("second")])
@@ -492,7 +524,7 @@ class TestConformanceVectors:
     Matching v1 is a versioned reference algorithm rather than a normative
     rule, and that is precisely why it needs vectors: a normative rule can
     be read off the spec, a heuristic can only be reproduced by pinning its
-    output. A second implementation claiming "matching v1" reproduces these
+    output. A second implementation claiming "matching v2" reproduces these
     or it is running a different algorithm.
     """
 

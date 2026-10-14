@@ -19,9 +19,9 @@ four vector kinds ADR 0020 §4 requires (``hashes.json``,
 pairs under ``fixtures/declaration/``).
 
 ``diff`` is the odd one out and worth flagging to anyone comparing
-implementations: matching v1 is a *versioned reference algorithm*, not a
+implementations: matching v2 is a *versioned reference algorithm*, not a
 normative rule (docs/adr/0018). Reproducing ``matching.json`` proves an
-implementation runs v1; it is not a conformance requirement on the
+implementation runs v2; it is not a conformance requirement on the
 format, and a later version may legitimately differ.
 
 Output is human-readable by default and machine-readable under ``--json``,
@@ -109,7 +109,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "diff",
         help="what moved between two builds of a document",
         description=(
-            "Matching v1 (docs/adr/0018) over two CNDs: each node is added, "
+            "Matching v2 (docs/adr/0018) over two CNDs: each node is added, "
             "removed, changed, moved or unchanged, plus a label-keyed diff "
             "of both pools. A versioned reference algorithm, NOT part of "
             "the format — exact for labelled nodes, best-effort for the "
