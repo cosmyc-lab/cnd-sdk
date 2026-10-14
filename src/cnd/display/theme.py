@@ -149,25 +149,30 @@ def stat_cell(label: str, value: str) -> Text:
 
 def document_panel(cnd: Cnd) -> Panel:
     doc = cnd.doc
-    doc_table = Table.grid(expand=True)
+    # Every value is CND data: wrapped in Text so Rich never reads it as markup.
+    doc_table = Table.grid(expand=True, padding=(0, 1))
     doc_table.add_column(style="dim", ratio=1)
     doc_table.add_column(style="white", ratio=3)
-    doc_table.add_row("title", doc.title)
+
+    def add(key: str, value: str) -> None:
+        doc_table.add_row(Text(key), Text(value))
+
+    add("title", doc.title)
     # The format version; `version` below is the author's own (spec §3).
-    doc_table.add_row("format", f"v{cnd.cnd_version}")
-    doc_table.add_row("paginated", "yes" if cnd.paginated else "no")
+    add("format", f"v{cnd.cnd_version}")
+    add("paginated", "yes" if cnd.paginated else "no")
     if cnd.source:
-        doc_table.add_row("source", f"{cnd.source.type}   {cnd.source.hash}")
+        add("source", f"{cnd.source.type}   {cnd.source.hash}")
     if doc.lang:
-        doc_table.add_row("lang", doc.lang)
+        add("lang", doc.lang)
     if doc.authors:
-        doc_table.add_row("authors", ", ".join(doc.authors))
+        add("authors", ", ".join(doc.authors))
     if doc.status:
-        doc_table.add_row("status", doc.status)
+        add("status", doc.status)
     if doc.version:
-        doc_table.add_row("version", doc.version)
+        add("version", doc.version)
     for key, value in doc.extra.items():
-        doc_table.add_row(key, value)
+        add(key, value)
     return Panel(
         doc_table,
         title="[bold]Document[/]",
@@ -293,7 +298,7 @@ def pool_panel(title: str, rows: Sequence[tuple[str, str, str]]) -> Panel:
     grid.add_column(style="white", ratio=1)
     grid.add_column(style="dim", no_wrap=True, justify="right")
     for label, body, meta in rows:
-        grid.add_row(label, body, meta)
+        grid.add_row(Text(label), Text(body), Text(meta))
     return Panel(
         grid,
         title=f"[bold]{title}[/]",

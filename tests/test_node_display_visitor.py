@@ -19,7 +19,7 @@ from ids import (
     TABLE001_ID,
 )
 
-from cnd.core.cnd import Cnd, DocMetadata
+from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
 from cnd.core.nodes import HeadingNode
 from cnd.core.text import LinkRef
 from cnd.visitors.node_display_visitor import NodeDisplayVisitor
@@ -394,3 +394,35 @@ class TestFormatZeroFiveElements:
         assert "https://example.org[8:12]" in text
         # A hyperlink resolves nowhere: it is not counted as a cross-ref.
         assert visitor._refs_total == 0
+
+
+class TestMarkupIsNeverInterpreted:
+    """Text from a CND is data: Rich markup in it neither styles nor raises."""
+
+    HOSTILE = ("[bold red]x[/]", "[/oops]")
+
+    def test_cnd_text_is_shown_literally(self) -> None:
+        for hostile in self.HOSTILE:
+            cnd = Cnd(
+                cnd_version="0.5.0",
+                built_at=datetime(2026, 10, 14, tzinfo=timezone.utc),
+                doc=DocMetadata(
+                    title=hostile,
+                    status=hostile,
+                    version=hostile,
+                    authors=[hostile],
+                    lang=hostile,
+                    extra={f"k{hostile}": f"v{hostile}"},
+                ),
+                nodes=[para(f"p {hostile}")],
+                bibliography=[BibEntry(id=uuid4(), label=f"b{hostile}", formatted=rt(hostile), title=hostile)],
+                footnotes=[Footnote(id=uuid4(), label=f"f{hostile}", children=[para(hostile)])],
+            )
+            output = io.StringIO()
+            console = Console(file=output, width=400, force_terminal=False, no_color=True)
+
+            NodeDisplayVisitor(console=console, truncate_text=False).visit(cnd)
+
+            text = output.getvalue()
+            assert text.count(hostile) >= 5
+            assert f"k{hostile}" in text and f"v{hostile}" in text
