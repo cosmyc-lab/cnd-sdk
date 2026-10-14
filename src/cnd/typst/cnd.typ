@@ -18,19 +18,25 @@
 #let metadata = state("cnd.metadata", (:))
 
 // Wraps already-built content (typically a `table(..)` call) and brackets it
-// with a `content_kind` hint ("data" | "content") in the cnd.metadata state.
-// Pass the content in — don't let this function build it: the source snippet
-// emitters record for a table comes from the table's own span, which must
-// stay at the document's call site (ADR 0023).
-#let table(body, content_kind: none) = {
-  if content_kind == none {
+// with the table's kind in the cnd.metadata state: "data" (a dataset of
+// records) or "content" (cells to read). Any other string passes through:
+// the kind is an open vocabulary. The author writes `kind:`; the state
+// carries it under the dedicated key `table-kind`, which an emitter reads
+// and the CND writes as `table.kind` (spec §6.3). A dedicated key never
+// collides with the author's own metadata, such as a document-level `kind`,
+// so the hint is set before the table and removed after it, with nothing
+// to read back or restore. Pass the content in — don't let this function
+// build it: the source snippet emitters record for a table comes from the
+// table's own span, which must stay at the document's call site (ADR 0023).
+#let table(body, kind: none) = {
+  if kind == none {
     return body
   }
-  metadata.update(it => it + (content_kind: content_kind))
+  metadata.update(it => it + ("table-kind": kind))
   body
   metadata.update(it => {
     let d = it
-    let _ = d.remove("content_kind", default: none)
+    let _ = d.remove("table-kind", default: none)
     d
   })
 }

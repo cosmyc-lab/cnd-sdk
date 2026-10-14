@@ -15,7 +15,8 @@ import yaml
 from pydantic import ValidationError
 
 from cnd.builder import BuildError, build
-from cnd.core.cnd import CND_VERSION
+from cnd.core.cnd import CND_VERSION, Cnd
+from cnd.core.nodes import HeadingNode, Numbering
 from cnd.declaration import DECLARATION_VERSION, Declaration
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "declaration"
@@ -32,6 +33,16 @@ def _decl(nodes: list[dict], **top) -> Declaration:
     return Declaration.model_validate(payload)
 
 
+def _p(text: str) -> dict:
+    """A declared paragraph, in the string shorthand."""
+    return {"type": "paragraph", "text": text}
+
+
+def _item(text: str, **kwargs) -> dict:
+    """A declared list item holding one paragraph."""
+    return {"children": [_p(text)], **kwargs}
+
+
 class TestTranscription:
     def test_stamps_version_time_and_fresh_ids(self) -> None:
         decl = _decl(
@@ -41,7 +52,7 @@ class TestTranscription:
                 ]},
             ],
             bibliography=[{"label": "k1", "title": "W", "year": 2020}],
-            footnotes=[{"label": "f1", "text": "note"}],
+            footnotes=[{"label": "f1", "children": [_p("note")]}],
         )
 
         cnd = build(decl)
@@ -49,9 +60,10 @@ class TestTranscription:
         assert cnd.cnd_version == CND_VERSION
         assert cnd.built_at.tzinfo is not None
         assert cnd.built_at.utcoffset().total_seconds() == 0
-        ids = {v.node.id for v in cnd.iter()}
+        ids = {v.node.id for v in cnd.iter_all()}
         ids |= {cnd.id, cnd.bibliography[0].id, cnd.footnotes[0].id}
-        assert len(ids) == 5  # heading, paragraph, doc, bib entry, footnote
+        # heading, paragraph, footnote paragraph, doc, bib entry, footnote
+        assert len(ids) == 6
 
     def test_two_builds_mint_different_ids(self) -> None:
         decl = _decl([{"type": "paragraph", "text": "p"}])
@@ -62,7 +74,7 @@ class TestTranscription:
         # Weird spacing is the point: any normalization shifts text_spans.
         text = "  two  spaces\tand a tab \n trailing "
         decl = _decl([{"type": "paragraph", "text": text}])
-        assert build(decl).nodes[0].text == text
+        assert build(decl).nodes[0].text.value == text
 
     def test_heading_path_is_ancestors_plus_self_bare_when_unnumbered(self) -> None:
         decl = _decl(
@@ -81,29 +93,30 @@ class TestTranscription:
         sub = top.children[0]
         assert top.heading_path == ["Top"]
         assert sub.heading_path == ["Top", "Sub"]
-        assert top.number is None and sub.number is None
+        assert top.numbering is None and sub.numbering is None
 
     def test_never_paginated_and_authored_fields_survive(self) -> None:
         decl = _decl(
             [
                 {"type": "figure", "kind": "code", "label": "lst-a",
-                 "counter_label": "Listing", "caption": "cap", "children": [
+                 "numbering": {"name": "Listing"}, "caption": "cap", "children": [
                     {"type": "code", "text": "x\n", "lang": "text"},
                  ]},
-                {"type": "paragraph", "text": "see", "refs": [{"label": "lst-a"}],
+                {"type": "paragraph",
+                 "text": {"value": "see", "refs": [{"label": "lst-a"}]},
                  "state_metadata": {"k": "v"}},
             ],
             source={"type": "markdown", "hash": "sha256:00", "uri": "a.md"},
         )
 
-        cnd = build(decl)
+        cnd = build(decl, numbering=True)
 
         assert cnd.paginated is False
-        assert all(v.node.location is None for v in cnd.iter())
+        assert all(v.node.location is None for v in cnd.iter_all())
         figure = cnd.nodes[0]
-        assert figure.counter_label == "Listing"  # authored, passed through
-        assert figure.number is None              # engine off by default
-        assert cnd.nodes[1].refs[0].label == "lst-a"
+        # The authored word passes through; the engine supplies the value.
+        assert figure.numbering == Numbering(value="1", name="Listing")
+        assert cnd.nodes[1].text.refs[0].label == "lst-a"
         assert cnd.nodes[1].state_metadata == {"k": "v"}
         assert cnd.source is not None and cnd.source.uri == "a.md"
 
@@ -111,35 +124,122 @@ class TestTranscription:
         decl = _decl(
             [
                 {"type": "heading", "level": 1, "text": "H"},
-                {"type": "paragraph", "text": "p", "lang": "en"},
-                {"type": "table", "kind": "grid",
-                 "cells": [{"row": 0, "col": 0, "text": "c"}]},
-                {"type": "quote", "text": "q", "attribution": "A"},
-                {"type": "code", "text": "c", "lang": "py", "block": False},
-                {"type": "math", "text": "x", "block": True},
-                {"type": "figure", "caption": "f"},
+                {"type": "paragraph", "text": {"value": "p", "lang": "en"}},
+                {"type": "table", "kind": "data",
+                 "cells": [{"row": 0, "col": 0, "children": [_p("c")]}]},
+                {"type": "quote", "attribution": "A", "children": [_p("q")]},
+                {"type": "code", "text": "c", "lang": "py", "title": "a.py"},
+                {"type": "math", "text": "x"},
+                {"type": "figure", "caption": "f", "description": "d"},
                 {"type": "image", "path": "i.png", "alt": "alt"},
-                {"type": "list", "ordered": False, "items": [{"text": "i"}]},
-                {"type": "terms", "items": [{"term": "t", "description": "d"}]},
+                {"type": "list", "ordered": False,
+                 "items": [_item("i", checked=True)]},
+                {"type": "terms", "items": [{"term": "t", "children": [_p("d")]}]},
+                {"type": "admonition", "kind": "warning", "title": "W",
+                 "children": [_p("w")]},
+                {"type": "layout",
+                 "cells": [{"row": 0, "col": 1, "children": [_p("l")]}]},
             ]
         )
 
         cnd = build(decl)
 
         assert [n.type for n in cnd.nodes] == [
-            "heading", "paragraph", "table", "quote", "code",
-            "math", "figure", "image", "list", "terms",
+            "heading", "paragraph", "table", "quote", "code", "math",
+            "figure", "image", "list", "terms", "admonition", "layout",
         ]
-        assert cnd.nodes[2].cells[0].text == "c"
-        assert cnd.nodes[4].block is False
-        assert cnd.nodes[9].items[0].term == "t"
+        assert cnd.nodes[1].text.lang == "en"
+        assert cnd.nodes[2].kind == "data"
+        assert cnd.nodes[2].cells[0].children[0].text.value == "c"
+        assert cnd.nodes[3].attribution.value == "A"
+        assert cnd.nodes[4].title == "a.py"
+        assert cnd.nodes[6].description.value == "d"
+        assert cnd.nodes[8].items[0].checked is True
+        assert cnd.nodes[9].items[0].term.value == "t"
+        assert cnd.nodes[10].kind == "warning"
+        assert cnd.nodes[11].cells[0].col == 1
+
+    def test_every_nested_node_gets_a_fresh_id(self) -> None:
+        """Nodes in items, term items, cells, containers and footnotes are
+        nodes in every respect: each one is minted an id."""
+        decl = _decl(
+            [
+                {"type": "list", "items": [_item("in an item")]},
+                {"type": "terms", "items": [{"term": "t", "children": [_p("def")]}]},
+                {"type": "table", "cells": [{"row": 0, "col": 0, "children": [_p("c")]}]},
+                {"type": "admonition", "kind": "note", "children": [_p("a")]},
+            ],
+            footnotes=[{"label": "fn", "children": [_p("note"), _p("more")]}],
+        )
+
+        cnd = build(decl)
+
+        walked = list(cnd.iter_all())
+        assert len(walked) == 10
+        assert len({v.node.id for v in walked}) == 10
+
+    def test_a_heading_nested_in_a_container_knows_its_ancestors(self) -> None:
+        decl = _decl(
+            [
+                {"type": "heading", "level": 1, "text": "Top", "children": [
+                    {"type": "list", "items": [
+                        {"children": [{"type": "heading", "level": 2, "text": "In"}]},
+                    ]},
+                ]},
+            ]
+        )
+
+        inner = build(decl).nodes[0].children[0].items[0].children[0]
+
+        assert inner.heading_path == ["Top", "In"]
+
+    def test_a_built_text_is_not_shared_with_the_declaration(self) -> None:
+        decl = _decl([_p("x")])
+        cnd = build(decl)
+
+        cnd.nodes[0].text.value = "changed"
+
+        assert decl.nodes[0].text.value == "x"
+
+
+class TestNoSharedState:
+    """The CND never shares a mutable object with its declaration: two
+    builds of one declaration are two independent documents."""
+
+    def test_mutating_the_declaration_after_a_build_leaves_the_cnd_alone(
+        self,
+    ) -> None:
+        from cnd.reconcile import diff
+
+        decl = _decl(
+            [{"type": "paragraph", "text": "a",
+              "state_metadata": {"review": {"status": "draft"}}},
+             {"type": "math", "text": "x",
+              "raw": {"format": "typst", "value": "$x$"}}],
+            source={"type": "markdown", "hash": "sha256:00", "uri": "a.md"},
+            doc={"title": "T", "keywords": ["core"]},
+        )
+        c1 = build(decl)
+
+        decl.nodes[0].state_metadata["review"]["status"] = "final"
+        decl.nodes[1].raw.value = "$y$"
+        decl.source.uri = "b.md"
+        decl.doc.keywords.append("docs")
+        c2 = build(decl)
+
+        assert c1.nodes[0].state_metadata == {"review": {"status": "draft"}}
+        assert c1.nodes[1].raw.value == "$x$"
+        assert c1.source.uri == "a.md"
+        assert c1.doc.keywords == ["core"]
+        report = diff(c1, c2)
+        assert len(report.changed) == 2
 
 
 class TestListOrdinals:
     def test_sequential_from_one_when_no_overrides(self) -> None:
         decl = _decl(
             [{"type": "list", "ordered": True, "items": [
-                {"text": "a"}, {"text": "b"}, {"text": "c"},
+                _item("a"), _item("b"), _item("c"),
             ]}]
         )
         numbers = [i.number for i in build(decl).nodes[0].items]
@@ -150,7 +250,7 @@ class TestListOrdinals:
         # their positional index (the rule pinned on DeclListItem).
         decl = _decl(
             [{"type": "list", "ordered": True, "items": [
-                {"text": "a"}, {"text": "b", "number": 7}, {"text": "c"},
+                _item("a"), _item("b", number=7), _item("c"),
             ]}]
         )
         numbers = [i.number for i in build(decl).nodes[0].items]
@@ -160,7 +260,7 @@ class TestListOrdinals:
         # markdown's "3." on the first item of an ordered list.
         decl = _decl(
             [{"type": "list", "ordered": True, "items": [
-                {"text": "a", "number": 3}, {"text": "b"},
+                _item("a", number=3), _item("b"),
             ]}]
         )
         numbers = [i.number for i in build(decl).nodes[0].items]
@@ -169,25 +269,29 @@ class TestListOrdinals:
     def test_nested_levels_count_independently(self) -> None:
         decl = _decl(
             [{"type": "list", "ordered": True, "items": [
-                {"text": "a", "children": [{"text": "a1"}, {"text": "a2"}]},
-                {"text": "b"},
+                {"children": [
+                    _p("a"),
+                    {"type": "list", "ordered": True,
+                     "items": [_item("a1"), _item("a2")]},
+                ]},
+                _item("b"),
             ]}]
         )
         items = build(decl).nodes[0].items
         assert [i.number for i in items] == [1, 2]
-        assert [i.number for i in items[0].children] == [1, 2]
+        assert [i.number for i in items[0].children[1].items] == [1, 2]
 
     def test_unordered_list_drops_overrides(self) -> None:
         decl = _decl(
             [{"type": "list", "ordered": False, "items": [
-                {"text": "a", "number": 5}, {"text": "b"},
+                _item("a", number=5), _item("b"),
             ]}]
         )
         assert [i.number for i in build(decl).nodes[0].items] == [None, None]
 
     def test_resolution_is_independent_of_numbering_flag(self) -> None:
         decl = _decl(
-            [{"type": "list", "ordered": True, "items": [{"text": "a"}]}]
+            [{"type": "list", "ordered": True, "items": [_item("a")]}]
         )
         assert build(decl).nodes[0].items[0].number == 1
         assert build(decl, numbering=True).nodes[0].items[0].number == 1
@@ -215,7 +319,8 @@ class TestBuildErrors:
 
     def test_unresolved_ref_is_a_build_error(self) -> None:
         decl = _decl(
-            [{"type": "paragraph", "text": "a", "refs": [{"label": "ghost"}]}]
+            [{"type": "paragraph",
+              "text": {"value": "a", "refs": [{"label": "ghost"}]}}]
         )
         violations = self._violations(decl)
         assert [v.rule for v in violations] == ["link-unresolved"]
@@ -226,8 +331,8 @@ class TestBuildErrors:
         decl = _decl(
             [
                 {"type": "paragraph", "text": "a", "label": "not-a-bib"},
-                {"type": "paragraph", "text": "b",
-                 "cites": [{"label": "not-a-bib"}]},
+                {"type": "paragraph",
+                 "text": {"value": "b", "cites": [{"label": "not-a-bib"}]}},
             ]
         )
         assert [v.rule for v in self._violations(decl)] == ["link-wrong-domain"]
@@ -249,7 +354,8 @@ class TestBuildErrors:
     def test_where_is_label_first_never_a_minted_uuid(self) -> None:
         # An unlabelled node in violation: named by reading-order position.
         decl = _decl(
-            [{"type": "paragraph", "text": "a", "refs": [{"label": "ghost"}]}]
+            [{"type": "paragraph",
+              "text": {"value": "a", "refs": [{"label": "ghost"}]}}]
         )
         [violation] = self._violations(decl)
         assert not re.search(UUID_HEX, violation.where)
@@ -263,11 +369,60 @@ class TestBuildErrors:
         with pytest.raises(ValidationError):
             _decl([{"type": "heading", "level": 0, "text": "bad"}])
 
+    def test_a_violation_in_a_footnote_is_named_by_its_note(self) -> None:
+        """Positions inside a footnote count within it (spec §8), so the
+        handle names the note: ``@fn-a#2`` is its second node."""
+        decl = _decl(
+            [{"type": "paragraph",
+              "text": {"value": "a", "footnotes": [{"label": "fn-a"}]}}],
+            footnotes=[{"label": "fn-a", "children": [
+                _p("fine"),
+                {"type": "paragraph",
+                 "text": {"value": "b", "refs": [{"label": "ghost"}]}},
+            ]}],
+        )
+        [violation] = self._violations(decl)
+        assert violation.rule == "link-unresolved"
+        assert "@fn-a#2" in violation.where
+        assert not re.search(UUID_HEX, violation.where)
+
+    def test_a_bad_mark_is_a_build_error(self) -> None:
+        """The full text form can carry offsets; the builder checks them
+        like any other invariant."""
+        decl = _decl(
+            [{"type": "paragraph",
+              "text": {"value": "ab", "marks": [{"start": 1, "end": 9, "kind": "emph"}]}}]
+        )
+        assert [v.rule for v in self._violations(decl)] == ["mark-out-of-bounds"]
+
+    def test_authored_numbering_with_the_engine_off_is_a_build_error(self) -> None:
+        """A CND cannot carry a counter word without a value, and the
+        declaration never drops authored content silently."""
+        decl = _decl(
+            [{"type": "figure", "label": "lst-a", "numbering": {"name": "Listing"},
+              "children": [{"type": "code", "text": "x"}]}]
+        )
+        [violation] = self._violations(decl)
+        assert violation.rule == "numbering-without-engine"
+        assert "@lst-a" in violation.where
+        assert build(decl, numbering=True).nodes[0].numbering.name == "Listing"
+
+    def test_a_0_1_0_declaration_is_refused(self) -> None:
+        decl = _decl([_p("a")]).model_copy(update={"declaration_version": "0.1.0"})
+        [violation] = self._violations(decl)
+        assert violation.rule == "declaration-version-unsupported"
+        # The message is version-aware: it names the refused version and
+        # the one this builder supports.
+        assert "0.1.0" in violation.where
+        assert DECLARATION_VERSION in violation.message
+
     def test_error_message_joins_all_violations(self) -> None:
         decl = _decl(
             [
-                {"type": "paragraph", "text": "a", "refs": [{"label": "g1"}]},
-                {"type": "paragraph", "text": "b", "refs": [{"label": "g2"}]},
+                {"type": "paragraph",
+                 "text": {"value": "a", "refs": [{"label": "g1"}]}},
+                {"type": "paragraph",
+                 "text": {"value": "b", "refs": [{"label": "g2"}]}},
             ]
         )
         with pytest.raises(BuildError) as excinfo:
@@ -290,10 +445,10 @@ class TestCounterEngine:
         )
         cnd = build(decl, numbering=True)
         a, b = cnd.nodes
-        assert a.number == "1"
-        assert [h.number for h in a.children] == ["1.1", "1.2"]
-        assert b.number == "2"
-        assert b.children[0].number == "2.1"
+        assert a.numbering.value == "1"
+        assert [h.numbering.value for h in a.children] == ["1.1", "1.2"]
+        assert b.numbering.value == "2"
+        assert b.children[0].numbering.value == "2.1"
 
     def test_skipped_level_shows_zero(self) -> None:
         # Level jumps 1 → 3: the pinned house style shows the gap as 0
@@ -306,7 +461,7 @@ class TestCounterEngine:
             ]
         )
         cnd = build(decl, numbering=True)
-        assert cnd.nodes[0].children[0].number == "1.0.1"
+        assert cnd.nodes[0].children[0].numbering.value == "1.0.1"
 
     def test_heading_path_elements_carry_the_number(self) -> None:
         decl = _decl(
@@ -327,30 +482,51 @@ class TestCounterEngine:
                 # must NOT advance the image counter.
                 {"type": "figure", "caption": "b", "children": [
                     {"type": "table",
-                     "cells": [{"row": 0, "col": 0, "text": "x"}]},
+                     "cells": [{"row": 0, "col": 0, "children": [_p("x")]}]},
                 ]},
                 {"type": "figure", "kind": "image", "caption": "c"},
             ]
         )
         cnd = build(decl, numbering=True)
-        assert [f.number for f in cnd.nodes] == ["1", "1", "2"]
+        assert [f.numbering.value for f in cnd.nodes] == ["1", "1", "2"]
 
-    def test_block_math_numbered_inline_math_not(self) -> None:
+    def test_math_nodes_numbered_inline_math_marks_not(self) -> None:
+        """Every math node is a block in 0.5; inline math is a mark inside
+        a paragraph, which no counter sees."""
         decl = _decl(
             [
-                {"type": "math", "text": "a", "block": True},
-                {"type": "math", "text": "b", "block": False},
-                {"type": "math", "text": "c", "block": True},
+                {"type": "math", "text": "a"},
+                {"type": "paragraph", "text": {
+                    "value": "b", "marks": [{"start": 0, "end": 1, "kind": "math"}],
+                }},
+                {"type": "math", "text": "c"},
             ]
         )
         cnd = build(decl, numbering=True)
-        assert [m.number for m in cnd.nodes] == ["(1)", None, "(2)"]
+        assert [cnd.nodes[0].numbering.value, cnd.nodes[2].numbering.value] == [
+            "(1)", "(2)",
+        ]
 
-    def test_counter_label_is_never_invented(self) -> None:
+    def test_footnote_content_counts_after_the_body(self) -> None:
+        """The engine runs in full-walk order: the body, then each note."""
+        decl = _decl(
+            [
+                {"type": "math", "text": "a"},
+                {"type": "paragraph",
+                 "text": {"value": "x", "footnotes": [{"label": "fn"}]}},
+                {"type": "math", "text": "b"},
+            ],
+            footnotes=[{"label": "fn", "children": [
+                {"type": "math", "label": "eq-note", "text": "c"},
+            ]}],
+        )
+        cnd = build(decl, numbering=True)
+        assert cnd.footnotes[0].children[0].numbering.value == "(3)"
+
+    def test_counter_word_is_never_invented(self) -> None:
         decl = _decl([{"type": "figure", "kind": "image", "caption": "a"}])
         figure = build(decl, numbering=True).nodes[0]
-        assert figure.number == "1"
-        assert figure.counter_label is None
+        assert figure.numbering == Numbering(value="1", name=None)
 
 
 def _scrub(obj):
@@ -384,4 +560,15 @@ class TestGoldenFixtures:
 
         built = build(decl, numbering=numbering)
 
-        assert _scrub(json.loads(built.model_dump_json())) == _scrub(expected)
+        assert _scrub(json.loads(built.to_json())) == _scrub(expected)
+
+    @pytest.mark.parametrize("name", ["article.cnd", "numbered.cnd"])
+    def test_every_heading_path_matches_the_walk(self, name: str) -> None:
+        """The heading path the builder derives is the one the walk sees:
+        each heading's path is its context's path plus itself."""
+        cnd = Cnd.model_validate_json((FIXTURES / name).read_text())
+        headings = [v for v in cnd.iter_all() if isinstance(v.node, HeadingNode)]
+
+        assert headings
+        for visit in headings:
+            assert visit.node.heading_path[:-1] == visit.ctx.heading_path

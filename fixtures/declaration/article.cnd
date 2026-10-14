@@ -1,7 +1,7 @@
 {
-  "id": "8a77ef77-ef09-4ed6-9d64-9e0d0fa0bec7",
-  "cnd_version": "0.4.0",
-  "built_at": "2026-09-20T18:00:08.563568Z",
+  "id": "d00360f6-e9d2-4afd-b931-8dbde74d0110",
+  "cnd_version": "0.5.0",
+  "built_at": "2026-10-14T09:30:22.343724Z",
   "source": {
     "type": "markdown",
     "hash": "sha256:1f0a9c7e5b2d84e6",
@@ -12,125 +12,180 @@
     "authors": [
       "Ada Rivest"
     ],
-    "date": null,
     "keywords": [
       "protocol",
       "declaration"
     ],
-    "description": null,
     "lang": "en"
   },
   "nodes": [
     {
-      "id": "5f86cbb0-f5e1-401d-aadf-490ee6b63761",
+      "id": "e1a17fb4-f0a1-4231-b478-0e4583127dbe",
       "label": "sec-handshake",
-      "refs": [],
-      "cites": [],
-      "footnotes": [],
-      "links": [],
-      "state_metadata": {},
-      "location": null,
       "type": "heading",
       "level": 1,
-      "number": null,
-      "counter_label": null,
-      "text": "Handshake",
+      "text": {
+        "value": "Handshake"
+      },
       "heading_path": [
         "Handshake"
       ],
       "children": [
         {
-          "id": "45809637-8e37-4a47-89f3-54af5d0f909f",
-          "label": null,
-          "refs": [
-            {
-              "label": "lst-open",
-              "text_span": [
-                39,
-                57
-              ]
-            }
-          ],
-          "cites": [
-            {
-              "label": "rivest1978",
-              "text_span": null,
-              "form": "prose",
-              "supplement": null
-            }
-          ],
-          "footnotes": [
-            {
-              "label": "fn-token",
-              "text_span": null
-            }
-          ],
-          "links": [],
-          "state_metadata": {},
-          "location": null,
+          "id": "4e3131d5-2dc7-4fbf-b8ef-5fc76157f8b5",
           "type": "paragraph",
-          "text": "The client opens with a version token, as the listing shows, following Rivest. See the note on opacity.",
-          "lang": null
+          "text": {
+            "value": "The client opens with a version token, as the listing shows, following Rivest. See the note on opacity.",
+            "marks": [
+              {
+                "start": 24,
+                "end": 37,
+                "kind": "emph"
+              }
+            ],
+            "refs": [
+              {
+                "label": "lst-open",
+                "text_span": [
+                  39,
+                  57
+                ]
+              }
+            ],
+            "cites": [
+              {
+                "label": "rivest1978",
+                "form": "prose"
+              }
+            ],
+            "footnotes": [
+              {
+                "label": "fn-token"
+              }
+            ]
+          }
         },
         {
-          "id": "79e0c3ce-a086-4d8f-bf9b-54b26d4aca75",
+          "id": "1571fb75-9ac5-4df5-8f7d-692f2e8045d7",
+          "type": "paragraph",
+          "text": {
+            "value": "The handshake is specified at example.org.",
+            "links": [
+              {
+                "href": "https://example.org/handshake",
+                "text_span": [
+                  30,
+                  41
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "ca664790-c544-4873-a07f-795f9758e081",
           "label": "lst-open",
-          "refs": [],
-          "cites": [],
-          "footnotes": [],
-          "links": [],
-          "state_metadata": {},
-          "location": null,
           "type": "figure",
           "kind": "code",
-          "caption": "Opening frame",
-          "number": null,
-          "counter_label": "Listing",
+          "caption": {
+            "value": "Opening frame"
+          },
           "children": [
             {
-              "id": "ec87328f-9a3e-4d20-bf24-43b34770d395",
-              "label": null,
-              "refs": [],
-              "cites": [],
-              "footnotes": [],
-              "links": [],
-              "state_metadata": {},
-              "location": null,
+              "id": "e35dc54f-4aed-4b0e-9db7-bbfd148f2a42",
               "type": "code",
               "text": "OPEN v1\n",
               "lang": "text",
-              "block": true
+              "title": "open.txt"
             }
-          ],
-          "raw": null
+          ]
         },
         {
-          "id": "bc7266cc-7c49-4e8d-b72d-ed836cbdc9d6",
-          "label": null,
-          "refs": [],
-          "cites": [],
-          "footnotes": [],
-          "links": [],
-          "state_metadata": {},
-          "location": null,
+          "id": "2bf31c37-ffa6-44a5-8b50-7560d158d88b",
           "type": "list",
           "ordered": true,
-          "tight": true,
           "items": [
             {
-              "text": "Negotiate the version.",
               "number": 1,
-              "children": []
+              "children": [
+                {
+                  "id": "0811ad51-3bf8-4c05-9284-eaeda129a8a0",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Negotiate the version."
+                  }
+                }
+              ]
             },
             {
-              "text": "Exchange capabilities.",
               "number": 2,
-              "children": []
+              "children": [
+                {
+                  "id": "017a5f8f-dc7a-415b-874c-07bbaee81515",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Exchange capabilities."
+                  }
+                },
+                {
+                  "id": "3fe4e946-4eb4-43b2-8e8c-0b77563fcc01",
+                  "type": "list",
+                  "items": [
+                    {
+                      "checked": true,
+                      "children": [
+                        {
+                          "id": "ab9c4cb8-c959-41eb-8727-bd2323fc1cd6",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Compression"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "checked": false,
+                      "children": [
+                        {
+                          "id": "aac8298a-2b77-414f-b9bd-961125d4cf31",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Encryption"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             },
             {
-              "text": "Confirm.",
               "number": 3,
-              "children": []
+              "children": [
+                {
+                  "id": "8f663766-cf4e-40ba-8801-cce8ad8f8c70",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Confirm."
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "549cdfa0-9e62-469b-97e4-aaa2e3c1c743",
+          "type": "admonition",
+          "kind": "note",
+          "title": {
+            "value": "Opacity"
+          },
+          "children": [
+            {
+              "id": "a4c17cfd-26f9-4a32-9f12-a206cb57f251",
+              "type": "paragraph",
+              "text": {
+                "value": "Intermediaries never read the token."
+              }
             }
           ]
         }
@@ -139,27 +194,30 @@
   ],
   "bibliography": [
     {
-      "id": "b0ad710d-a62c-4628-a9e9-a56097e2c2bb",
+      "id": "744225b1-5195-41e4-aba4-82dbf1a9dcd8",
       "label": "rivest1978",
-      "formatted": null,
       "type": "article",
       "authors": [
         "Rivest",
         "R."
       ],
       "title": "On data banks and privacy homomorphisms",
-      "year": 1978,
-      "container": null,
-      "doi": null,
-      "url": null,
-      "fields": {}
+      "year": 1978
     }
   ],
   "footnotes": [
     {
-      "id": "4137626d-313c-4912-b711-67cf7fd7fce8",
+      "id": "f8e700b4-f7f5-4bd0-98a6-6f1e006adc58",
       "label": "fn-token",
-      "text": "The version token is opaque to intermediaries."
+      "children": [
+        {
+          "id": "b3b0758a-7b93-483e-900c-ac6661083f84",
+          "type": "paragraph",
+          "text": {
+            "value": "The version token is opaque to intermediaries."
+          }
+        }
+      ]
     }
   ]
 }

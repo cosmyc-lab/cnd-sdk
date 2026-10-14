@@ -1,0 +1,409 @@
+{
+  "id": "00000000-0000-4000-d000-000000000000",
+  "cnd_version": "0.5.0",
+  "built_at": "2026-10-13T00:00:00Z",
+  "doc": {
+    "title": "Elements of format 0.5",
+    "lang": "en",
+    "status": "Approved",
+    "version": "1.2",
+    "extra": {
+      "client": "ACME",
+      "reference": "PRJ-042"
+    }
+  },
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-d000-000000000002",
+      "type": "heading",
+      "level": 1,
+      "numbering": {
+        "value": "1",
+        "name": "Section"
+      },
+      "text": {
+        "value": "Elements of format 0.5"
+      },
+      "heading_path": [
+        "Elements of format 0.5"
+      ],
+      "children": [
+        {
+          "id": "00000000-0000-4000-d000-000000000001",
+          "type": "paragraph",
+          "text": {
+            "value": "Pressure rose 103 times, see Theorem 1 and the note, after Knuth: E = mc^2 holds.",
+            "marks": [
+              {
+                "start": 9,
+                "end": 13,
+                "kind": "strong"
+              },
+              {
+                "start": 16,
+                "end": 17,
+                "kind": "sup"
+              },
+              {
+                "start": 66,
+                "end": 74,
+                "kind": "math",
+                "raw": {
+                  "format": "typst",
+                  "value": "E = m c^2"
+                }
+              }
+            ],
+            "refs": [
+              {
+                "label": "thm-main",
+                "text_span": [
+                  29,
+                  38
+                ]
+              }
+            ],
+            "cites": [
+              {
+                "label": "knuth1984",
+                "text_span": [
+                  59,
+                  64
+                ],
+                "form": "prose"
+              }
+            ],
+            "footnotes": [
+              {
+                "label": "fn-detail",
+                "text_span": [
+                  43,
+                  51
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000003",
+          "type": "admonition",
+          "kind": "warning",
+          "title": {
+            "value": "Careful"
+          },
+          "children": [
+            {
+              "id": "00000000-0000-4000-d000-000000000004",
+              "type": "paragraph",
+              "text": {
+                "value": "Never edit a CND in place."
+              }
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000005",
+          "type": "list",
+          "ordered": true,
+          "items": [
+            {
+              "number": 1,
+              "checked": true,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000006",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Compile the source"
+                  }
+                },
+                {
+                  "id": "00000000-0000-4000-d000-000000000007",
+                  "type": "list",
+                  "ordered": false,
+                  "items": [
+                    {
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-d000-000000000008",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "with fonts"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "number": 2,
+              "checked": false,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000009",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Validate the output"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000010",
+          "type": "terms",
+          "items": [
+            {
+              "term": {
+                "value": "Mark",
+                "marks": [
+                  {
+                    "start": 0,
+                    "end": 4,
+                    "kind": "emph"
+                  }
+                ]
+              },
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000011",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "A standoff span with a kind."
+                  }
+                },
+                {
+                  "id": "00000000-0000-4000-d000-000000000012",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Marks of different kinds may overlap."
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000013",
+          "type": "table",
+          "kind": "data",
+          "cells": [
+            {
+              "row": 0,
+              "col": 0,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000014",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Station"
+                  }
+                }
+              ],
+              "is_header": true
+            },
+            {
+              "row": 0,
+              "col": 1,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000015",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "hPa"
+                  }
+                }
+              ],
+              "is_header": true
+            },
+            {
+              "row": 1,
+              "col": 0,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000016",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "Brest"
+                  }
+                }
+              ]
+            },
+            {
+              "row": 1,
+              "col": 1,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000017",
+                  "type": "paragraph",
+                  "text": {
+                    "value": "1013"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000018",
+          "type": "layout",
+          "cells": [
+            {
+              "row": 0,
+              "col": 0,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000019",
+                  "type": "image",
+                  "path": "a.png",
+                  "alt": "Before"
+                }
+              ]
+            },
+            {
+              "row": 0,
+              "col": 1,
+              "children": [
+                {
+                  "id": "00000000-0000-4000-d000-000000000020",
+                  "type": "image",
+                  "path": "b.png",
+                  "alt": "After"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000021",
+          "type": "figure",
+          "label": "thm-main",
+          "kind": "theorem",
+          "caption": {
+            "value": "Mass–energy equivalence"
+          },
+          "description": {
+            "value": "States that energy equals mass times the speed of light squared."
+          },
+          "numbering": {
+            "value": "1",
+            "name": "Theorem"
+          },
+          "children": [
+            {
+              "id": "00000000-0000-4000-d000-000000000022",
+              "type": "paragraph",
+              "text": {
+                "value": "Energy and mass are equivalent."
+              }
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000023",
+          "type": "quote",
+          "attribution": {
+            "value": "A. Einstein",
+            "marks": [
+              {
+                "start": 0,
+                "end": 11,
+                "kind": "emph"
+              }
+            ]
+          },
+          "children": [
+            {
+              "id": "00000000-0000-4000-d000-000000000024",
+              "type": "paragraph",
+              "text": {
+                "value": "First paragraph of the quote."
+              }
+            },
+            {
+              "id": "00000000-0000-4000-d000-000000000025",
+              "type": "paragraph",
+              "text": {
+                "value": "Second paragraph."
+              }
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000026",
+          "type": "code",
+          "text": "print('hi')\n",
+          "lang": "python",
+          "title": "main.py"
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000027",
+          "type": "math",
+          "text": "a^2 + b^2 = c^2",
+          "raw": {
+            "format": "typst",
+            "value": "a^2 + b^2 = c^2"
+          },
+          "numbering": {
+            "value": "(1)"
+          }
+        }
+      ]
+    }
+  ],
+  "bibliography": [
+    {
+      "id": "00000000-0000-4000-d000-000000000031",
+      "label": "knuth1984",
+      "formatted": {
+        "value": "Knuth, D. The TeXbook. Addison-Wesley, 1984.",
+        "marks": [
+          {
+            "start": 10,
+            "end": 21,
+            "kind": "emph"
+          }
+        ]
+      },
+      "type": "book",
+      "authors": [
+        "Donald Knuth"
+      ],
+      "title": "The TeXbook",
+      "year": 1984
+    }
+  ],
+  "footnotes": [
+    {
+      "id": "00000000-0000-4000-d000-000000000028",
+      "label": "fn-detail",
+      "children": [
+        {
+          "id": "00000000-0000-4000-d000-000000000029",
+          "type": "paragraph",
+          "text": {
+            "value": "Details live here."
+          }
+        },
+        {
+          "id": "00000000-0000-4000-d000-000000000030",
+          "type": "paragraph",
+          "label": "fn-second",
+          "text": {
+            "value": "A second paragraph, with code.",
+            "marks": [
+              {
+                "start": 25,
+                "end": 29,
+                "kind": "code"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

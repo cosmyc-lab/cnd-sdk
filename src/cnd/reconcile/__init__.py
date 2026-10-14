@@ -1,4 +1,5 @@
-"""Reconciliation — matching nodes across two builds (docs/adr/0018).
+"""Reconciliation — matching nodes across two builds (docs/adr/0018;
+matching v2, docs/adr/0029).
 
 A **versioned reference algorithm**, not part of the format: it is an SDK
 facility (docs/adr/0006) and creates no conformance obligation on a
@@ -32,6 +33,7 @@ from cnd.reconcile.diff import (
 from cnd.reconcile.inherit import ReconcileError, Reconciliation, reconcile
 from cnd.reconcile.match import (
     MATCHER_VERSION,
+    PASS_CONTAINER_HASH,
     PASS_HASH,
     PASS_HASH_PATH,
     PASS_LABEL,
@@ -52,6 +54,7 @@ from cnd.reconcile.match import (
 
 __all__ = [
     "MATCHER_VERSION",
+    "PASS_CONTAINER_HASH",
     "PASS_HASH",
     "PASS_HASH_PATH",
     "PASS_LABEL",

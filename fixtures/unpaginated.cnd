@@ -1,5 +1,5 @@
 {
-  "cnd_version": "0.3.0",
+  "cnd_version": "0.5.0",
   "built_at": "2026-07-22T09:30:00Z",
   "source": {
     "type": "markdown",
@@ -14,35 +14,44 @@
     {
       "id": "00000000-0000-4000-f000-000000000001",
       "type": "heading",
+      "label": "sec-handshake",
       "level": 1,
-      "text": "Handshake",
+      "text": {
+        "value": "Handshake"
+      },
       "heading_path": [
         "Handshake"
       ],
-      "label": "sec-handshake",
       "children": [
         {
           "id": "00000000-0000-4000-f000-000000000002",
           "type": "paragraph",
-          "text": "The client opens with a version token, as shown in the listing below.",
-          "refs": [
-            {
-              "label": "lst-open",
-              "text_span": [50, 68]
-            }
-          ],
-          "footnotes": [
-            {
-              "label": "fn-token"
-            }
-          ]
+          "text": {
+            "value": "The client opens with a version token, as shown in the listing below.",
+            "refs": [
+              {
+                "label": "lst-open",
+                "text_span": [
+                  50,
+                  68
+                ]
+              }
+            ],
+            "footnotes": [
+              {
+                "label": "fn-token"
+              }
+            ]
+          }
         },
         {
           "id": "00000000-0000-4000-f000-000000000003",
           "type": "figure",
-          "kind": "code",
-          "caption": "Opening frame",
           "label": "lst-open",
+          "kind": "code",
+          "caption": {
+            "value": "Opening frame"
+          },
           "children": [
             {
               "id": "00000000-0000-4000-f000-000000000004",
@@ -71,7 +80,15 @@
     {
       "id": "00000000-0000-4000-f000-000000000200",
       "label": "fn-token",
-      "text": "The version token is opaque to intermediaries."
+      "children": [
+        {
+          "id": "00000000-0000-4000-c000-000000000001",
+          "type": "paragraph",
+          "text": {
+            "value": "The version token is opaque to intermediaries."
+          }
+        }
+      ]
     }
   ]
 }

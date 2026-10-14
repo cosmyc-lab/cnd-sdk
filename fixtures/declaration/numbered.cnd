@@ -1,232 +1,255 @@
 {
-  "id": "8de95ece-72b9-466a-b740-0d1d1064e8a7",
-  "cnd_version": "0.4.0",
-  "built_at": "2026-09-20T18:00:08.566373Z",
-  "source": null,
+  "id": "7fae4aba-3c1a-4e38-9cf6-d82066742dde",
+  "cnd_version": "0.5.0",
+  "built_at": "2026-10-14T09:30:22.351551Z",
   "doc": {
     "title": "Numbered, declared",
-    "authors": [],
-    "date": null,
-    "keywords": [],
-    "description": null,
     "lang": "en"
   },
   "nodes": [
     {
-      "id": "d0050a1c-ab31-4ef5-abb5-a77b1b69b8c5",
-      "label": null,
-      "refs": [],
-      "cites": [],
-      "footnotes": [],
-      "links": [],
-      "state_metadata": {},
-      "location": null,
+      "id": "9bef48f7-b8fa-4eb8-ba94-5f6963a5dfe4",
       "type": "heading",
       "level": 1,
-      "number": "1",
-      "counter_label": null,
-      "text": "Measurements",
+      "numbering": {
+        "value": "1"
+      },
+      "text": {
+        "value": "Measurements"
+      },
       "heading_path": [
         "1 Measurements"
       ],
       "children": [
         {
-          "id": "a43592c7-4c8d-4518-bc27-b3e9416040a6",
-          "label": null,
-          "refs": [],
-          "cites": [],
-          "footnotes": [],
-          "links": [],
-          "state_metadata": {},
-          "location": null,
+          "id": "372dc6a2-d636-45d1-a115-a5da02dc663d",
           "type": "figure",
           "kind": "image",
-          "caption": "The bench",
-          "number": "1",
-          "counter_label": null,
+          "caption": {
+            "value": "The bench"
+          },
+          "numbering": {
+            "value": "1"
+          },
           "children": [
             {
-              "id": "bf951f66-856b-4943-a7d3-12d8a1f8586d",
-              "label": null,
-              "refs": [],
-              "cites": [],
-              "footnotes": [],
-              "links": [],
-              "state_metadata": {},
-              "location": null,
+              "id": "c6116281-0b38-4c21-a1b3-f500445137c1",
               "type": "image",
               "path": "bench.png",
               "alt": "The measurement bench"
             }
-          ],
-          "raw": null
+          ]
         },
         {
-          "id": "51275c31-667c-400f-9034-1f0d6efddbf3",
-          "label": null,
-          "refs": [],
-          "cites": [],
-          "footnotes": [],
-          "links": [],
-          "state_metadata": {},
-          "location": null,
+          "id": "bb38d224-80e7-4b38-aa0f-175bd107a7f6",
           "type": "figure",
-          "kind": null,
-          "caption": "Raw readings",
-          "number": "1",
-          "counter_label": null,
+          "caption": {
+            "value": "Raw readings"
+          },
+          "numbering": {
+            "value": "1"
+          },
           "children": [
             {
-              "id": "6e86919b-f83d-4d32-bce9-a00c3087375b",
-              "label": null,
-              "refs": [],
-              "cites": [],
-              "footnotes": [],
-              "links": [],
-              "state_metadata": {},
-              "location": null,
+              "id": "d2c9bcfc-c8cd-4274-a6a1-296926b46af2",
               "type": "table",
-              "kind": "table",
-              "content_kind": null,
+              "kind": "data",
               "cells": [
                 {
                   "row": 0,
                   "col": 0,
-                  "rowspan": 1,
-                  "colspan": 1,
                   "is_header": true,
-                  "text": "run"
+                  "children": [
+                    {
+                      "id": "2dfcebb4-58da-49d4-afdd-e1587d35fa3d",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "run"
+                      }
+                    }
+                  ]
                 },
                 {
                   "row": 0,
                   "col": 1,
-                  "rowspan": 1,
-                  "colspan": 1,
                   "is_header": true,
-                  "text": "value"
+                  "children": [
+                    {
+                      "id": "381ef955-5506-4050-8a2b-6b059891c6d0",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "value"
+                      }
+                    }
+                  ]
                 },
                 {
                   "row": 1,
                   "col": 0,
-                  "rowspan": 1,
-                  "colspan": 1,
-                  "is_header": false,
-                  "text": "1"
+                  "children": [
+                    {
+                      "id": "94f248a6-a120-41ab-971d-12cc189f3533",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "1"
+                      }
+                    }
+                  ]
                 },
                 {
                   "row": 1,
                   "col": 1,
-                  "rowspan": 1,
-                  "colspan": 1,
-                  "is_header": false,
-                  "text": "3.14"
+                  "children": [
+                    {
+                      "id": "948fc904-1b7c-4e6c-b681-673bd6e1213c",
+                      "type": "paragraph",
+                      "text": {
+                        "value": "3.14"
+                      }
+                    }
+                  ]
                 }
-              ],
-              "raw": null
+              ]
             }
-          ],
-          "raw": null
+          ]
         },
         {
-          "id": "bd03da37-900e-468d-a699-f1a19cae400c",
-          "label": null,
-          "refs": [],
-          "cites": [],
-          "footnotes": [],
-          "links": [],
-          "state_metadata": {},
-          "location": null,
+          "id": "9bb26a59-70ea-41ea-af6d-6d0331ec6526",
           "type": "heading",
           "level": 3,
-          "number": "1.0.1",
-          "counter_label": null,
-          "text": "Deep dive",
+          "numbering": {
+            "value": "1.0.1"
+          },
+          "text": {
+            "value": "Deep dive"
+          },
           "heading_path": [
             "1 Measurements",
             "1.0.1 Deep dive"
           ],
           "children": [
             {
-              "id": "93e341d1-fb0e-48ef-bdd2-3bca7ba9d103",
-              "label": null,
-              "refs": [],
-              "cites": [],
-              "footnotes": [],
-              "links": [],
-              "state_metadata": {},
-              "location": null,
+              "id": "7f12aa2a-cc84-4443-baf7-4d281310ab1e",
               "type": "math",
               "text": "E = mc^2",
-              "raw": null,
-              "number": "(1)",
-              "counter_label": null,
-              "block": true
+              "numbering": {
+                "value": "(1)"
+              }
             },
             {
-              "id": "28c73afe-893f-45cc-a9d5-0beda7b9f874",
-              "label": null,
-              "refs": [],
-              "cites": [],
-              "footnotes": [],
-              "links": [],
-              "state_metadata": {},
-              "location": null,
+              "id": "af532068-f018-4c9a-acfc-7baa8acd006e",
               "type": "paragraph",
-              "text": "An inline aside follows.",
-              "lang": null
+              "text": {
+                "value": "An inline aside follows: a^2 + b^2.",
+                "marks": [
+                  {
+                    "start": 25,
+                    "end": 34,
+                    "kind": "math",
+                    "raw": {
+                      "format": "typst",
+                      "value": "a^2 + b^2"
+                    }
+                  }
+                ],
+                "footnotes": [
+                  {
+                    "label": "fn-eq"
+                  }
+                ]
+              }
             },
             {
-              "id": "d2061347-169c-4e71-b729-696180321ed4",
-              "label": null,
-              "refs": [],
-              "cites": [],
-              "footnotes": [],
-              "links": [],
-              "state_metadata": {},
-              "location": null,
-              "type": "math",
-              "text": "a^2 + b^2",
-              "raw": null,
-              "number": null,
-              "counter_label": null,
-              "block": false
+              "id": "a73400a0-5d08-4265-8515-701281a2777c",
+              "label": "lst-open",
+              "type": "figure",
+              "kind": "code",
+              "caption": {
+                "value": "Opening frame"
+              },
+              "numbering": {
+                "value": "1",
+                "name": "Listing"
+              },
+              "children": [
+                {
+                  "id": "e3726af3-184b-40de-afb5-bd13125b2fc3",
+                  "type": "code",
+                  "text": "OPEN v1\n",
+                  "lang": "text"
+                }
+              ]
             }
           ]
         },
         {
-          "id": "152671a4-2156-4d3a-9b0a-dfa02a47d9f7",
-          "label": null,
-          "refs": [],
-          "cites": [],
-          "footnotes": [],
-          "links": [],
-          "state_metadata": {},
-          "location": null,
+          "id": "769865fc-3847-4088-b772-bc34fb9aff8e",
           "type": "figure",
           "kind": "image",
-          "caption": "The second image",
-          "number": "2",
-          "counter_label": null,
+          "caption": {
+            "value": "The second image"
+          },
+          "numbering": {
+            "value": "2"
+          },
           "children": [
             {
-              "id": "0b061147-2dcd-473d-8c42-56ccee172e7f",
-              "label": null,
-              "refs": [],
-              "cites": [],
-              "footnotes": [],
-              "links": [],
-              "state_metadata": {},
-              "location": null,
-              "type": "image",
-              "path": "detail.png",
-              "alt": "Detail view"
+              "id": "eced9d2b-f692-4e33-8b62-9ae9519a0971",
+              "type": "layout",
+              "cells": [
+                {
+                  "row": 0,
+                  "col": 0,
+                  "children": [
+                    {
+                      "id": "1ab0bb24-8451-4450-87c8-995d7a745623",
+                      "type": "image",
+                      "path": "detail.png",
+                      "alt": "Detail view"
+                    }
+                  ]
+                },
+                {
+                  "row": 0,
+                  "col": 1,
+                  "children": [
+                    {
+                      "id": "71ba7810-0764-448b-8233-ccd5f9ab3396",
+                      "type": "image",
+                      "path": "overview.png",
+                      "alt": "Overview"
+                    }
+                  ]
+                }
+              ]
             }
-          ],
-          "raw": null
+          ]
         }
       ]
     }
   ],
-  "bibliography": [],
-  "footnotes": []
+  "footnotes": [
+    {
+      "id": "f49b0bec-f504-4b00-a06b-0ed04a832721",
+      "label": "fn-eq",
+      "children": [
+        {
+          "id": "5d338d4c-0339-47a7-bdda-b2a7ff5e0ada",
+          "type": "paragraph",
+          "text": {
+            "value": "The aside rests on"
+          }
+        },
+        {
+          "id": "54fd900f-c802-47a7-bfc6-e00d9b4845b8",
+          "label": "eq-note",
+          "type": "math",
+          "text": "c^2 = a^2 + b^2",
+          "numbering": {
+            "value": "(2)"
+          }
+        }
+      ]
+    }
+  ]
 }

@@ -46,6 +46,8 @@ dev = [
     # Test-only: a real CommonMark parser to check the Markdown export keeps
     # the CND structure (tests/test_markdown_structure.py).
     "markdown-it-py>=3.0",
+    # Test-only: the footnote syntax, to check footnote markers resolve.
+    "mdit-py-plugins>=0.5",
 ]
 
 [tool.hatch.build.targets.wheel]

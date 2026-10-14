@@ -1,6 +1,8 @@
+from datetime import datetime
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
+from factories import rt
 from ids import (
     HEADING002_ID,
     HEADING002_LABEL,
@@ -14,8 +16,9 @@ from ids import (
     TABLE001_LABEL,
 )
 
-from cnd import BibEntry, Cnd, FigureNode, Footnote
-from cnd.core.nodes import LinkRef, ParagraphNode
+from cnd import BibEntry, Cnd, DocMetadata, FigureNode, Footnote, NodeLocation
+from cnd.core.nodes import ParagraphNode
+from cnd.core.text import LinkRef
 
 
 def _load(path: Path) -> Cnd:
@@ -97,7 +100,7 @@ class TestPools:
         [entry] = cnd.bibliography
         assert entry.id == RICH_BIB_ENTRY_ID
         assert entry.label == "smith2024"
-        assert entry.formatted.startswith("Smith, J., & Doe, A. (2024).")
+        assert entry.formatted.value.startswith("Smith, J., & Doe, A. (2024).")
         assert entry.year == 2024
         assert entry.fields["parent"]["title"] == "Journal of Systems Integration"
 
@@ -109,7 +112,7 @@ class TestPools:
         [footnote] = cnd.footnotes
         assert footnote.id == RICH_FOOTNOTE_ID
         assert footnote.label == "fn-rest"
-        assert footnote.text == "REST : Representational State Transfer."
+        assert footnote.children[0].text.value == "REST : Representational State Transfer."
 
     def test_link_families_and_spans_parse(
         self, rich_content_cnd_path: Path,
@@ -117,17 +120,17 @@ class TestPools:
         cnd = _load(rich_content_cnd_path)
         para = next(v.node for v in cnd.iter() if v.node.id == RICH_PARA_ID)
 
-        [ref] = para.refs
+        [ref] = para.text.refs
         assert ref.label == RICH_FIG_CODE_LABEL
         assert ref.text_span == [77, 88]
 
-        [cite] = para.cites
+        [cite] = para.text.cites
         assert cite.label == RICH_BIB_ENTRY_LABEL
         assert cite.form == "prose"
         assert cite.supplement == "p. 12"
         assert cite.text_span == [6, 18]
 
-        [footnote_ref] = para.footnotes
+        [footnote_ref] = para.text.footnotes
         assert footnote_ref.label == RICH_FOOTNOTE_LABEL
         assert footnote_ref.text_span == [57, 61]
 
@@ -137,9 +140,9 @@ class TestPools:
         cnd = _load(rich_content_cnd_path)
         para = next(v.node for v in cnd.iter() if v.node.id == RICH_PARA_ID)
 
-        assert isinstance(cnd.resolve(para.refs[0].label), FigureNode)
-        assert isinstance(cnd.resolve(para.cites[0].label), BibEntry)
-        assert isinstance(cnd.resolve(para.footnotes[0].label), Footnote)
+        assert isinstance(cnd.resolve(para.text.refs[0].label), FigureNode)
+        assert isinstance(cnd.resolve(para.text.cites[0].label), BibEntry)
+        assert isinstance(cnd.resolve(para.text.footnotes[0].label), Footnote)
 
 
 class TestPagination:
@@ -153,6 +156,25 @@ class TestPagination:
         assert _load(unpaginated_cnd_path).paginated is False
         assert _load(minimal_cnd_path).paginated is True
         assert "paginated" not in unpaginated_cnd_path.read_text()
+
+    def test_footnote_content_alone_settles_pagination(self) -> None:
+        note = Footnote(
+            id=uuid4(),
+            label="fn",
+            children=[
+                ParagraphNode(
+                    id=uuid4(), type="paragraph", text=rt("n"), location=NodeLocation(page=1)
+                )
+            ],
+        )
+        cnd = Cnd(
+            cnd_version="0.5.0",
+            built_at=datetime(2026, 10, 13),
+            doc=DocMetadata(title="T"),
+            nodes=[],
+            footnotes=[note],
+        )
+        assert cnd.paginated is True
 
     def test_no_node_carries_a_location(self, unpaginated_cnd_path: Path) -> None:
         cnd = _load(unpaginated_cnd_path)
@@ -200,17 +222,61 @@ class TestPagination:
 class TestLinks:
     def test_links_is_a_fourth_forward_family_keyed_by_href(self) -> None:
         node = ParagraphNode(
-            id=UUID(int=1), type="paragraph", text="see the auth spec",
-            links=[LinkRef(href="https://example.com/spec", text_span=[4, 17])],
+            id=UUID(int=1), type="paragraph", text=rt(
+                "see the auth spec",
+                links=[LinkRef(href="https://example.com/spec", text_span=[4, 17])],
+            ),
         )
 
-        assert node.links[0].href == "https://example.com/spec"
-        assert node.links[0].text_span == [4, 17]
+        assert node.text.links[0].href == "https://example.com/spec"
+        assert node.text.links[0].text_span == [4, 17]
 
     def test_links_defaults_to_empty_so_every_existing_cnd_stays_valid(self) -> None:
-        node = ParagraphNode(id=UUID(int=2), type="paragraph", text="x")
+        node = ParagraphNode(id=UUID(int=2), type="paragraph", text=rt("x"))
 
-        assert node.links == []
+        assert node.text.links == []
 
     def test_link_ref_admits_any_scheme_and_needs_no_span(self) -> None:
         assert LinkRef(href="doi:10.1000/182").text_span is None
+
+
+def test_elements_fixture_parses_and_carries_every_new_element(elements_cnd_path) -> None:
+    cnd = Cnd.model_validate_json(elements_cnd_path.read_text())
+    types = {visit.node.type for visit in cnd.iter()}
+    assert {"admonition", "layout", "table", "terms", "list", "quote", "figure"} <= types
+    assert cnd.doc.status == "Approved" and cnd.doc.extra["reference"] == "PRJ-042"
+    assert cnd.footnotes[0].children[1].label == "fn-second"
+
+
+def test_incoming_reads_edges_from_texts(elements_cnd_path) -> None:
+    cnd = Cnd.model_validate_json(elements_cnd_path.read_text())
+    assert [node.type for node in cnd.incoming("thm-main")] == ["paragraph"]
+
+
+def test_the_vocabulary_and_slot_helpers_are_exported() -> None:
+    import cnd
+    import cnd.core
+
+    for name in (
+        "child_slots",
+        "ChildSlot",
+        "KNOWN_MARK_KINDS",
+        "ATOMIC_MARK_KINDS",
+        "KNOWN_ADMONITION_KINDS",
+        "KNOWN_TABLE_KINDS",
+    ):
+        assert getattr(cnd, name) is getattr(cnd.core, name)
+        assert name in cnd.__all__ and name in cnd.core.__all__
+    assert cnd.__all__ == sorted(cnd.__all__)
+    assert cnd.core.__all__ == sorted(cnd.core.__all__)
+
+
+def test_expand_headings_is_exported() -> None:
+    import cnd
+    import cnd.core
+    import cnd.core.render
+
+    assert "expand_headings" in cnd.core.render.__all__
+    assert cnd.expand_headings is cnd.core.expand_headings is cnd.core.render.expand_headings
+    assert "expand_headings" in cnd.__all__ and "expand_headings" in cnd.core.__all__
+    assert cnd.core.render.__all__ == sorted(cnd.core.render.__all__)

@@ -20,51 +20,75 @@ a declaration node has no
 - ``id`` — the builder mints node ids; they are not durable anyway
   (ADR 0015), so a producer supplying them would only be supplying noise;
 - ``location`` — an unpaginated source has no page (ADR 0019);
-- ``number`` — the resolved running counter value ("2.1.1", "3"), which
-  needs a counter engine the declarative producer does not have. Its one
-  authored half — a list item's start override — survives on
-  ``DeclListItem``;
+- ``numbering.value`` — the resolved running counter value ("2.1.1",
+  "3"), which needs a counter engine the declarative producer does not
+  have;
 - ``heading_path`` — derivable from the node's position in the tree.
 
 What it keeps is authored content: the ``label`` (the only durable
-identity, and it lives in the source — ADR 0015/0017), the link families
-keyed by label, and every content field. It also keeps **``counter_label``**
-on the counter-bearing nodes — unlike ``number`` this has an authored half
-the builder cannot derive: a heading or equation has no ``kind`` to derive
-a word from, and a figure with a custom ``kind`` carries a word the author
-supplied and nothing else encodes (the very reason it is a field, per
-proposal 0010). Dropping it while keeping the list-number override would
-be the same authored/derived split resolved two opposite ways. The value objects that carry no
-presentation state — table cells, the link edges, dates, raw source — are
-the CND's own, reused rather than re-declared, because a table cell is a
-table cell in either form. Only the node types are defined fresh, so the
-declaration is free to evolve without dragging the CND along.
+identity, and it lives in the source — ADR 0015/0017), every text with
+its marks and link families, and every content field. It also keeps
+**``numbering.name``** on the counter-bearing nodes: unlike the value,
+the counter word has an authored half the builder cannot derive — a
+heading or equation has no ``kind`` to derive a word from, and a figure
+with a custom ``kind`` carries a word only the author knows
+(docs/proposals/0013, "Numbering"). A list item likewise keeps
+``number``, as an authored *override* of the sequential ordinal.
+
+**Shorthand** (docs/proposals/0013, "Declaration"). Wherever the CND
+holds a ``RichText``, a declaration accepts a plain string, which builds
+``{"value": "<string>"}`` with no marks and no edges, or the full object.
+The full object *is* the CND's ``RichText``, so everything a text can
+carry — marks, ``refs``, ``cites``, ``footnotes`` and ``links`` — is
+available to a producer that computes offsets. The shorthand lives here
+only: the CND models stay strict about their shape.
+
+The value objects that carry no presentation state — ``RichText``, its
+marks and edges, ``RawSource``, the document metadata — are the CND's
+own, reused rather than re-declared. Everything that holds nested nodes
+(list items, term items, cells, footnotes) is declared fresh, because a
+CND node requires an ``id`` a declaration never carries.
 """
 
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 # Authored-content value objects, shared verbatim with the CND: they carry
 # no id and no presentation state, so there is nothing to strip.
 from cnd.core.cnd import DocDate, DocMetadata, SourceInfo
-from cnd.core.nodes import (
+from cnd.core.text import (
     CiteRef,
     FootnoteRef,
+    LinkRef,
+    Mark,
     NodeRef,
     RawSource,
-    TableCell,
-    TermItem,
+    RichText,
 )
 
-DECLARATION_VERSION = "0.1.0"
+DECLARATION_VERSION = "0.2.0"
 """The version of the declaration schema (ADR 0019 §3).
 
-Versioned independently of ``cnd_version``: the declaration is a distinct,
-non-normative surface, and its first cut is not tied to the format's 0.3.0.
-Without this field the first evolution of the declaration would break every
-producer silently.
+Versioned independently of ``cnd_version``. ``0.2.0`` is the first
+breaking change: texts became rich text, node-level link families moved
+into them, ``number`` and ``counter_label`` became ``numbering.name``, and
+list items, term items, cells and footnotes hold nodes
+(docs/proposals/0013). A ``0.1.0`` declaration is refused by the builder
+rather than misread.
 """
+
+
+def _as_rich_text(value: "str | RichText") -> RichText:
+    """The shorthand: a plain string is a text with no marks and no edges."""
+    return RichText(value=value) if isinstance(value, str) else value
+
+
+DeclText = Annotated[Union[str, RichText], AfterValidator(_as_rich_text)]
+"""A ``RichText`` slot in a declaration: a plain string or the full object.
+
+Typed as the union so the generated schema says ``anyOf: [string,
+RichText]``; after validation the value is always a ``RichText``."""
 
 
 class _Strict(BaseModel):
@@ -79,12 +103,13 @@ class _Strict(BaseModel):
     not need silent tolerance here — ``declaration_version`` signals a
     version mismatch explicitly.
 
-    **This strictness is partial by construction.** ``extra="forbid"`` is
-    per model and does not reach the value objects reused from the CND
-    (``TableCell``, the link edges, ``DocMetadata``): those keep the CND's
-    lenient config, since forbidding on them would change CND parsing. A
-    stray key on a node or at the top level is caught; one *inside* a
-    table cell or a link edge is not. The open extension bags
+    **This strictness stops at the reused value objects.**
+    ``extra="forbid"`` is per model and does not reach what the
+    declaration shares with the CND (``RichText``, its marks and edges,
+    ``DocMetadata``): those keep the CND's lenient config, since forbidding
+    on them would change CND parsing. A stray key on a node, a list item,
+    a term item, a cell, a footnote or at the top level is caught; one
+    *inside* a text object or a link edge is not. The open extension bags
     (``state_metadata``, ``fields``) are dict-typed and unaffected — they
     still hold arbitrary keys.
     """
@@ -92,26 +117,32 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class DeclNumbering(_Strict):
+    """The authored half of ``Numbering``: the counter word alone.
+
+    Present means "this element carries this word" ("Listing",
+    "Théorème"); the builder's counter engine supplies the value. There is
+    no ``value`` field, so a declaration cannot carry one.
+    """
+
+    name: str | None = None
+
+
 class DeclNodeBase(_Strict):
     """Shared fields for every declaration node.
 
     The CND's ``NodeBase`` minus ``id`` and ``location``: a declaration
-    supplies neither. ``label`` is the durable identity and is authored;
-    the link families are authored and resolve by label (ADR 0017).
+    supplies neither. ``label`` is the durable identity and is authored.
+    The link families live in the node's texts, as in the CND.
     """
 
     label: str | None = None
-    refs: list[NodeRef] = Field(default_factory=list)
-    cites: list[CiteRef] = Field(default_factory=list)
-    footnotes: list[FootnoteRef] = Field(default_factory=list)
     state_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class DeclHeadingNode(DeclNodeBase):
-    """A section heading. No ``number`` (the builder's counter engine
-    resolves it) and no ``heading_path`` (derivable from tree position).
-    ``counter_label`` is kept: a heading has no ``kind`` to derive a word
-    from, so any word ("Chapter", "Partie") is authored.
+    """A section heading. No ``heading_path`` (derivable from tree
+    position) and no resolved number.
 
     ``level`` starts at 1 — there is no level 0. Constraining it here
     makes the invalid input unrepresentable rather than a counter-engine
@@ -120,46 +151,34 @@ class DeclHeadingNode(DeclNodeBase):
 
     type: Literal["heading"]
     level: Annotated[int, Field(ge=1)]
-    text: str
-    counter_label: str | None = None
+    text: DeclText
+    numbering: DeclNumbering | None = None
     children: list["DeclNode"] = Field(default_factory=list)
 
 
 class DeclParagraphNode(DeclNodeBase):
     type: Literal["paragraph"]
-    text: str
-    lang: str | None = None
-
-
-class DeclTableNode(DeclNodeBase):
-    type: Literal["table"]
-    kind: Literal["table", "grid"] = "table"
-    content_kind: Literal["data", "content"] | None = None
-    cells: list[TableCell] = Field(default_factory=list)
-    raw: RawSource | None = None
+    text: DeclText
 
 
 class DeclQuoteNode(DeclNodeBase):
     type: Literal["quote"]
-    text: str
-    attribution: str | None = None
-    block: bool = True
-    lang: str | None = None
+    attribution: DeclText | None = None
+    children: list["DeclNode"] = Field(default_factory=list)
 
 
 class DeclCodeNode(DeclNodeBase):
     type: Literal["code"]
     text: str
     lang: str | None = None
-    block: bool = True
+    title: str | None = None
 
 
 class DeclMathNode(DeclNodeBase):
     type: Literal["math"]
     text: str
     raw: RawSource | None = None
-    counter_label: str | None = None
-    block: bool = True
+    numbering: DeclNumbering | None = None
 
 
 class DeclImageNode(DeclNodeBase):
@@ -169,27 +188,34 @@ class DeclImageNode(DeclNodeBase):
 
 
 class DeclFigureNode(DeclNodeBase):
-    """A captioned float wrapper. Keeps ``kind`` (the authored counter
-    selector) and ``counter_label`` (authored for a custom ``kind`` the
-    builder has no localized word for), but not the resolved ``number``."""
+    """A captioned wrapper. Keeps ``kind`` (the category, and the counter
+    the engine draws from) and ``numbering.name`` (authored for a custom
+    ``kind`` the builder has no localized word for)."""
 
     type: Literal["figure"]
     kind: str | None = None
-    caption: str | None = None
-    counter_label: str | None = None
+    caption: DeclText | None = None
+    description: DeclText | None = None
+    numbering: DeclNumbering | None = None
     children: list["DeclNode"] = Field(default_factory=list)
     raw: RawSource | None = None
 
 
+class DeclAdmonitionNode(DeclNodeBase):
+    type: Literal["admonition"]
+    kind: str
+    title: DeclText | None = None
+    children: list["DeclNode"] = Field(default_factory=list)
+
+
 class DeclListItem(_Strict):
-    """One item of a declaration list.
+    """One item of a declaration list; its content is nodes.
 
     ``number`` is an **override**, not a resolved ordinal: absent means
     "number this item sequentially", present means an explicit start or
-    skip (markdown's ``3.`` on the first item of an ordered list). This is
-    the one place the declaration keeps a ``number`` the CND resolves — it
-    keeps the *authored* half (the override) and drops the *derived* half
-    (the running ordinal), the same line drawn for figure numbers.
+    skip (markdown's ``3.`` on the first item of an ordered list). It keeps
+    the *authored* half (the override) and drops the *derived* half (the
+    running ordinal), the same line drawn for ``numbering``.
 
     Resolution rule the builder follows (pinned so two builders cannot
     diverge): an item with no ``number`` takes the previous sibling's
@@ -197,46 +223,85 @@ class DeclListItem(_Strict):
     takes it verbatim, and following items count on from there. So a
     ``number`` **rebases** the rest of the list rather than only labelling
     its own item. Ignored on an ``ordered: false`` list, which has no
-    ordinals.
+    ordinals. A nested list is a ``list`` node among the children and
+    counts on its own.
     """
 
-    text: str
     number: int | None = None
-    children: list["DeclListItem"] = Field(default_factory=list)
+    checked: bool | None = None
+    children: list["DeclNode"] = Field(default_factory=list)
 
 
 class DeclListNode(DeclNodeBase):
     type: Literal["list"]
     ordered: bool = False
-    tight: bool = True
     items: list[DeclListItem] = Field(default_factory=list)
+
+
+class DeclTermItem(_Strict):
+    term: DeclText
+    children: list["DeclNode"] = Field(default_factory=list)
 
 
 class DeclTermsNode(DeclNodeBase):
     type: Literal["terms"]
-    tight: bool = True
-    items: list[TermItem] = Field(default_factory=list)
+    items: list[DeclTermItem] = Field(default_factory=list)
+
+
+class DeclCell(_Strict):
+    """One cell of a declared ``table`` or ``layout``; content is nodes."""
+
+    row: int
+    col: int
+    rowspan: int = Field(default=1, ge=1)
+    colspan: int = Field(default=1, ge=1)
+    is_header: bool = False
+    children: list["DeclNode"] = Field(default_factory=list)
+
+
+class DeclTableNode(DeclNodeBase):
+    """``kind`` is the author's statement (``"data"``, ``"content"``, or
+    any other value of the open vocabulary); the builder never guesses
+    one."""
+
+    type: Literal["table"]
+    kind: str | None = None
+    cells: list[DeclCell] = Field(default_factory=list)
+
+
+class DeclLayoutNode(DeclNodeBase):
+    type: Literal["layout"]
+    cells: list[DeclCell] = Field(default_factory=list)
 
 
 DeclNode = Annotated[
     Union[
         DeclHeadingNode,
         DeclParagraphNode,
-        DeclTableNode,
         DeclQuoteNode,
         DeclCodeNode,
         DeclMathNode,
-        DeclFigureNode,
         DeclImageNode,
+        DeclFigureNode,
+        DeclAdmonitionNode,
         DeclListNode,
         DeclTermsNode,
+        DeclTableNode,
+        DeclLayoutNode,
     ],
     Field(discriminator="type"),
 ]
 
-DeclListItem.model_rebuild()
-DeclHeadingNode.model_rebuild()
-DeclFigureNode.model_rebuild()
+for _model in (
+    DeclHeadingNode,
+    DeclQuoteNode,
+    DeclFigureNode,
+    DeclAdmonitionNode,
+    DeclListItem,
+    DeclTermItem,
+    DeclCell,
+):
+    _model.model_rebuild()
 
 
 class DeclBibEntry(_Strict):
@@ -248,7 +313,7 @@ class DeclBibEntry(_Strict):
     """
 
     label: str
-    formatted: str | None = None
+    formatted: DeclText | None = None
     type: str | None = None
     authors: list[str] = Field(default_factory=list)
     title: str | None = None
@@ -260,10 +325,11 @@ class DeclBibEntry(_Strict):
 
 
 class DeclFootnote(_Strict):
-    """A footnote in a declaration — ``Footnote`` minus ``id``."""
+    """A footnote in a declaration — ``Footnote`` minus ``id``. Its content
+    is nodes, which the builder mints ids for like any other node."""
 
     label: str
-    text: str
+    children: list[DeclNode] = Field(default_factory=list)
 
 
 class Declaration(_Strict):
@@ -288,33 +354,60 @@ class Declaration(_Strict):
     bibliography: list[DeclBibEntry] = Field(default_factory=list)
     footnotes: list[DeclFootnote] = Field(default_factory=list)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _refuse_other_versions(cls, data: Any) -> Any:
+        """Refuse another ``declaration_version`` before checking the shape.
+
+        A 0.1.0 declaration has the fields 0.2.0 removed, so checked as
+        0.2.0 it fails on "Extra inputs" that never name the real problem.
+        Read first, the version gives the one error that does. A missing
+        version is left to the shape check, which reports it as missing.
+        """
+        if isinstance(data, dict):
+            version = data.get("declaration_version")
+            if isinstance(version, str) and version != DECLARATION_VERSION:
+                raise ValueError(
+                    f"declaration-version-unsupported: declaration_version "
+                    f"{version} is not supported; this SDK reads declaration "
+                    f"version {DECLARATION_VERSION} only"
+                )
+        return data
+
 
 __all__ = [
     "DECLARATION_VERSION",
     "Declaration",
+    "DeclAdmonitionNode",
     "DeclBibEntry",
+    "DeclCell",
     "DeclCodeNode",
     "DeclFigureNode",
     "DeclFootnote",
     "DeclHeadingNode",
     "DeclImageNode",
+    "DeclLayoutNode",
     "DeclListItem",
     "DeclListNode",
     "DeclMathNode",
     "DeclNode",
     "DeclNodeBase",
+    "DeclNumbering",
     "DeclParagraphNode",
     "DeclQuoteNode",
     "DeclTableNode",
+    "DeclTermItem",
     "DeclTermsNode",
+    "DeclText",
     # re-exported CND value objects the declaration reuses
     "CiteRef",
     "DocDate",
     "DocMetadata",
     "FootnoteRef",
+    "LinkRef",
+    "Mark",
     "NodeRef",
     "RawSource",
+    "RichText",
     "SourceInfo",
-    "TableCell",
-    "TermItem",
 ]

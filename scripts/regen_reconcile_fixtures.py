@@ -9,6 +9,10 @@ the ADR documents as a failure.
 Ids are literal and stable per file so a vector can name them. They are
 not durable across builds in the real world (ADR 0015) — here they are
 fixture coordinates, nothing more.
+
+Cases 08 to 10 exercise what format 0.5 made finer (docs/proposals/0013):
+nodes inside list items and cells, and footnote content. Case 11 pins the
+last pass matching v2 added (docs/adr/0029).
 """
 
 import json
@@ -22,15 +26,47 @@ def uid(case: int, n: int) -> str:
 
 
 def para(case: int, n: int, text: str, label: str | None = None) -> dict:
-    node = {"id": uid(case, n), "type": "paragraph", "text": text}
+    node = {"id": uid(case, n), "type": "paragraph", "text": {"value": text}}
     if label:
         node["label"] = label
     return node
 
 
+def items(case: int, n: int, *paragraphs: dict) -> dict:
+    """A bullet list whose items each hold one of ``paragraphs``."""
+    return {
+        "id": uid(case, n),
+        "type": "list",
+        "items": [{"children": [paragraph]} for paragraph in paragraphs],
+    }
+
+
+def table(case: int, n: int, *cells: list[dict]) -> dict:
+    """A one-row table; each argument is one cell's children."""
+    return {
+        "id": uid(case, n),
+        "type": "table",
+        "cells": [
+            {"row": 0, "col": col, "children": children}
+            for col, children in enumerate(cells)
+        ],
+    }
+
+
+def note(case: int, n: int, label: str, *children: dict) -> dict:
+    return {"id": uid(case, n), "label": label, "children": list(children)}
+
+
+def cite_notes(case: int, n: int, *labels: str) -> dict:
+    """A paragraph whose text references every footnote in ``labels``."""
+    node = para(case, n, "See the notes.")
+    node["text"]["footnotes"] = [{"label": label} for label in labels]
+    return node
+
+
 def cnd(nodes: list[dict]) -> dict:
     return {
-        "cnd_version": "0.3.0",
+        "cnd_version": "0.5.0",
         "built_at": "2026-07-23T00:00:00Z",
         "doc": {"title": "Reconcile fixture"},
         "nodes": nodes,
@@ -79,7 +115,7 @@ CASES["05-added-and-removed"] = (
                 "id": uid(5, 2),
                 "type": "heading",
                 "level": 1,
-                "text": "gamma",
+                "text": {"value": "gamma"},
                 "heading_path": ["gamma"],
             }
         ]
@@ -99,20 +135,79 @@ CASES["06-combined-case-fails"] = (
 # 7 — pools match on their required label: exact, never heuristic.
 pool_old = cnd([para(7, 1, "alpha", label="p")])
 pool_old["footnotes"] = [
-    {"id": uid(7, 100), "label": "fn-a", "text": "first"},
-    {"id": uid(7, 101), "label": "fn-b", "text": "second"},
+    note(7, 100, "fn-a", para(7, 200, "first")),
+    note(7, 101, "fn-b", para(7, 201, "second")),
 ]
 pool_new = cnd([para(7, 2, "alpha", label="p")])
 pool_new["footnotes"] = [
-    {"id": uid(7, 102), "label": "fn-b", "text": "second rewritten"},
-    {"id": uid(7, 103), "label": "fn-c", "text": "third"},
+    note(7, 102, "fn-b", para(7, 202, "second rewritten")),
+    note(7, 103, "fn-c", para(7, 203, "third")),
 ]
 CASES["07-pools-key-on-label"] = (
     pool_old,
     pool_new,
     "Pool entries carry a required label, so the pool diff is exact and "
-    "order-independent.",
+    "order-independent. A footnote's content is nodes: the rewritten note "
+    "is reported as a changed paragraph, its entry stays unchanged.",
 )
+
+# 8 — an edited list item is matched and reported on its own.
+CASES["08-list-item-edited"] = (
+    cnd([items(8, 1, para(8, 2, "alpha"), para(8, 3, "beta"), para(8, 4, "gamma"))]),
+    cnd([items(8, 5, para(8, 6, "alpha"), para(8, 7, "beta edited"), para(8, 8, "gamma"))]),
+    "Format 0.5 is finer: the list itself is unchanged and only the item's "
+    "paragraph is changed, where 0.4 marked the whole list changed.",
+)
+
+# 9 — the path tells two cells apart. Cell 0 is emptied and cell 1 edited:
+# with a path of depth and sibling index alone, both first paragraphs sat
+# in the same slot and the edit would pair with cell 0's paragraph.
+CASES["09-cells-are-distinct-slots"] = (
+    cnd([table(9, 1, [para(9, 2, "first cell")], [para(9, 3, "second cell")])]),
+    cnd([table(9, 4, [], [para(9, 5, "second cell, edited")])]),
+    "The edited paragraph pairs with the paragraph of its own cell; the "
+    "emptied cell's paragraph is removed.",
+)
+
+# 10 — reordering the footnote pool moves nothing: the content of a note
+# is keyed by the note's label, not by its pool index.
+notes_old = cnd([cite_notes(10, 1, "fn-a", "fn-b")])
+notes_old["footnotes"] = [
+    note(10, 100, "fn-a", para(10, 200, "first")),
+    note(10, 101, "fn-b", para(10, 201, "second")),
+]
+notes_new = cnd([cite_notes(10, 2, "fn-a", "fn-b")])
+notes_new["footnotes"] = [
+    note(10, 102, "fn-b", para(10, 202, "second")),
+    note(10, 103, "fn-a", para(10, 203, "first, edited")),
+]
+CASES["10-footnote-content"] = (
+    notes_old,
+    notes_new,
+    "Footnote content is matched like body content. The pool was reordered, "
+    "yet the untouched note is unchanged in place and the edited one pairs "
+    "with its own note's paragraph.",
+)
+
+# 11 — a container whose nested content was edited and which also shifted
+# slot misses every earlier pass (its digest and its path both differ); the
+# last pass, reported as container-hash (docs/adr/0029), pairs it on its own
+# node hash alone.
+CASES["11-container-edited-and-shifted"] = (
+    cnd([para(11, 1, "intro"), table(11, 2, [para(11, 3, "a")], [para(11, 4, "b")])]),
+    cnd(
+        [
+            para(11, 5, "inserted"),
+            para(11, 6, "intro"),
+            table(11, 7, [para(11, 8, "a")], [para(11, 9, "b edited")]),
+        ]
+    ),
+    "The table kept its own hash but its cell was edited and a paragraph was "
+    "inserted above it: it is paired on its node hash alone (moved), the "
+    "unedited cell moves with it, and the edited cell's paragraph is added "
+    "while the old one is removed.",
+)
+
 
 
 def main() -> None:
@@ -126,10 +221,15 @@ def main() -> None:
     for name, (old_doc, new_doc, why) in CASES.items():
         case_dir = FIXTURES / name
         case_dir.mkdir(parents=True, exist_ok=True)
-        (case_dir / "old.cnd").write_text(json.dumps(old_doc, indent=2) + "\n")
-        (case_dir / "new.cnd").write_text(json.dumps(new_doc, indent=2) + "\n")
+        # A literal document id too, so a regeneration is byte-stable.
+        case = int(name[:2])
+        old = Cnd.model_validate({"id": uid(case, 900), **old_doc})
+        new = Cnd.model_validate({"id": uid(case, 901), **new_doc})
+        # The SDK's own writer: default-valued fields omitted.
+        (case_dir / "old.cnd").write_text(old.to_json() + "\n", encoding="utf-8")
+        (case_dir / "new.cnd").write_text(new.to_json() + "\n", encoding="utf-8")
 
-        report = diff(Cnd.model_validate(old_doc), Cnd.model_validate(new_doc))
+        report = diff(old, new)
         vectors["cases"][name] = {
             "why": why,
             "nodes": [
@@ -148,7 +248,7 @@ def main() -> None:
         }
 
     (FIXTURES.parent / "matching.json").write_text(
-        json.dumps(vectors, indent=2) + "\n"
+        json.dumps(vectors, indent=2) + "\n", encoding="utf-8"
     )
     print(f"wrote {len(CASES)} pairs + matching.json")
 

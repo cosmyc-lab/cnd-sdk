@@ -7,7 +7,7 @@ keywords:
   - "test"
   - "cnd"
 lang: "fr"
-cnd_version: "0.3.0"
+cnd_version: "0.5.0"
 built_at: "2026-05-20T10:00:00+00:00"
 ---
 

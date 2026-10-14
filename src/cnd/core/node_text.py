@@ -4,15 +4,30 @@ from collections.abc import Callable
 from typing import Literal
 from uuid import UUID
 
-from cnd.core.nodes import ListItem, TableNode
+from cnd.core.nodes import (
+    Cell,
+    CndNode,
+    CodeNode,
+    ImageNode,
+    MathNode,
+    ParagraphNode,
+    TableNode,
+    child_slots,
+    texts_of,
+)
 
 # docs/proposals/0001-configurable-table-figure-rendering.md.
 # "placeholder" is the default everywhere: always the parseable placeholder,
 # regardless of content. "inline" always renders the content as text
-# instead. "auto" defers to the node's own content_kind hint (see TableNode)
-# with no classifier — an unset hint resolves to "placeholder" rather than
-# being guessed.
+# instead. "auto" defers to the table's ``kind`` (docs/proposals/0013):
+# inline for "content"; "data", None and any unknown kind resolve to
+# "placeholder" rather than being guessed.
 NodeTextMode = Literal["placeholder", "inline", "auto"]
+
+
+def wants_inline_table(node: TableNode, mode: NodeTextMode) -> bool:
+    """Whether ``mode`` renders this table's cells rather than a placeholder."""
+    return mode == "inline" or (mode == "auto" and node.kind == "content")
 
 
 def format_figure_placeholder(
@@ -26,13 +41,21 @@ def format_figure_placeholder(
     counter_label: str | None = None,
     shape: tuple[int, int] | None = None,
     row_labels: str | None = None,
+    description: str | None = None,
+    table_kind: str | None = None,
+    escape: Callable[[str], str] | None = None,
 ) -> str:
     """Build a parseable figure placeholder for chunk content.
 
     It carries everything the node says about itself except a table's body
-    cells (docs/proposals/0012). Attribute values are quoted, with ``\\``
-    and ``"`` backslash-escaped, line breaks folded to spaces and ``]]``
-    split, so the placeholder is always one line ending at its first ``]]``.
+    cells (docs/proposals/0012), in this order: kind, counter word, number,
+    caption, description, table kind, header row, size, row labels,
+    summary. Every value is plain text (marks dropped). Attribute values
+    are quoted, with ``\\`` and ``"`` backslash-escaped, line breaks folded
+    to spaces and ``]]`` split, so the placeholder is always one line
+    ending at its first ``]]``. ``escape``, when given, is applied to
+    every quoted value afterwards (a Markdown renderer passes its
+    free-text escaping, so a value cannot become Markdown syntax).
     """
     attrs: dict[str, str] = {"kind": kind}
     if counter_label:
@@ -41,6 +64,10 @@ def format_figure_placeholder(
         attrs["number"] = number
     if caption:
         attrs["caption"] = caption
+    if description:
+        attrs["description"] = description
+    if table_kind:
+        attrs["table_kind"] = table_kind
     if header_row:
         attrs["header"] = header_row
     if shape:
@@ -49,11 +76,17 @@ def format_figure_placeholder(
         attrs["row_labels"] = row_labels
     if summary:
         attrs["summary"] = summary
-    formatted = " ".join(f'{key}="{_attr_value(value)}"' for key, value in attrs.items())
+    quote = escape or (lambda value: value)
+    formatted = " ".join(
+        f'{key}="{quote(attr_value(value))}"' for key, value in attrs.items()
+    )
     return f"[[figure:{figure_id} {formatted}]]"
 
 
-def _attr_value(value: str) -> str:
+def attr_value(value: str) -> str:
+    """A placeholder attribute value: ``\\`` and ``"`` backslash-escaped,
+    whitespace runs (line breaks included) folded to one space, ``]]``
+    split."""
     value = value.replace("\\", "\\\\").replace('"', '\\"')
     value = " ".join(value.split())
     while "]]" in value:
@@ -61,39 +94,33 @@ def _attr_value(value: str) -> str:
     return value
 
 
-def render_list_markdown(
-    items: list[ListItem],
-    *,
-    ordered: bool,
-    depth: int = 0,
-    escape: Callable[[str], str] | None = None,
-) -> str:
-    """Render a bullet or numbered list as markdown-like text.
+def blocks_plain_text(nodes: list[CndNode]) -> str:
+    """The plain text of block nodes, in reading order, joined by spaces:
+    every text of every node (marks dropped), a code or math node's
+    source, an image's alt. Used where a one-line summary is needed."""
+    parts: list[str] = []
+    for node in nodes:
+        parts.extend(text.value for text in texts_of(node))
+        if isinstance(node, (CodeNode, MathNode)):
+            parts.append(node.text)
+        elif isinstance(node, ImageNode) and node.alt:
+            parts.append(node.alt)
+        for slot in child_slots(node):
+            parts.append(blocks_plain_text(slot.nodes))
+    return " ".join(part for part in parts if part)
 
-    An ordered item prints its own ``number`` when the producer set one
-    (a list that starts at 5, or skips values), else its position.
-    """
-    return "\n".join(_render_list_items(items, ordered, "  " * depth, escape))
+
+def cell_plain_text(cell: Cell) -> str:
+    """A cell's content as one line of plain text."""
+    return blocks_plain_text(cell.children)
 
 
-def _render_list_items(
-    items: list[ListItem],
-    ordered: bool,
-    indent: str,
-    escape: Callable[[str], str] | None,
-) -> list[str]:
-    lines: list[str] = []
-    for index, item in enumerate(items, start=1):
-        number = item.number if item.number is not None else index
-        prefix = f"{number}." if ordered else "-"
-        text = escape(item.text) if escape else item.text
-        lines.append(f"{indent}{prefix} {text}")
-        if item.children:
-            # A child must start at its parent's content column, so the
-            # indent grows with the marker ("- " is 2, "1. " is 3, "10. " is 4).
-            child_indent = indent + " " * (len(prefix) + 1)
-            lines.extend(_render_list_items(item.children, ordered, child_indent, escape))
-    return lines
+def is_inline_cell(cell: Cell) -> bool:
+    """Whether a cell fits in a GFM table cell: empty, one paragraph, or
+    one image (docs/proposals/0013, "Rendering")."""
+    return len(cell.children) == 0 or (
+        len(cell.children) == 1 and isinstance(cell.children[0], (ParagraphNode, ImageNode))
+    )
 
 
 def header_row_text(node: TableNode) -> str | None:
@@ -103,25 +130,30 @@ def header_row_text(node: TableNode) -> str | None:
     id (docs/proposals/0001, "cheap to do on its own")."""
     if not node.cells:
         return None
-    header_rows = {cell.row for cell in node.cells if cell.is_header}
-    target_row = min(header_rows) if header_rows else 0
+    flagged = {cell.row for cell in node.cells if cell.is_header}
+    target_row = min(flagged) if flagged else 0
     row_cells = sorted((c for c in node.cells if c.row == target_row), key=lambda c: c.col)
-    texts = [c.text for c in row_cells if c.text]
+    texts = [text for text in map(cell_plain_text, row_cells) if text]
     return " | ".join(texts) if texts else None
 
 
-def table_node_placeholder(node: TableNode) -> str:
-    """Placeholder string for a bare table or grid node.
+def table_node_placeholder(
+    node: TableNode, escape: Callable[[str], str] | None = None
+) -> str:
+    """Placeholder string for a bare table node.
 
     Caption and number live on a wrapping ``FigureNode`` when present —
-    a bare table placeholder carries only kind and header structure.
+    a bare table placeholder carries its kind, header structure, size and
+    row labels. ``escape`` is passed to ``format_figure_placeholder``.
     """
     return format_figure_placeholder(
         figure_id=node.id,
-        kind=node.kind,
+        kind="table",
+        table_kind=node.kind,
         header_row=header_row_text(node),
         shape=table_shape(node),
         row_labels=row_labels_text(node),
+        escape=escape,
     )
 
 
@@ -139,7 +171,7 @@ def table_shape(node: TableNode) -> tuple[int, int] | None:
     return rows, cols
 
 
-def _header_rows(node: TableNode) -> set[int]:
+def header_rows(node: TableNode) -> set[int]:
     """Rows whose every cell is a header. A row merely *containing* a
     header cell is not one: row headers (the first column of a data table)
     flag a cell on every row. With no flag anywhere, row 0, the same
@@ -155,15 +187,15 @@ def _header_rows(node: TableNode) -> set[int]:
 def row_labels_text(node: TableNode, cap: int = ROW_LABELS_CAP) -> str | None:
     """The first column's text below the header, joined — the labels a data
     table's rows are usually looked up by. None for a single-column table,
-    where the first column is the whole body. See :func:`_header_rows`."""
+    where the first column is the whole body. See :func:`header_rows`."""
     shape = table_shape(node)
     if shape is None or shape[1] < 2:
         return None
-    header_rows = _header_rows(node)
+    skipped = header_rows(node)
     labels = [
-        cell.text
+        text
         for cell in sorted(node.cells, key=lambda c: c.row)
-        if cell.col == 0 and cell.row not in header_rows and cell.text
+        if cell.col == 0 and cell.row not in skipped and (text := cell_plain_text(cell))
     ]
     if not labels:
         return None
@@ -171,37 +203,43 @@ def row_labels_text(node: TableNode, cap: int = ROW_LABELS_CAP) -> str | None:
     return f"{kept} | … (+{len(labels) - cap})" if len(labels) > cap else kept
 
 
-def _cell_text(text: str, escape: Callable[[str], str] | None) -> str:
+def _gfm_cell(text: str, *, text_only: bool) -> str:
     """Cell text that cannot break the GFM row it sits in."""
-    if escape:
-        text = escape(text)
     text = text.replace("\r\n", "\n").replace("\r", "\n")
-    return text.replace("|", "\\|").replace("\n", "<br>")
+    return text.replace("|", "\\|").replace("\n", " " if text_only else "<br>")
 
 
-def render_table_markdown(node: TableNode, *, escape: Callable[[str], str] | None = None) -> str:
-    """Render a table node's cells as a Markdown grid.
+def render_table_markdown(
+    node: TableNode,
+    *,
+    cell_text: Callable[[Cell], str] | None = None,
+    text_only: bool = False,
+) -> str:
+    """Render a table node's cells as a GFM grid.
 
-    Spanned cells (``rowspan``/``colspan`` > 1) place their text once, at
-    the cell's own ``(row, col)`` — Markdown has no native merged-cell
-    syntax, so the rest of the span is left blank rather than repeated.
-    The separator row follows the header row (cells flagged ``is_header``
-    when present, else row 0). Cell text has ``|`` escaped and newlines
-    turned into ``<br>`` so the row keeps its column count; ``escape``,
-    when given, runs first on each cell.
+    ``cell_text`` turns a cell into inline Markdown; the default is the
+    cell's plain text. Call it only on a table whose cells pass
+    :func:`is_inline_cell`, or block content is flattened. Spanned cells
+    (``rowspan``/``colspan`` > 1) place their text once, at the cell's own
+    ``(row, col)`` — Markdown has no merged-cell syntax, so the rest of the
+    span is left blank rather than repeated. The separator row follows the
+    header row (cells flagged ``is_header`` when present, else row 0).
+    Each cell has ``|`` escaped and newlines turned into ``<br>`` (a space
+    under ``text_only``) so the row keeps its column count.
     """
     if not node.cells:
         return ""
+    render_cell = cell_text or cell_plain_text
     max_row = max(cell.row + cell.rowspan - 1 for cell in node.cells)
     max_col = max(cell.col + cell.colspan - 1 for cell in node.cells)
     grid: list[list[str]] = [["" for _ in range(max_col + 1)] for _ in range(max_row + 1)]
-    header_rows: set[int] = set()
+    flagged: set[int] = set()
     for cell in node.cells:
-        grid[cell.row][cell.col] = _cell_text(cell.text, escape)
+        grid[cell.row][cell.col] = _gfm_cell(render_cell(cell), text_only=text_only)
         if cell.is_header:
-            header_rows.add(cell.row)
+            flagged.add(cell.row)
 
-    header_row_index = min(header_rows) if header_rows else 0
+    header_row_index = min(flagged) if flagged else 0
     lines: list[str] = []
     for row_index, row in enumerate(grid):
         lines.append("| " + " | ".join(row) + " |")
@@ -216,9 +254,9 @@ def table_node_text(node: TableNode, *, mode: NodeTextMode = "placeholder") -> s
 
     Falls back to the placeholder if the resolved mode would render inline
     but the table has no cells to render (nothing to gain from switching).
+    Cells render as plain text here; ``MarkdownRenderer`` renders marks.
     """
-    wants_inline = mode == "inline" or (mode == "auto" and node.content_kind == "content")
-    if wants_inline:
+    if wants_inline_table(node, mode):
         rendered = render_table_markdown(node)
         if rendered:
             return rendered

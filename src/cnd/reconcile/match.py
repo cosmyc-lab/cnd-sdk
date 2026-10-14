@@ -1,5 +1,5 @@
-"""Node matching across two CNDs — reference algorithm "matching v1"
-(docs/adr/0018).
+"""Node matching across two CNDs — reference algorithm "matching v2"
+(docs/adr/0029, which extends docs/adr/0018).
 
 The matcher answers "is this the same node as in the previous build?"
 for two built CNDs. It is a **versioned reference algorithm, not part of
@@ -10,60 +10,101 @@ tag. Nothing here creates a conformance obligation on a producer.
 The claim it makes is deliberately narrow: **exact for labelled nodes,
 best-effort for everything else**. A label is the only durable identity
 CND has (docs/adr/0015), so a labelled node survives both edit and move;
-an unlabelled one is recovered by heuristics that can miss (see
-``ADR 0018`` and the ``diff`` docstring for the documented failure).
+an unlabelled one is recovered by heuristics that can miss (see ADR 0018,
+ADR 0029 and the ``diff`` docstring for the documented failures).
+
+**What v2 walks.** The full walk (spec §8): every node of the body,
+including those inside list items, term items, cells, quotes and
+admonitions, then the content of every footnote. The structural path is
+the spec §8 path, so the first paragraphs of two different cells sit in
+two different slots; inside a footnote the pool index is replaced by the
+note's label, so reordering the pool moves nothing. Finer nodes make the
+matcher finer too: an edited list item is matched and reported on its
+own, where a whole list used to be marked changed.
+
+**The container key.** A node hash excludes nested nodes (spec §10), so
+two containers of the same shape hash alike. A container — a list,
+terms, table, layout, quote or admonition — is therefore keyed on its
+node hash plus a digest of its descendants' hashes (``subtree``), which
+stops a surviving container taking the id of a deleted twin. Headings
+and figures are left out on purpose: their hash already carries their
+text or caption, and a heading whose section changed has not itself
+changed (spec §10), so a moved heading stays recognisable. Every other
+node has an empty digest, and its key is its node hash alone.
 
 The passes run strongest key first, and a node matched by an earlier
 pass is never reconsidered by a later one:
 
 1. ``label`` — exact, survives edit and move;
-2. ``node_hash`` + structural path — unchanged, in place;
-3. ``node_hash`` alone — moved but unchanged; recovers the nodes an
-   insertion shifted;
-4. structural path + ``type`` — same slot, edited content;
-5. otherwise unmatched (a new node on the ``new`` side, a removed one on
+2. ``hash+path`` — node hash, container digest and structural path
+   agree: unchanged, in place;
+3. ``hash`` — node hash and container digest agree: moved but
+   unchanged; recovers the nodes an insertion shifted;
+4. ``path+type`` — structural path and ``type`` agree: same slot,
+   edited content;
+5. ``container-hash`` — for containers only, the node hash alone: a
+   container whose nested content was edited and that also shifted
+   keeps its id (twins have already paired through the digest in
+   passes 2 and 3);
+6. otherwise unmatched (a new node on the ``new`` side, a removed one on
    the ``old`` side).
 
 Ties within a pass — equal-hash duplicates, two nodes competing for one
 slot — break by reading order: the earliest unmatched candidate wins.
+
+Known limits: two headings or figures with identical titles can swap,
+and so can two twin containers that were both edited and shifted. The
+combined case ADR 0018 documents (an edited node with an insertion
+above it) still fails for every node that is not a container. The node
+hash itself is unchanged by any of this.
 """
 
+import hashlib
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Literal, Optional
 
 from cnd.core.cnd import BibEntry, Cnd, Footnote
 from cnd.core.hashing import node_hash, pool_entry_hash
-from cnd.core.nodes import CndNode
+from cnd.core.nodes import CndNode, FigureNode, HeadingNode, child_slots
 
-MATCHER_VERSION = "v1"
-"""The version of the reference algorithm implemented here (docs/adr/0018)."""
+MATCHER_VERSION = "v2"
+"""The version of the reference algorithm implemented here (docs/adr/0029)."""
 
-MatchPass = Literal["label", "hash+path", "hash", "path+type"]
+MatchPass = Literal["label", "hash+path", "hash", "path+type", "container-hash"]
 """Which pass matched a pair."""
 
 PASS_LABEL: MatchPass = "label"
 PASS_HASH_PATH: MatchPass = "hash+path"
 PASS_HASH: MatchPass = "hash"
 PASS_PATH_TYPE: MatchPass = "path+type"
+PASS_CONTAINER_HASH: MatchPass = "container-hash"
 
-StructuralPath = tuple[int, ...]
-"""A node's slot in the tree: 1-based sibling indices from the root down."""
+StructuralPath = tuple[str | int, ...]
+"""A node's slot: its spec §8 path, such as ``("nodes", 0, "children", 4,
+"cells", 2, "children", 0)``. Inside a footnote the pool index is
+replaced by the footnote's label (``("footnotes", "fn-a", "children",
+0)``): a pool is keyed by label and its order is not document order, so
+reordering the pool must not move the notes' content (see ``entries``)."""
 
 
 @dataclass(frozen=True)
 class NodeEntry:
     """One node of a CND with everything the matcher keys on.
 
-    ``order`` is the node's 1-based position in reading order and is what
-    breaks ties: the tree is normatively in reading order, so "earliest
-    candidate" is a document fact rather than a walk artifact.
+    ``order`` is the node's 1-based position in the full walk (the body in
+    reading order, then each footnote's content) and is what breaks ties:
+    the tree is normatively in reading order, so "earliest candidate" is a
+    document fact rather than a walk artifact.
     """
 
     node: CndNode
     path: StructuralPath
     hash: str
     order: int
+    subtree: str = ""
+    """Digest of the hashes of every nested node, in order; empty for a
+    node without child slots. A matching key only, never a content hash."""
 
     @property
     def label(self) -> Optional[str]:
@@ -123,27 +164,71 @@ class PoolMatching:
 
 
 def entries(cnd: Cnd) -> list[NodeEntry]:
-    """Every node of ``cnd`` in reading order, keyed for matching.
+    """Every node of ``cnd`` in full-walk order (the body, then each
+    footnote's content), keyed for matching.
 
-    The structural path is derived from the traversal context rather than
-    from a second walk: the walk is depth-first pre-order, so truncating
-    the running path to the current depth and appending the sibling index
-    yields the absolute slot of every node.
+    The structural path is the traversal context's ``path``, with one
+    deliberate difference: a footnote's pool index is replaced by its
+    label. Pool entries match on their label and a pool has no "moved"
+    (``PoolDiff``), so the content of a note must not be reported moved
+    because the pool was reordered.
     """
+    hashes: dict[int, str] = {}
+    subtrees: dict[int, str] = {}
     result: list[NodeEntry] = []
-    path: list[int] = []
-    for order, visit in enumerate(cnd.iter(), start=1):
-        del path[visit.ctx.depth :]
-        path.append(visit.ctx.sibling_index)
+    for order, visit in enumerate(cnd.iter_all(), start=1):
+        node = visit.node
         result.append(
             NodeEntry(
-                node=visit.node,
-                path=tuple(path),
-                hash=node_hash(visit.node),
+                node=node,
+                path=_matching_path(cnd, visit.ctx.path),
+                hash=_hash_of(node, hashes),
                 order=order,
+                subtree=(
+                    ""
+                    if isinstance(node, (HeadingNode, FigureNode))
+                    else _subtree_of(node, hashes, subtrees)
+                ),
             )
         )
     return result
+
+
+def _hash_of(node: CndNode, hashes: dict[int, str]) -> str:
+    if id(node) not in hashes:
+        hashes[id(node)] = node_hash(node)
+    return hashes[id(node)]
+
+
+def _subtree_of(
+    node: CndNode, hashes: dict[int, str], subtrees: dict[int, str]
+) -> str:
+    """Digest of the descendants' hashes in preorder, slot by slot."""
+    if id(node) in subtrees:
+        return subtrees[id(node)]
+    slots = child_slots(node)
+    if not slots:
+        subtrees[id(node)] = ""
+        return ""
+    parts: list[str] = []
+    for slot in slots:
+        parts.append("[")
+        for child in slot.nodes:
+            parts.append(_hash_of(child, hashes))
+            parts.append(_subtree_of(child, hashes, subtrees))
+        parts.append("]")
+    digest = hashlib.sha256("|".join(parts).encode()).hexdigest()
+    subtrees[id(node)] = digest
+    return digest
+
+
+def _matching_path(cnd: Cnd, path: tuple[str | int, ...]) -> StructuralPath:
+    """``path`` with a footnote's pool index replaced by its label."""
+    if path[0] == "footnotes":
+        index = path[1]
+        assert isinstance(index, int)
+        return ("footnotes", cnd.footnotes[index].label, *path[2:])
+    return path
 
 
 def pool_entries(pool: Iterable["BibEntry | Footnote"]) -> list[PoolEntry]:
@@ -152,7 +237,7 @@ def pool_entries(pool: Iterable["BibEntry | Footnote"]) -> list[PoolEntry]:
 
 
 def match_nodes(old: Cnd, new: Cnd) -> NodeMatching:
-    """Pair the nodes of ``old`` and ``new`` under matching v1."""
+    """Pair the nodes of ``old`` and ``new`` under matching v2."""
     return match_entries(entries(old), entries(new))
 
 
@@ -174,6 +259,7 @@ def match_entries(
         (PASS_HASH_PATH, _key_hash_path),
         (PASS_HASH, _key_hash),
         (PASS_PATH_TYPE, _key_path_type),
+        (PASS_CONTAINER_HASH, _key_container_hash),
     ):
         paired, remaining_old, remaining_new = _run_pass(
             remaining_old, remaining_new, key
@@ -229,11 +315,18 @@ def _key_label(entry: NodeEntry) -> Optional[tuple]:
 
 
 def _key_hash_path(entry: NodeEntry) -> Optional[tuple]:
-    return (entry.hash, entry.path)
+    return (entry.hash, entry.subtree, entry.path)
 
 
 def _key_hash(entry: NodeEntry) -> Optional[tuple]:
-    return (entry.hash,)
+    return (entry.hash, entry.subtree)
+
+
+def _key_container_hash(entry: NodeEntry) -> Optional[tuple]:
+    """Last pass: a container that kept its own hash, whatever its nested
+    content did. ``subtree`` is empty for non-containers (and for headings
+    and figures), which this pass leaves alone."""
+    return (entry.hash,) if entry.subtree else None
 
 
 def _key_path_type(entry: NodeEntry) -> Optional[tuple]:

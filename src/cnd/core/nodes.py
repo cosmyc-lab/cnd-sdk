@@ -5,6 +5,17 @@ from dataclasses import dataclass, field
 
 from pydantic import BaseModel, Field
 
+from cnd.core.text import (  # noqa: F401  (re-exported for existing imports)
+    CiteRef,
+    Edge,
+    FootnoteRef,
+    LinkRef,
+    NodeRef,
+    Numbering,
+    RawSource,
+    RichText,
+)
+
 
 class NodeLocation(BaseModel):
     """Layout facts the SDK cannot derive from the tree: the page where the
@@ -25,175 +36,71 @@ class NodeLocation(BaseModel):
     page: int
 
 
-class RawSource(BaseModel):
-    """The producer's verbatim source for a node, with its language.
+KNOWN_ADMONITION_KINDS = frozenset({"note", "tip", "important", "warning", "caution"})
+"""Known ``admonition.kind`` values (open vocabulary; fallback: a generic
+callout headed by the title, or by the kind)."""
 
-    A bare string dropped the one thing a consumer needs to decide whether
-    to attempt a parse: which language the content is in. ``format`` is an
-    open string (``"typst"``, ``"latex"``, ``"mathml"``…), never a closed
-    enum — a new producer must not require a spec revision.
-    """
-
-    format: str
-    value: str
-
-
-class NodeRef(BaseModel):
-    """Forward cross-reference edge to another node.
-
-    An edge is ``{label, text_span?}``: it names its target by label and
-    resolves through the CND's label index (docs/adr/0017, superseding the
-    ``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the
-    reference marker sits in the containing node's rendered text, as a
-    ``[start, end)`` pair of Unicode code-point offsets (docs/adr/0013).
-    """
-
-    label: str
-    text_span: list[int] | None = None
-
-
-class CiteRef(BaseModel):
-    """Forward citation edge; ``label`` resolves in the CND ``bibliography`` pool."""
-
-    label: str
-    text_span: list[int] | None = None
-    form: Literal["normal", "prose", "full", "author", "year", "none"] | None = None
-    supplement: str | None = None
-
-
-class FootnoteRef(BaseModel):
-    """Forward footnote edge; ``label`` resolves in the CND ``footnotes`` pool."""
-
-    label: str
-    text_span: list[int] | None = None
-
-
-class LinkRef(BaseModel):
-    """Forward hyperlink edge; ``href`` resolves nowhere in the CND.
-
-    The fourth forward family and the only one not keyed by label: a
-    hyperlink's target is outside the document by definition, so it admits
-    no resolution domain and has no dangling state — a URL is a URL. The
-    scheme is a consumer's business (``https:``, ``doi:``, an application
-    scheme); the format only carries the string.
-    """
-
-    href: str
-    text_span: list[int] | None = None
+KNOWN_TABLE_KINDS = frozenset({"data", "content"})
+"""Known ``table.kind`` values (open vocabulary; ``None`` = unstated)."""
 
 
 class NodeBase(BaseModel):
-    """Shared fields for every cnd node."""
+    """Shared fields for every node. The link families live in the node's
+    texts (``RichText``), not here (docs/proposals/0013)."""
 
     id: UUID
     label: str | None = None
-    refs: list[NodeRef] = Field(default_factory=list)
-    cites: list[CiteRef] = Field(default_factory=list)
-    footnotes: list[FootnoteRef] = Field(default_factory=list)
-    links: list[LinkRef] = Field(default_factory=list)
-    state_metadata: dict[str, Any] = Field(default_factory=dict)
+    state_metadata: dict[str, Any] = Field(default={})
     location: NodeLocation | None = None
 
 
 class HeadingNode(NodeBase):
-    """Section heading with nested section content in ``children``.
-
-    ``number`` — shared in shape with ``MathNode`` and ``FigureNode`` — is
-    the counter value **as resolved and displayed** (``"2.1.1"``, ``"(1)"``,
-    ``"3"``), never the pattern that produced it: a consumer cannot replay a
-    counter engine, so only the resolved value is usable.
-
-    ``counter_label`` is the word displayed in front of it (``"Figure"``,
-    ``"Tabelle"``), kept in its own field rather than fused into ``number``
-    (docs/proposals/0008, 0010). Fusing them was the defect; carrying the
-    word is not. It is not always derivable — for a custom ``kind`` the
-    author supplies it and nothing else in the CND encodes it.
-    """
+    """Section heading; the section's content is in ``children``."""
 
     type: Literal["heading"]
     level: int
-    number: str | None = None
-    counter_label: str | None = None
-    text: str
+    numbering: Numbering | None = None
+    text: RichText
     heading_path: list[str]
-    children: list["CndNode"] = Field(default_factory=list)
+    children: list["CndNode"] = Field(default=[])
 
 
 class ParagraphNode(NodeBase):
-    """Plain text paragraph."""
+    """A paragraph: the leaf that carries prose."""
 
     type: Literal["paragraph"]
-    text: str
-    lang: str | None = None
-
-
-class TableCell(BaseModel):
-    """Single cell inside a table node."""
-
-    row: int
-    col: int
-    rowspan: int = 1
-    colspan: int = 1
-    is_header: bool = False
-    text: str
-
-
-class TableNode(NodeBase):
-    """Structured table with typed cells.
-
-    ``kind`` distinguishes a semantic ``table`` from a layout ``grid``: both
-    share the same cell model, but a grid carries no tabular semantics.
-
-    A table has no caption of its own — a captioned/numbered table is a
-    ``TableNode`` wrapped in a ``FigureNode``, which carries the caption.
-    """
-
-    type: Literal["table"]
-    kind: Literal["table", "grid"] = "table"
-    # Optional producer-supplied hint used by mode="auto" rendering (see
-    # cnd.core.render.MarkdownRenderer): "content" for a table whose cells
-    # read fine inlined as text (a short comparison table, a parameter
-    # list), "data" for one that doesn't (a numeric measurement grid).
-    # Unset (the common case today) is treated as "data".
-    content_kind: Literal["data", "content"] | None = None
-    cells: list[TableCell] = Field(default_factory=list)
-    raw: RawSource | None = None
+    text: RichText
 
 
 class QuoteNode(NodeBase):
-    """Block quotation with optional attribution (author or source)."""
+    """Block quotation. An inline quotation stays text in its paragraph."""
 
     type: Literal["quote"]
-    text: str
-    attribution: str | None = None
-    block: bool = True
-    lang: str | None = None
+    attribution: RichText | None = None
+    children: list["CndNode"] = Field(default=[])
 
 
 class CodeNode(NodeBase):
-    """Raw code block, preserved verbatim with its language tag."""
+    """Code block, verbatim. Inline code is a ``code`` mark. ``title`` is
+    the label an author gives a listing, typically a file name."""
 
     type: Literal["code"]
     text: str
     lang: str | None = None
-    block: bool = True
+    title: str | None = None
 
 
 class MathNode(NodeBase):
-    """Block-level equation."""
+    """Block equation. Inline math is a ``math`` mark."""
 
     type: Literal["math"]
     text: str
     raw: RawSource | None = None
-    number: str | None = None
-    counter_label: str | None = None
-    block: bool = True
+    numbering: Numbering | None = None
 
 
 class ImageNode(NodeBase):
-    """Leaf image content. A bare image outside any figure is an ``ImageNode``
-    with no wrapper; a captioned image is an ``ImageNode`` inside a
-    ``FigureNode``."""
+    """Leaf image content."""
 
     type: Literal["image"]
     path: str | None = None
@@ -201,77 +108,134 @@ class ImageNode(NodeBase):
 
 
 class FigureNode(NodeBase):
-    """Captioned/numbered float wrapper — never a content carrier.
-
-    The wrapped content (image, table, code, …) lives in ``children`` and
-    keeps its own node type and ``location``. ``kind`` is the counter/label
-    selector of the figure ("image", "table", or an author-custom kind like
-    "atom") — an open string, never a content discriminator. Nested figures
-    (subfigures) are allowed. An unconvertible body yields ``children=[]``
-    with ``raw`` filled.
-    """
+    """Captioned/numbered wrapper; content keeps its own node type in
+    ``children``. ``kind`` is the figure's category (open vocabulary),
+    useful above all for author-defined categories ``children`` cannot
+    reveal. ``description`` is the text equivalent of the visual. An
+    unconvertible body (a drawing) yields ``children=[]`` with ``raw``."""
 
     type: Literal["figure"]
     kind: str | None = None
-    caption: str | None = None
-    number: str | None = None
-    counter_label: str | None = None
-    children: list["CndNode"] = Field(default_factory=list)
+    caption: RichText | None = None
+    description: RichText | None = None
+    numbering: Numbering | None = None
+    children: list["CndNode"] = Field(default=[])
     raw: RawSource | None = None
 
 
-class ListItem(BaseModel):
-    """Single item of a bullet or numbered list."""
+class AdmonitionNode(NodeBase):
+    """A callout ("Note", "Warning"). ``kind`` is an open vocabulary; the
+    known values are ``KNOWN_ADMONITION_KINDS``."""
 
-    text: str
+    type: Literal["admonition"]
+    kind: str
+    title: RichText | None = None
+    children: list["CndNode"] = Field(default=[])
+
+
+class ListItem(BaseModel):
+    """One list entry. Its content is block nodes; a nested list is a
+    ``list`` node with its own ``ordered``. ``checked`` is ``None`` for an
+    item that is not a task-list checkbox."""
+
     number: int | None = None
-    children: list["ListItem"] = Field(default_factory=list)
+    checked: bool | None = None
+    children: list["CndNode"] = Field(default=[])
 
 
 class ListNode(NodeBase):
-    """Bullet (`ordered=False`) or numbered (`ordered=True`) list."""
+    """Bullet (``ordered=False``) or numbered (``ordered=True``) list."""
 
     type: Literal["list"]
     ordered: bool = False
-    tight: bool = True
-    items: list[ListItem] = Field(default_factory=list)
+    items: list[ListItem] = Field(default=[])
 
 
 class TermItem(BaseModel):
-    """Single term/description pair of a definition list."""
+    """One term and its definition (block nodes in ``children``)."""
 
-    term: str
-    description: str
+    term: RichText
+    children: list["CndNode"] = Field(default=[])
 
 
 class TermsNode(NodeBase):
-    """Definition list (Typst ``/ term: description`` items)."""
+    """Definition list."""
 
     type: Literal["terms"]
-    tight: bool = True
-    items: list[TermItem] = Field(default_factory=list)
+    items: list[TermItem] = Field(default=[])
+
+
+class Cell(BaseModel):
+    """One cell of a ``table`` or a ``layout``; content is block nodes."""
+
+    row: int
+    col: int
+    rowspan: int = Field(default=1, ge=1)
+    colspan: int = Field(default=1, ge=1)
+    is_header: bool = False
+    children: list["CndNode"] = Field(default=[])
+
+
+class TableNode(NodeBase):
+    """A table whose rows and columns carry meaning. ``kind`` states what
+    it is: ``"data"`` (a dataset of records), ``"content"`` (cells to
+    read), ``None`` (unstated). Open vocabulary; never guessed by a
+    producer. A captioned table is wrapped in a ``FigureNode``."""
+
+    type: Literal["table"]
+    kind: str | None = None
+    cells: list[Cell] = Field(default=[])
+
+
+class LayoutNode(NodeBase):
+    """A grid used for arrangement only; position carries no relation."""
+
+    type: Literal["layout"]
+    cells: list[Cell] = Field(default=[])
 
 
 CndNode = Annotated[
     Union[
         HeadingNode,
         ParagraphNode,
-        TableNode,
         QuoteNode,
         CodeNode,
         MathNode,
-        FigureNode,
         ImageNode,
+        FigureNode,
+        AdmonitionNode,
         ListNode,
         TermsNode,
+        TableNode,
+        LayoutNode,
     ],
     Field(discriminator="type"),
 ]
 
-ListItem.model_rebuild()
+for _model in (HeadingNode, QuoteNode, FigureNode, AdmonitionNode, ListItem, TermItem, Cell):
+    _model.model_rebuild()
 
-HeadingNode.model_rebuild()  # For recursive reference to children
-FigureNode.model_rebuild()  # For recursive reference to children
+
+def texts_of(node: "CndNode") -> list[RichText]:
+    """The node's own texts, in document order; never a nested node's."""
+    if isinstance(node, (HeadingNode, ParagraphNode)):
+        return [node.text]
+    if isinstance(node, QuoteNode):
+        return [node.attribution] if node.attribution is not None else []
+    if isinstance(node, FigureNode):
+        return [t for t in (node.caption, node.description) if t is not None]
+    if isinstance(node, AdmonitionNode):
+        return [node.title] if node.title is not None else []
+    if isinstance(node, TermsNode):
+        return [item.term for item in node.items]
+    return []
+
+
+def edges_of(node: "CndNode") -> list[Edge]:
+    """Every forward edge of the node's own texts, flattened."""
+    return [edge for text in texts_of(node) for edge in text.edges()]
+
+
 
 
 @dataclass(frozen=True)
@@ -283,8 +247,8 @@ class NodeTraverseContext:
     pairs suitable for an "x/y" display):
 
     - ``doc_index``/``doc_count`` — position among all nodes of the walk.
-    - ``sibling_index``/``sibling_count`` — position among the parent's
-      children.
+    - ``sibling_index``/``sibling_count`` — position among the siblings
+      of the same slot list.
     - ``page_index``/``page_count`` — position among the nodes that begin
       on the same page (``location.page``). Both are ``None`` on an
       unpaginated CND, where no page exists to be positioned within — the
@@ -294,6 +258,14 @@ class NodeTraverseContext:
     They are document facts, not walk artifacts: pruning a branch with
     ``max_depth``/``stop_predicate`` does not shift the positions of the
     nodes that are still visited.
+
+    - ``slot``/``slot_index`` — where the node's list sits in its parent:
+      ``"children"`` (index ``None``), ``"items"`` or ``"cells"`` with the
+      entry index, ``"footnotes"`` with the pool index, ``None`` at the top
+      level.
+    - ``path`` — the node's full position, e.g.
+      ``("nodes", 0, "children", 4, "cells", 2, "children", 0)``. It feeds
+      the document hash (§10).
     """
 
     depth: int
@@ -305,6 +277,9 @@ class NodeTraverseContext:
     sibling_count: int = 0
     page_index: int | None = None
     page_count: int | None = None
+    slot: str | None = None
+    slot_index: int | None = None
+    path: tuple[str | int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -318,11 +293,32 @@ class NodeTraverse:
 StopPredicate = Callable[[CndNode, NodeTraverseContext], bool]
 
 
-def _children_of(node: CndNode) -> list["CndNode"]:
-    """The child list of a children-bearing node (heading, figure)."""
-    if isinstance(node, (HeadingNode, FigureNode)):
-        return node.children
+@dataclass(frozen=True)
+class ChildSlot:
+    """One list of nested nodes inside a container, and where it sits:
+    ``field`` is ``"children"``, ``"items"`` or ``"cells"``; ``index`` is
+    the item or cell index (``None`` for ``"children"``)."""
+
+    field: str
+    index: int | None
+    nodes: list["CndNode"]
+
+
+def child_slots(node: "CndNode") -> list[ChildSlot]:
+    """Every nested-node list of ``node``, in document order (principle 2:
+    nested nodes always live in ``children``)."""
+    if isinstance(node, (HeadingNode, FigureNode, QuoteNode, AdmonitionNode)):
+        return [ChildSlot("children", None, node.children)]
+    if isinstance(node, (ListNode, TermsNode)):
+        return [ChildSlot("items", i, item.children) for i, item in enumerate(node.items)]
+    if isinstance(node, (TableNode, LayoutNode)):
+        return [ChildSlot("cells", i, cell.children) for i, cell in enumerate(node.cells)]
     return []
+
+
+def _children_of(node: "CndNode") -> list["CndNode"]:
+    """All nested nodes of ``node``, every slot flattened in order."""
+    return [child for slot in child_slots(node) for child in slot.nodes]
 
 
 def position_totals(nodes: list[CndNode]) -> tuple[int, dict[int, int]]:
@@ -379,27 +375,33 @@ def iter_nodes(
     max_depth: int | None = None,
     stop_predicate: StopPredicate | None = None,
     _totals: tuple[int, dict[int, int]] | None = None,
+    _base_path: tuple[str | int, ...] = ("nodes",),
+    _slot: str | None = None,
+    _slot_index: int | None = None,
 ) -> Iterator[NodeTraverse]:
-    """Walk a node tree depth-first, yielding each node with its context.
+    """Walk a node tree depth-first in reading order, entering every
+    container, yielding each node with its context.
 
     The tree is normatively in document reading order, so the walk order is
     reading order and the derived position attributes on the context are
     document positions. ``_totals`` lets a caller (``Cnd.iter``)
     reuse a cached ``position_totals`` result.
+
+    The ``path`` on each context is relative to the list given: it starts
+    at ``("nodes",)`` for any list unless a caller overrides the base. Only
+    ``Cnd.iter`` and ``Cnd.iter_all`` yield document paths in the sense of
+    spec section 8.
     """
     totals = _totals if _totals is not None else position_totals(nodes)
-    root_ctx = NodeTraverseContext(depth=0, heading_path=[], parent=None)
-    yield from _iter_nodes(nodes, root_ctx, max_depth, stop_predicate, totals, _WalkCounters())
+    root_ctx = NodeTraverseContext(
+        depth=0, heading_path=[], parent=None, slot=_slot, slot_index=_slot_index
+    )
+    yield from _iter_nodes(
+        nodes, root_ctx, max_depth, stop_predicate, totals, _WalkCounters(), _base_path
+    )
 
 
-def _iter_nodes(
-    nodes: list[CndNode],
-    ctx: NodeTraverseContext,
-    max_depth: int | None,
-    stop_predicate: StopPredicate | None,
-    totals: tuple[int, dict[int, int]],
-    counters: _WalkCounters,
-) -> Iterator[NodeTraverse]:
+def _iter_nodes(nodes, ctx, max_depth, stop_predicate, totals, counters, base_path):
     doc_count, page_counts = totals
     for sibling_index, node in enumerate(nodes, start=1):
         doc_index, page_index = counters.advance(node)
@@ -415,25 +417,37 @@ def _iter_nodes(
             page_count=(
                 page_counts[node.location.page] if node.location is not None else None
             ),
+            slot=ctx.slot,
+            slot_index=ctx.slot_index,
+            path=(*base_path, sibling_index - 1),
         )
         yield NodeTraverse(node=node, ctx=visit_ctx)
 
-        children = _children_of(node)
-        if not children:
+        slots = [slot for slot in child_slots(node) if slot.nodes]
+        if not slots:
             continue
         if (max_depth is not None and ctx.depth >= max_depth) or (
             stop_predicate is not None and stop_predicate(node, visit_ctx)
         ):
-            counters.skip_subtree(children)
+            counters.skip_subtree(_children_of(node))
             continue
 
-        child_ctx = NodeTraverseContext(
-            depth=ctx.depth + 1,
-            heading_path=(
-                node.heading_path if isinstance(node, HeadingNode) else ctx.heading_path
-            ),
-            parent=node,
+        heading_path = (
+            node.heading_path if isinstance(node, HeadingNode) else ctx.heading_path
         )
-        yield from _iter_nodes(
-            children, child_ctx, max_depth, stop_predicate, totals, counters
-        )
+        for slot in slots:
+            child_ctx = NodeTraverseContext(
+                depth=ctx.depth + 1,
+                heading_path=heading_path,
+                parent=node,
+                slot=slot.field,
+                slot_index=slot.index,
+            )
+            prefix = (
+                (*visit_ctx.path, slot.field)
+                if slot.index is None
+                else (*visit_ctx.path, slot.field, slot.index, "children")
+            )
+            yield from _iter_nodes(
+                slot.nodes, child_ctx, max_depth, stop_predicate, totals, counters, prefix
+            )

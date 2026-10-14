@@ -1,10 +1,16 @@
 import json
 from pathlib import Path
 
+from uuid import UUID
+
 from ids import FIGURE001_ID, HEADING001_ID, HEADING002_ID, PARA001_ID, TABLE001_ID
 
 from cnd.core.cnd import Cnd
 from cnd.core.nodes import FigureNode, HeadingNode, ParagraphNode, TableNode, iter_nodes
+
+
+# The four paragraphs inside the cells of structured.cnd's table.
+CELL_IDS = [UUID(f"00000000-0000-4000-c000-00000000000{i}") for i in range(1, 5)]
 
 
 def _load(path: Path) -> Cnd:
@@ -25,6 +31,7 @@ class TestIterNodes:
             PARA001_ID,
             FIGURE001_ID,
             TABLE001_ID,
+            *CELL_IDS,
         ]
 
     def test_cnd_iter_accepts_traversal_options(
@@ -94,7 +101,7 @@ class TestIterNodes:
 
         ids = [visit.node.id for visit in iter_nodes([section])]
 
-        assert ids == [HEADING002_ID, PARA001_ID, FIGURE001_ID, TABLE001_ID]
+        assert ids == [HEADING002_ID, PARA001_ID, FIGURE001_ID, TABLE001_ID, *CELL_IDS]
 
     def test_consumer_can_filter_by_node_type(
         self, minimal_cnd_path: Path,
@@ -102,7 +109,7 @@ class TestIterNodes:
         cnd = _load(minimal_cnd_path)
 
         texts = [
-            visit.node.text
+            visit.node.text.value
             for visit in cnd
             if isinstance(visit.node, ParagraphNode)
         ]
@@ -170,16 +177,16 @@ class TestDerivedPositions:
 
         by_id = {v.node.id: v.ctx for v in cnd}
 
-        # 5 nodes total, all beginning on page 1.
+        # 9 nodes total (the walk enters the table cells), all on page 1.
         para = by_id[PARA001_ID]
-        assert (para.doc_index, para.doc_count) == (3, 5)
+        assert (para.doc_index, para.doc_count) == (3, 9)
         assert (para.sibling_index, para.sibling_count) == (1, 2)
-        assert (para.page_index, para.page_count) == (3, 5)
+        assert (para.page_index, para.page_count) == (3, 9)
 
         table = by_id[TABLE001_ID]
-        assert (table.doc_index, table.doc_count) == (5, 5)
+        assert (table.doc_index, table.doc_count) == (5, 9)
         assert (table.sibling_index, table.sibling_count) == (1, 1)
-        assert (table.page_index, table.page_count) == (5, 5)
+        assert (table.page_index, table.page_count) == (5, 9)
 
         root = by_id[HEADING001_ID]
         assert (root.doc_index, root.sibling_index) == (1, 1)
@@ -230,8 +237,8 @@ class TestDerivedPositions:
 
         cnd = _load(structured_cnd_path)
         doc_count, page_counts = position_totals(cnd.nodes)
-        assert doc_count == 5
-        assert page_counts == {1: 5}
+        assert doc_count == 9
+        assert page_counts == {1: 9}
 
 
 class TestTraversalConformance:
@@ -248,8 +255,13 @@ class TestTraversalConformance:
         fixtures_dir = Path(__file__).parent.parent / "fixtures"
         return {
             path.name: [
-                {"id": str(v.node.id), "type": v.node.type, "depth": v.ctx.depth}
-                for v in Cnd.model_validate_json(path.read_text()).iter()
+                {
+                    "id": str(v.node.id),
+                    "type": v.node.type,
+                    "depth": v.ctx.depth,
+                    "path": "/".join(map(str, v.ctx.path)),
+                }
+                for v in Cnd.model_validate_json(path.read_text()).iter_all()
             ]
             for path in sorted(fixtures_dir.glob("*.cnd"))
         }
@@ -278,3 +290,62 @@ class TestTraversalConformance:
             if visit.ctx.parent is not None:
                 assert visit.ctx.parent.id in seen
             seen.add(visit.node.id)
+
+
+class TestContainers:
+    """0.5 containers: items, cells, term definitions, footnotes (proposal 0013)."""
+
+    def _cnd(self, elements_cnd_path):
+        return Cnd.model_validate_json(elements_cnd_path.read_text())
+
+    def test_the_walk_enters_items_cells_and_terms(self, elements_cnd_path) -> None:
+        values = [
+            v.node.text.value for v in self._cnd(elements_cnd_path).iter()
+            if v.node.type == "paragraph"
+        ]
+        for expected in ("Compile the source", "with fonts", "Brest", "A standoff span with a kind."):
+            assert expected in values
+
+    def test_slot_and_path_name_the_container_entry(self, elements_cnd_path) -> None:
+        visits = {
+            v.node.text.value: v.ctx for v in self._cnd(elements_cnd_path).iter()
+            if v.node.type == "paragraph"
+        }
+        brest = visits["Brest"]
+        assert (brest.slot, brest.slot_index) == ("cells", 2)
+        assert "/".join(map(str, brest.path)) == "nodes/0/children/4/cells/2/children/0"
+        fonts = visits["with fonts"]
+        assert fonts.parent.type == "list" and fonts.slot == "items"
+
+    def test_siblings_are_counted_within_one_slot(self, elements_cnd_path) -> None:
+        visits = {
+            v.node.text.value: v.ctx for v in self._cnd(elements_cnd_path).iter()
+            if v.node.type == "paragraph"
+        }
+        second = visits["Marks of different kinds may overlap."]
+        assert (second.sibling_index, second.sibling_count) == (2, 2)
+
+    def test_the_body_walk_never_enters_footnotes(self, elements_cnd_path) -> None:
+        values = [
+            v.node.text.value for v in self._cnd(elements_cnd_path).iter()
+            if v.node.type == "paragraph"
+        ]
+        assert "Details live here." not in values
+
+    def test_iter_all_adds_footnote_content_after_the_body(self, elements_cnd_path) -> None:
+        visits = list(self._cnd(elements_cnd_path).iter_all())
+        tail = visits[-2:]
+        assert [v.node.text.value for v in tail] == [
+            "Details live here.", "A second paragraph, with code.",
+        ]
+        assert tail[0].ctx.slot == "footnotes" and tail[0].ctx.parent is None
+        assert "/".join(map(str, tail[1].ctx.path)) == "footnotes/0/children/1"
+
+    def test_resolve_reaches_labels_inside_footnotes(self, elements_cnd_path) -> None:
+        assert self._cnd(elements_cnd_path).resolve("fn-second").type == "paragraph"
+
+    def test_pruning_skips_every_container(self, elements_cnd_path) -> None:
+        cnd = self._cnd(elements_cnd_path)
+        kept = [v.node.type for v in cnd.iter(stop_predicate=lambda n, c: n.type == "table")]
+        all_ = [v.node.type for v in cnd.iter()]
+        assert kept.count("paragraph") == all_.count("paragraph") - 4

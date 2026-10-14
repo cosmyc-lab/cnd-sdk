@@ -12,39 +12,47 @@ exactly one place ("detected by the builder at build time and by
 ``build`` is a pure value function — declaration in, CND out — so it
 crosses any language boundary (ADR 0019 §5).
 
-**What the builder derives** (spec §12): every ``id`` (minted, not
-durable — ADR 0015), ``built_at``, ``cnd_version``, ``heading_path``
-(ancestor headings plus the heading itself; an element is
-``"{number} {text}"`` when numbered, bare ``text`` otherwise), and the
-resolved ordinals of ordered-list items. ``location`` is never set — a
-declaration is unpaginated by construction. ``text`` passes through
-byte-for-byte: an edge's ``text_span`` indexes into it, and any
-normalization silently shifts every span.
+**What the builder derives** (spec §12): every ``id`` — body nodes,
+nodes inside list items, term items, cells and footnotes, and pool
+entries (minted, not durable — ADR 0015) — ``built_at``, ``cnd_version``,
+``heading_path`` (ancestor headings plus the heading itself; an element
+is ``"{value} {text}"`` when numbered, the bare text otherwise, always
+the plain ``RichText.value``), the resolved ordinals of ordered-list
+items, and ``numbering.value``. ``location`` is never set — a
+declaration is unpaginated by construction. Every ``RichText.value``
+passes through byte-for-byte: marks and ``text_span`` index into it, and
+any normalization silently shifts every span.
 
-**List ordinals** resolve independently of ``numbering`` — a markdown
-ordered list genuinely carries its numbers. The rule is the one pinned
-on ``DeclListItem``: no override → previous sibling's number plus one,
-from 1; an override is taken verbatim and **rebases** the rest of the
-list. Overrides on an unordered list are dropped.
+**List ordinals** resolve independently of the counter engine — a
+markdown ordered list genuinely carries its numbers. The rule is the one
+pinned on ``DeclListItem``: no override → previous sibling's number plus
+one, from 1; an override is taken verbatim and **rebases** the rest of
+the list. Overrides on an unordered list are dropped.
 
 **The counter engine is opt-in** (``numbering=True``) because the
 declarative door serves unnumbered sources — markdown, hand authors —
 and inventing "2.1.1" there manufactures presentation state, the
-buildable-but-false trap ADR 0019 names. When it runs it applies one
-fixed house style, deliberately without options (the declarative door
-has no style engine):
+buildable-but-false trap ADR 0019 names. When it runs it numbers every
+heading, figure and equation, in full-walk order (the body, then each
+footnote's content, spec §8), with one fixed house style, deliberately
+without options (the declarative door has no style engine):
 
 - headings: one counter per level; entering level *n* increments it and
-  resets deeper levels; ``number`` is the dotted join of levels 1..*n*,
+  resets deeper levels; the value is the dotted join of levels 1..*n*,
   and a skipped level shows ``0`` (``1.0.1``) rather than being papered
   over;
 - figures: one counter per kind, ``kind=None`` resolved from the first
   child's type (the renderer's own inference); bare ordinal (``"3"``);
-- math: one document counter, **block** math only; ``"(1)"``.
+- math: one document counter, ``"(1)"``. Every ``math`` node is a block
+  in 0.5; inline math is a mark and is never numbered.
 
-``counter_label`` is never invented: a wrong-language "Figure" on a
-French document is worse than no word, so only authored values pass
-through (proposal 0010).
+``numbering.name`` is never invented: a wrong-language "Figure" on a
+French document is worse than no word, so only the authored word passes
+through. With the engine off, a node that authors ``numbering`` cannot be
+built: a CND cannot carry a word without a value (docs/proposals/0013,
+"Numbering"), and dropping an authored word silently is what the
+declaration refuses everywhere else. That is a ``BuildError``
+(``numbering-without-engine``).
 """
 
 import re
@@ -53,31 +61,41 @@ from uuid import uuid4
 
 from cnd.core.cnd import CND_VERSION, BibEntry, Cnd, Footnote
 from cnd.core.nodes import (
+    AdmonitionNode,
+    Cell,
     CndNode,
     CodeNode,
     FigureNode,
     HeadingNode,
     ImageNode,
+    LayoutNode,
     ListItem,
     ListNode,
     MathNode,
+    Numbering,
     ParagraphNode,
     QuoteNode,
     TableNode,
+    TermItem,
     TermsNode,
 )
+from cnd.core.text import RichText
 from cnd.core.validate import Violation, validate
 from cnd.declaration import (
     DECLARATION_VERSION,
-    Declaration,
+    DeclAdmonitionNode,
+    DeclCell,
     DeclCodeNode,
+    Declaration,
     DeclFigureNode,
     DeclHeadingNode,
     DeclImageNode,
+    DeclLayoutNode,
     DeclListItem,
     DeclListNode,
     DeclMathNode,
     DeclNodeBase,
+    DeclNumbering,
     DeclParagraphNode,
     DeclQuoteNode,
     DeclTableNode,
@@ -103,7 +121,7 @@ def build(decl: Declaration, *, numbering: bool = False) -> Cnd:
     """Compile ``decl`` into a valid CND, or raise ``BuildError``.
 
     ``numbering`` opts into the counter engine (module docstring); off,
-    every ``number`` the engine would resolve stays ``None``.
+    every ``numbering`` stays ``None`` and an authored one is an error.
     """
     if decl.declaration_version != DECLARATION_VERSION:
         raise BuildError(
@@ -117,166 +135,238 @@ def build(decl: Declaration, *, numbering: bool = False) -> Cnd:
             ]
         )
 
-    counters = _Counters() if numbering else None
+    # The CND never shares a mutable object with the declaration it came
+    # from: source, doc, raw and every state_metadata would otherwise be
+    # the very objects the caller still holds, and editing the declaration
+    # after a build would silently edit the CND too.
+    decl = decl.model_copy(deep=True)
+
+    builder = _Builder(numbering)
+    # Body first, then the footnotes in pool order: the full walk (spec
+    # §8), so the engine's counters run in the one order a CND defines.
+    nodes = [builder.node(child, []) for child in decl.nodes]
+    footnotes = [
+        Footnote(
+            id=uuid4(),
+            label=note.label,
+            children=[builder.node(child, []) for child in note.children],
+        )
+        for note in decl.footnotes
+    ]
     cnd = Cnd(
         cnd_version=CND_VERSION,
         built_at=datetime.now(timezone.utc),
         source=decl.source,
         doc=decl.doc,
-        nodes=[_node(child, [], counters) for child in decl.nodes],
+        nodes=nodes,
         bibliography=[
             BibEntry(id=uuid4(), **entry.model_dump())
             for entry in decl.bibliography
         ],
-        footnotes=[
-            Footnote(id=uuid4(), **note.model_dump())
-            for note in decl.footnotes
-        ],
+        footnotes=footnotes,
     )
 
-    violations = validate(cnd)
+    violations = builder.violations + validate(cnd)
     if violations:
         raise BuildError(_relabel(violations, cnd))
     return cnd
 
 
+class _Builder:
+    """One build's transcription state: the counters, when the engine
+    runs, and the violations only the transcription can see."""
+
+    def __init__(self, numbering: bool) -> None:
+        self.counters = _Counters() if numbering else None
+        self.violations: list[Violation] = []
+
+    def node(self, node: DeclNodeBase, heading_path: list[str]) -> CndNode:
+        """Transcribe one declaration node and its subtree.
+
+        ``heading_path`` is the path of the nearest enclosing heading; it
+        is threaded through every container, so a heading inside a list
+        item or a cell still knows its ancestors.
+        """
+        base = _base(node)
+        match node:
+            case DeclHeadingNode():
+                resolved = self._numbering(
+                    node, base, lambda c: c.heading(node.level)
+                )
+                element = (
+                    f"{resolved.value} {node.text.value}"
+                    if resolved
+                    else node.text.value
+                )
+                path = [*heading_path, element]
+                return HeadingNode(
+                    type="heading",
+                    level=node.level,
+                    numbering=resolved,
+                    text=_text(node.text),
+                    heading_path=path,
+                    children=self.nodes(node.children, path),
+                    **base,
+                )
+            case DeclParagraphNode():
+                return ParagraphNode(type="paragraph", text=_text(node.text), **base)
+            case DeclQuoteNode():
+                return QuoteNode(
+                    type="quote",
+                    attribution=_text(node.attribution),
+                    children=self.nodes(node.children, heading_path),
+                    **base,
+                )
+            case DeclCodeNode():
+                return CodeNode(
+                    type="code",
+                    text=node.text,
+                    lang=node.lang,
+                    title=node.title,
+                    **base,
+                )
+            case DeclMathNode():
+                return MathNode(
+                    type="math",
+                    text=node.text,
+                    raw=node.raw,
+                    numbering=self._numbering(node, base, lambda c: c.math()),
+                    **base,
+                )
+            case DeclImageNode():
+                return ImageNode(type="image", path=node.path, alt=node.alt, **base)
+            case DeclFigureNode():
+                kind = _figure_counter_kind(node)
+                return FigureNode(
+                    type="figure",
+                    kind=node.kind,
+                    caption=_text(node.caption),
+                    description=_text(node.description),
+                    numbering=self._numbering(node, base, lambda c: c.figure(kind)),
+                    children=self.nodes(node.children, heading_path),
+                    raw=node.raw,
+                    **base,
+                )
+            case DeclAdmonitionNode():
+                return AdmonitionNode(
+                    type="admonition",
+                    kind=node.kind,
+                    title=_text(node.title),
+                    children=self.nodes(node.children, heading_path),
+                    **base,
+                )
+            case DeclListNode():
+                return ListNode(
+                    type="list",
+                    ordered=node.ordered,
+                    items=self._items(node.items, node.ordered, heading_path),
+                    **base,
+                )
+            case DeclTermsNode():
+                return TermsNode(
+                    type="terms",
+                    items=[
+                        TermItem(
+                            term=_text(item.term),
+                            children=self.nodes(item.children, heading_path),
+                        )
+                        for item in node.items
+                    ],
+                    **base,
+                )
+            case DeclTableNode():
+                return TableNode(
+                    type="table",
+                    kind=node.kind,
+                    cells=self._cells(node.cells, heading_path),
+                    **base,
+                )
+            case DeclLayoutNode():
+                return LayoutNode(
+                    type="layout", cells=self._cells(node.cells, heading_path), **base
+                )
+            case _:  # pragma: no cover — the discriminated union is closed
+                raise TypeError(f"unknown declaration node type: {type(node)!r}")
+
+    def nodes(self, nodes: list[DeclNodeBase], heading_path: list[str]) -> list[CndNode]:
+        return [self.node(child, heading_path) for child in nodes]
+
+    def _numbering(self, node, base: dict, resolve) -> Numbering | None:
+        """The node's resolved ``numbering``: the engine's value with the
+        authored word, ``None`` with the engine off. An authored word with
+        the engine off is recorded as a violation, never dropped."""
+        authored: DeclNumbering | None = node.numbering
+        if self.counters is None:
+            if authored is not None:
+                self.violations.append(
+                    Violation(
+                        "numbering-without-engine",
+                        "numbering is authored but the counter engine is off, "
+                        "and a CND cannot carry a counter word without a value: "
+                        "build with numbering=True (cnd build --numbering), or "
+                        "remove it",
+                        f"{node.type} {base['id']}",
+                    )
+                )
+            return None
+        name = authored.name if authored is not None else None
+        return Numbering(value=resolve(self.counters), name=name)
+
+    def _items(
+        self, items: list[DeclListItem], ordered: bool, heading_path: list[str]
+    ) -> list[ListItem]:
+        """Resolve list ordinals per the rule pinned on ``DeclListItem``.
+
+        Ordered: no override → previous + 1 (from 1); an override is taken
+        verbatim and rebases the rest. Unordered: ordinals do not exist, so
+        overrides are dropped. A nested list counts on its own.
+        """
+        resolved: list[ListItem] = []
+        current = 0
+        for item in items:
+            if ordered:
+                current = item.number if item.number is not None else current + 1
+                number: int | None = current
+            else:
+                number = None
+            resolved.append(
+                ListItem(
+                    number=number,
+                    checked=item.checked,
+                    children=self.nodes(item.children, heading_path),
+                )
+            )
+        return resolved
+
+    def _cells(self, cells: list[DeclCell], heading_path: list[str]) -> list[Cell]:
+        return [
+            Cell(
+                row=cell.row,
+                col=cell.col,
+                rowspan=cell.rowspan,
+                colspan=cell.colspan,
+                is_header=cell.is_header,
+                children=self.nodes(cell.children, heading_path),
+            )
+            for cell in cells
+        ]
+
+
 def _base(node: DeclNodeBase) -> dict:
     """The ``NodeBase`` fields of a transcribed node: a fresh id, the
-    authored identity and link families verbatim, and never a location."""
+    authored identity, and never a location."""
     return {
         "id": uuid4(),
         "label": node.label,
-        "refs": node.refs,
-        "cites": node.cites,
-        "footnotes": node.footnotes,
         "state_metadata": node.state_metadata,
         "location": None,
     }
 
 
-def _node(
-    node: DeclNodeBase,
-    heading_path: list[str],
-    counters: "_Counters | None",
-) -> CndNode:
-    """Transcribe one declaration node (and its subtree) into a CND node."""
-    match node:
-        case DeclHeadingNode():
-            number = counters.heading(node.level) if counters else None
-            element = f"{number} {node.text}" if number else node.text
-            path = [*heading_path, element]
-            return HeadingNode(
-                type="heading",
-                level=node.level,
-                number=number,
-                counter_label=node.counter_label,
-                text=node.text,
-                heading_path=path,
-                children=[_node(c, path, counters) for c in node.children],
-                **_base(node),
-            )
-        case DeclParagraphNode():
-            return ParagraphNode(
-                type="paragraph", text=node.text, lang=node.lang, **_base(node)
-            )
-        case DeclTableNode():
-            return TableNode(
-                type="table",
-                kind=node.kind,
-                content_kind=node.content_kind,
-                cells=node.cells,
-                raw=node.raw,
-                **_base(node),
-            )
-        case DeclQuoteNode():
-            return QuoteNode(
-                type="quote",
-                text=node.text,
-                attribution=node.attribution,
-                block=node.block,
-                lang=node.lang,
-                **_base(node),
-            )
-        case DeclCodeNode():
-            return CodeNode(
-                type="code",
-                text=node.text,
-                lang=node.lang,
-                block=node.block,
-                **_base(node),
-            )
-        case DeclMathNode():
-            number = (
-                counters.math() if counters is not None and node.block else None
-            )
-            return MathNode(
-                type="math",
-                text=node.text,
-                raw=node.raw,
-                number=number,
-                counter_label=node.counter_label,
-                block=node.block,
-                **_base(node),
-            )
-        case DeclFigureNode():
-            number = (
-                counters.figure(_figure_counter_kind(node)) if counters else None
-            )
-            return FigureNode(
-                type="figure",
-                kind=node.kind,
-                caption=node.caption,
-                number=number,
-                counter_label=node.counter_label,
-                children=[
-                    _node(c, heading_path, counters) for c in node.children
-                ],
-                raw=node.raw,
-                **_base(node),
-            )
-        case DeclImageNode():
-            return ImageNode(
-                type="image", path=node.path, alt=node.alt, **_base(node)
-            )
-        case DeclListNode():
-            return ListNode(
-                type="list",
-                ordered=node.ordered,
-                tight=node.tight,
-                items=_items(node.items, ordered=node.ordered),
-                **_base(node),
-            )
-        case DeclTermsNode():
-            return TermsNode(
-                type="terms", tight=node.tight, items=node.items, **_base(node)
-            )
-        case _:  # pragma: no cover — the discriminated union is closed
-            raise TypeError(f"unknown declaration node type: {type(node)!r}")
-
-
-def _items(items: list[DeclListItem], *, ordered: bool) -> list[ListItem]:
-    """Resolve list ordinals per the rule pinned on ``DeclListItem``.
-
-    Ordered: no override → previous + 1 (from 1); an override is taken
-    verbatim and rebases the rest. Unordered: ordinals do not exist, so
-    overrides are dropped. Each nesting level counts on its own.
-    """
-    resolved: list[ListItem] = []
-    current = 0
-    for item in items:
-        if ordered:
-            current = item.number if item.number is not None else current + 1
-            number: int | None = current
-        else:
-            number = None
-        resolved.append(
-            ListItem(
-                text=item.text,
-                number=number,
-                children=_items(item.children, ordered=ordered),
-            )
-        )
-    return resolved
+def _text(text: RichText | None) -> RichText | None:
+    """A copy of an authored text, value untouched: the CND never shares
+    a mutable object with the declaration it came from."""
+    return None if text is None else text.model_copy(deep=True)
 
 
 def _figure_counter_kind(node: DeclFigureNode) -> str:
@@ -324,18 +414,25 @@ def _relabel(violations: list[Violation], cnd: Cnd) -> list[Violation]:
 
     ``validate()`` names nodes by minted UUID — correct for a CND, noise
     for an author who never wrote one. Each UUID becomes ``@label`` when
-    the node has one, else its reading-order position (``#7``), which is
-    a handle the author can find in their own source.
+    the node has one, else its reading-order position: ``#7`` in the
+    body, ``@fn-a#2`` for the second node of footnote ``fn-a`` (positions
+    inside a footnote count within it, spec §8). Both are handles the
+    author can find in their own source.
     """
     handles: dict[str, str] = {}
     # No current rule names the document itself, but a future one might —
     # leak-proofing so that UUID would still relabel cleanly.
     handles[str(cnd.id)] = "the document"
-    for visit in cnd.iter():
+    for visit in cnd.iter_all():
         node = visit.node
-        handles[str(node.id)] = (
-            f"@{node.label}" if node.label else f"#{visit.ctx.doc_index}"
-        )
+        if node.label:
+            handle = f"@{node.label}"
+        elif visit.ctx.path[0] == "footnotes":
+            note = cnd.footnotes[visit.ctx.path[1]]
+            handle = f"@{note.label}#{visit.ctx.doc_index}"
+        else:
+            handle = f"#{visit.ctx.doc_index}"
+        handles[str(node.id)] = handle
     for entry in (*cnd.bibliography, *cnd.footnotes):
         handles[str(entry.id)] = f"@{entry.label}"
 

@@ -39,3 +39,20 @@ def test_fixtures_validate_against_schema():
 def test_fixtures_parse_as_cnd():
     for path in sorted(FIXTURES_DIR.glob("*.cnd")):
         Cnd.model_validate_json(path.read_text())
+
+
+def test_schema_states_the_defaults_the_hashing_rule_depends_on() -> None:
+    """Spec section 10 drops a field "the schema declares with a default"."""
+    import json
+    from pathlib import Path
+
+    schema = json.loads(
+        (Path(__file__).parent.parent / "schema" / "cnd.schema.json").read_text()
+    )
+    defs = schema["$defs"]
+    for name in ("marks", "refs", "cites", "footnotes", "links"):
+        assert defs["RichText"]["properties"][name]["default"] == []
+    assert defs["DocMetadata"]["properties"]["extra"]["default"] == {}
+    assert defs["BibEntry"]["properties"]["fields"]["default"] == {}
+    assert schema["properties"]["bibliography"]["default"] == []
+    assert "default" not in schema["properties"]["id"]

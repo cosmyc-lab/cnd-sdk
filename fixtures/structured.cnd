@@ -1,5 +1,5 @@
 {
-  "cnd_version": "0.3.0",
+  "cnd_version": "0.5.0",
   "built_at": "2026-05-31T14:30:00Z",
   "source": {
     "type": "typst",
@@ -27,55 +27,73 @@
     {
       "id": "00000000-0000-4000-a000-000000000001",
       "type": "heading",
-      "level": 1,
-      "text": "Description du système",
-      "heading_path": [
-        "1 Description du système"
-      ],
       "location": {
         "page": 1
       },
+      "level": 1,
+      "numbering": {
+        "value": "1"
+      },
+      "text": {
+        "value": "Description du système"
+      },
+      "heading_path": [
+        "1 Description du système"
+      ],
       "children": [
         {
           "id": "00000000-0000-4000-a000-000000000002",
           "type": "heading",
+          "label": "sec-params",
+          "location": {
+            "page": 1
+          },
           "level": 2,
-          "text": "Paramètres nominaux",
+          "numbering": {
+            "value": "1.1"
+          },
+          "text": {
+            "value": "Paramètres nominaux",
+            "refs": [
+              {
+                "label": "tab-params-nominaux"
+              }
+            ]
+          },
           "heading_path": [
             "1 Description du système",
             "1.1 Paramètres nominaux"
           ],
-          "label": "sec-params",
-          "refs": [
-            {
-              "label": "tab-params-nominaux"
-            }
-          ],
-          "location": {
-            "page": 1
-          },
           "children": [
             {
               "id": "00000000-0000-4000-a000-000000000003",
               "type": "paragraph",
-              "text": "Le système est composé de quatre modules principaux.",
-              "lang": "fr",
-              "refs": [
-                {
-                  "label": "tab-params-nominaux"
-                }
-              ],
               "location": {
                 "page": 1
+              },
+              "text": {
+                "value": "Le système est composé de quatre modules principaux.",
+                "lang": "fr",
+                "refs": [
+                  {
+                    "label": "tab-params-nominaux"
+                  }
+                ]
               }
             },
             {
               "id": "00000000-0000-4000-a000-000000000005",
               "type": "figure",
-              "kind": "table",
-              "caption": "Paramètres nominaux de fonctionnement.",
               "location": {
                 "page": 1
+              },
+              "kind": "table",
+              "caption": {
+                "value": "Paramètres nominaux de fonctionnement."
+              },
+              "numbering": {
+                "value": "1",
+                "name": "Table"
               },
               "children": [
                 {
@@ -89,50 +107,81 @@
                     {
                       "row": 0,
                       "col": 0,
-                      "rowspan": 1,
                       "colspan": 2,
                       "is_header": true,
-                      "text": "Paramètre"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000001",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Paramètre"
+                          },
+                          "location": {
+                            "page": 1
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 0,
                       "col": 1,
-                      "rowspan": 1,
-                      "colspan": 1,
                       "is_header": true,
-                      "text": "Valeur"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000002",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Valeur"
+                          },
+                          "location": {
+                            "page": 1
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 1,
                       "col": 0,
-                      "rowspan": 1,
-                      "colspan": 1,
-                      "is_header": false,
-                      "text": "Débit nominal"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000003",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "Débit nominal"
+                          },
+                          "location": {
+                            "page": 1
+                          }
+                        }
+                      ]
                     },
                     {
                       "row": 1,
                       "col": 1,
-                      "rowspan": 1,
-                      "colspan": 1,
-                      "is_header": false,
-                      "text": "120 L/min"
+                      "children": [
+                        {
+                          "id": "00000000-0000-4000-c000-000000000004",
+                          "type": "paragraph",
+                          "text": {
+                            "value": "120 L/min"
+                          },
+                          "location": {
+                            "page": 1
+                          }
+                        }
+                      ]
                     }
-                  ],
-                  "raw": {
-                    "format": "typst",
-                    "value": "table(columns: (auto, auto), ...)"
-                  }
+                  ]
                 }
               ],
-              "number": "1",
-              "counter_label": "Table"
+              "raw": {
+                "format": "typst",
+                "value": "table(columns: (auto, auto), ...)"
+              }
             }
-          ],
-          "number": "1.1"
+          ]
         }
-      ],
-      "number": "1"
+      ]
     }
   ],
   "bibliography": [],
