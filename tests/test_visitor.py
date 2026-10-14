@@ -1,10 +1,27 @@
 from pathlib import Path
+from typing import get_args
 from uuid import UUID
 
-from ids import HEADING001_ID, HEADING002_ID, PARA001_ID, TABLE001_ID
+import pytest
+
+from ids import (
+    HEADING001_ID,
+    HEADING002_ID,
+    PARA001_ID,
+    TABLE001_CELL_PARA_IDS,
+    TABLE001_ID,
+)
 
 from cnd.core.cnd import Cnd
-from cnd.core.nodes import CndNode, HeadingNode, NodeTraverseContext, ParagraphNode, TableNode
+from cnd.core.nodes import (
+    AdmonitionNode,
+    CndNode,
+    HeadingNode,
+    LayoutNode,
+    NodeTraverseContext,
+    ParagraphNode,
+    TableNode,
+)
 from cnd.visitors.base_visitor import BaseVisitor
 
 
@@ -31,7 +48,7 @@ class CollectParagraphTextVisitor(BaseVisitor):
         self.texts: list[str] = []
 
     def visit_paragraph(self, node: ParagraphNode, _ctx: NodeTraverseContext) -> None:
-        self.texts.append(node.text)
+        self.texts.append(node.text.value)
 
 
 class StopAtLevelTwoVisitor(BaseVisitor):
@@ -65,11 +82,13 @@ class TestNodeVisitor:
 
         visitor.visit(cnd)
 
+        # The table's cells hold paragraphs, visited after the table.
         assert visitor.ids == [
             HEADING001_ID,
             HEADING002_ID,
             PARA001_ID,
             TABLE001_ID,
+            *TABLE001_CELL_PARA_IDS,
         ]
 
     def test_subclass_can_override_a_single_node_type(
@@ -102,7 +121,12 @@ class TestNodeVisitor:
 
         visitor.visit([section])
 
-        assert visitor.ids == [HEADING002_ID, PARA001_ID, TABLE001_ID]
+        assert visitor.ids == [
+            HEADING002_ID,
+            PARA001_ID,
+            TABLE001_ID,
+            *TABLE001_CELL_PARA_IDS,
+        ]
 
     def test_current_node_and_ctx_are_tracked_during_visit(
         self,
@@ -144,6 +168,13 @@ class TestNodeVisitor:
                 "1 Description du système",
                 "1.1 Paramètres nominaux",
             ], 3),
+            *[
+                (cell_para_id, [
+                    "1 Description du système",
+                    "1.1 Paramètres nominaux",
+                ], 4)
+                for cell_para_id in TABLE001_CELL_PARA_IDS
+            ],
         ]
 
     def test_context_is_passed_to_visit_hooks(
@@ -162,7 +193,8 @@ class TestNodeVisitor:
 
         ContextCollector().visit(cnd)
 
-        assert len(contexts) == 1
+        # PARA001, then the four cell paragraphs.
+        assert len(contexts) == 5
         assert contexts[0].depth == 2
         assert contexts[0].heading_path == [
             "1 Description du système",
@@ -170,3 +202,56 @@ class TestNodeVisitor:
         ]
         assert isinstance(contexts[0].parent, HeadingNode)
         assert contexts[0].parent.id == HEADING002_ID
+
+
+    def test_a_cell_paragraph_has_the_table_as_parent(
+        self, structured_cnd_path: Path,
+    ) -> None:
+        cnd = _load(structured_cnd_path)
+        parents: list[tuple[UUID, str | None, int | None]] = []
+
+        class CellParents(BaseVisitor):
+            def visit_paragraph(
+                self, node: ParagraphNode, ctx: NodeTraverseContext,
+            ) -> None:
+                if isinstance(ctx.parent, TableNode):
+                    parents.append((ctx.parent.id, ctx.slot, ctx.slot_index))
+
+        CellParents().visit(cnd)
+
+        assert parents == [(TABLE001_ID, "cells", index) for index in range(4)]
+
+
+class TestEveryNodeType:
+    """One hook per node type of the 0.5 model, and no type falls through
+    to ``visit_unknown``."""
+
+    @pytest.mark.parametrize(
+        "node_type",
+        [
+            model.model_fields["type"].annotation.__args__[0]
+            for model in get_args(get_args(CndNode)[0])
+        ],
+    )
+    def test_there_is_a_hook_for_the_type(self, node_type: str) -> None:
+        assert callable(getattr(BaseVisitor, f"visit_{node_type}"))
+
+    def test_the_elements_fixture_visits_without_falling_through(
+        self, elements_cnd_path: Path,
+    ) -> None:
+        seen: list[str] = []
+
+        class Recorder(BaseVisitor):
+            def visit_admonition(
+                self, node: AdmonitionNode, ctx: NodeTraverseContext,
+            ) -> None:
+                seen.append("admonition")
+
+            def visit_layout(
+                self, node: LayoutNode, ctx: NodeTraverseContext,
+            ) -> None:
+                seen.append("layout")
+
+        Recorder().visit(_load(elements_cnd_path))
+
+        assert seen == ["admonition", "layout"]

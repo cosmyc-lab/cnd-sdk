@@ -1,10 +1,12 @@
 from cnd.core.cnd import Cnd
 from cnd.core.nodes import (
+    AdmonitionNode,
     CndNode,
     CodeNode,
     FigureNode,
     HeadingNode,
     ImageNode,
+    LayoutNode,
     ListNode,
     MathNode,
     NodeTraverseContext,
@@ -22,7 +24,14 @@ class BaseVisitor:
     """Visit a CND node tree with overridable per-type hooks.
 
     Override ``visit_*`` for node logic and ``should_stop_descent`` to prune
-    branches. All hooks are no-ops by default.
+    branches. All hooks are no-ops by default; there is one per node type,
+    ``visit_<type>``.
+
+    The walk is the body walk (spec §8): it enters every container — list
+    and term items, table and layout cells, quotes, admonitions, figures —
+    so a paragraph inside a cell reaches ``visit_paragraph`` with the table
+    as its ``ctx.parent``. Footnote content is not part of the body; walk
+    ``cnd.footnotes[i].children`` to visit it.
 
     During traversal, ``current_node`` and ``current_ctx`` hold the node and
     context being visited.
@@ -79,6 +88,10 @@ class BaseVisitor:
             self.visit_list(node, ctx)
         elif isinstance(node, TermsNode):
             self.visit_terms(node, ctx)
+        elif isinstance(node, AdmonitionNode):
+            self.visit_admonition(node, ctx)
+        elif isinstance(node, LayoutNode):
+            self.visit_layout(node, ctx)
         else:
             self.visit_unknown(node, ctx)
 
@@ -110,6 +123,12 @@ class BaseVisitor:
         pass
 
     def visit_terms(self, node: TermsNode, ctx: NodeTraverseContext) -> None:
+        pass
+
+    def visit_admonition(self, node: AdmonitionNode, ctx: NodeTraverseContext) -> None:
+        pass
+
+    def visit_layout(self, node: LayoutNode, ctx: NodeTraverseContext) -> None:
         pass
 
     def visit_unknown(self, node: CndNode, ctx: NodeTraverseContext) -> None:

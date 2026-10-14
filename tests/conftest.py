@@ -47,5 +47,4 @@ def elements_cnd_path() -> Path:
 collect_ignore = [
     "test_cli.py",
     "test_node_display_visitor.py",
-    "test_visitor.py",
 ]
