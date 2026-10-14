@@ -336,3 +336,19 @@ class TestFootnoteContent:
 
     def test_the_elements_fixture_is_valid(self, elements_cnd_path) -> None:
         assert validate(Cnd.model_validate_json(elements_cnd_path.read_text())) == []
+
+
+class TestCndVersion:
+    """A CND built in code under another format version is not conformant
+    to this one (spec §9, §11): the shape can coincide, the meaning not."""
+
+    @pytest.mark.parametrize("version", ["0.4.0", "9.9.9"])
+    def test_another_version_is_a_violation(self, version: str) -> None:
+        cnd = _cnd([]).model_copy(update={"cnd_version": version})
+        [violation] = validate(cnd)
+        assert violation.rule == "cnd-version-unsupported"
+        assert version in violation.where
+        assert "0.5.0" in violation.message
+
+    def test_the_current_version_is_fine(self) -> None:
+        assert validate(_cnd([])) == []

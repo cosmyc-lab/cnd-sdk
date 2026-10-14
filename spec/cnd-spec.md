@@ -1024,6 +1024,7 @@ reports.
 
 | Invariant | Rule | Where |
 |---|---|---|
+| `cnd_version` is the version the validator implements (`"0.5.0"` for this revision) | `cnd-version-unsupported` | §11 |
 | Global id uniqueness: body nodes, footnote content nodes, bibliography and footnote entries | `id-not-unique` | §2 |
 | Global label uniqueness, footnote content nodes included | `label-not-unique` | §2 |
 | Every label-keyed edge resolves (`links` is out of scope) | `link-unresolved` | §5 |
@@ -1043,6 +1044,13 @@ bypass the builder that checks them. A producer emitting a CND directly
 from its own compiler calls a validator itself — the reference SDK
 exposes `validate(cnd)`, which returns every violation rather than the
 first, and the same check as `cnd validate` on the command line.
+
+A file stamped with another `cnd_version` is refused by that rule
+before its shape is checked: the reference CLI reads the version first,
+so a 0.4 CND is reported as a 0.4 CND, not as the schema errors its
+older shape raises. Before 1.0.0 a minor version may change what a field
+means (§11), so a CND whose shape happens to parse under another version
+is still not conformant to this one.
 
 The asymmetry is real and worth naming rather than papering over: a
 build cannot be skipped, a validation call can be forgotten. It is the

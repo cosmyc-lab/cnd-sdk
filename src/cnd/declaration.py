@@ -52,7 +52,7 @@ CND node requires an ``id`` a declaration never carries.
 
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 # Authored-content value objects, shared verbatim with the CND: they carry
 # no id and no presentation state, so there is nothing to strip.
@@ -353,6 +353,26 @@ class Declaration(_Strict):
     nodes: list[DeclNode]
     bibliography: list[DeclBibEntry] = Field(default_factory=list)
     footnotes: list[DeclFootnote] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _refuse_other_versions(cls, data: Any) -> Any:
+        """Refuse another ``declaration_version`` before checking the shape.
+
+        A 0.1.0 declaration has the fields 0.2.0 removed, so checked as
+        0.2.0 it fails on "Extra inputs" that never name the real problem.
+        Read first, the version gives the one error that does. A missing
+        version is left to the shape check, which reports it as missing.
+        """
+        if isinstance(data, dict):
+            version = data.get("declaration_version")
+            if isinstance(version, str) and version != DECLARATION_VERSION:
+                raise ValueError(
+                    f"declaration-version-unsupported: declaration_version "
+                    f"{version} is not supported; this SDK reads declaration "
+                    f"version {DECLARATION_VERSION} only"
+                )
+        return data
 
 
 __all__ = [

@@ -13,7 +13,8 @@ asymmetry is deliberate and named rather than papered over.
 The function is a value function — CND in, list of violations out — so
 it crosses any boundary (docs/adr/0019 §5).
 
-Invariants checked: ids unique across the whole CND; labels unique;
+Invariants checked: ``cnd_version`` is the version this SDK implements;
+ids unique across the whole CND; labels unique;
 edges resolve in their own domain; ``text_span`` inside its text; marks
 in bounds, canonically ordered, merged per kind and never reaching into
 an atomic mark; pagination all-or-nothing; bibliography floor; no
@@ -22,7 +23,7 @@ an atomic mark; pagination all-or-nothing; bibliography floor; no
 
 from dataclasses import dataclass
 
-from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
+from cnd.core.cnd import CND_VERSION, BibEntry, Cnd, DocMetadata, Footnote
 from cnd.core.nodes import CndNode, texts_of
 from cnd.core.text import ATOMIC_MARK_KINDS, LinkRef, RichText
 
@@ -67,6 +68,7 @@ def validate(cnd: Cnd) -> list[Violation]:
     been raised by the time a ``Cnd`` exists.
     """
     violations: list[Violation] = []
+    violations += _check_cnd_version(cnd)
     violations += _check_id_uniqueness(cnd)
     violations += _check_label_uniqueness(cnd)
     violations += _check_link_domains(cnd)
@@ -76,6 +78,25 @@ def validate(cnd: Cnd) -> list[Violation]:
     violations += _check_bibliography_floor(cnd)
     violations += _check_doc_extra(cnd)
     return violations
+
+
+def _check_cnd_version(cnd: Cnd) -> list[Violation]:
+    """The CND declares the format version this SDK implements (spec §11).
+
+    Before 1.0.0 a minor version may change what any field means
+    (docs/adr/0027), so a CND stamped with another version is not
+    conformant to this one even when its shape happens to parse.
+    """
+    if cnd.cnd_version == CND_VERSION:
+        return []
+    return [
+        Violation(
+            "cnd-version-unsupported",
+            f"this SDK implements CND {CND_VERSION} only; there is no "
+            f"upgrader between pre-1.0 versions",
+            f"cnd_version {cnd.cnd_version}",
+        )
+    ]
 
 
 def _all_texts(cnd: Cnd):

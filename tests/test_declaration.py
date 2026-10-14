@@ -26,6 +26,7 @@ from cnd.declaration import (
 ROOT = Path(__file__).parent.parent
 SCHEMA_PATH = ROOT / "schema" / "cnd-declaration.schema.json"
 FIXTURES = ROOT / "fixtures" / "declaration"
+LEGACY = ROOT / "tests" / "legacy"
 
 
 def _committed_schema() -> dict:
@@ -341,3 +342,37 @@ class TestShorthand:
     def test_the_value_is_kept_byte_for_byte(self) -> None:
         raw = "  two  spaces\tand a tab \n trailing "
         assert DeclParagraphNode(type="paragraph", text=raw).text.value == raw
+
+
+class TestVersion:
+    """Another declaration_version is refused by name before the shape is
+    checked (spec §12): a 0.1 declaration must not surface as a list of
+    "Extra inputs" errors that never mention its version."""
+
+    def test_a_real_0_1_declaration_names_its_version(self) -> None:
+        data = yaml.safe_load(
+            (LEGACY / "article-0.1.0.decl.yaml").read_text(encoding="utf-8")
+        )
+        with pytest.raises(ValidationError) as excinfo:
+            Declaration.model_validate(data)
+        message = str(excinfo.value)
+        assert excinfo.value.error_count() == 1
+        assert "0.1.0" in message and DECLARATION_VERSION in message
+        assert "Extra inputs" not in message
+
+    @pytest.mark.parametrize("version", ["0.1.0", "9.9.9"])
+    def test_another_version_on_a_current_shape_is_refused(
+        self, version: str,
+    ) -> None:
+        with pytest.raises(ValidationError, match=version):
+            Declaration.model_validate(
+                {"declaration_version": version, "doc": {"title": "T"},
+                 "nodes": []}
+            )
+
+    def test_a_missing_version_stays_a_shape_error(self) -> None:
+        with pytest.raises(ValidationError) as excinfo:
+            Declaration.model_validate({"doc": {"title": "T"}, "nodes": []})
+        [error] = excinfo.value.errors()
+        assert error["loc"] == ("declaration_version",)
+        assert error["type"] == "missing"

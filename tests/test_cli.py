@@ -18,6 +18,7 @@ from cnd.cli import main
 from cnd.declaration import DECLARATION_VERSION, Declaration
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
+LEGACY = Path(__file__).parent / "legacy"
 
 
 def _run(capsys, *argv) -> tuple[int, str, str]:
@@ -90,6 +91,58 @@ class TestValidate:
         )
 
         assert code == 1
+
+
+class TestVersionRefusal:
+    """A file from another format version is refused by name, before its
+    shape is checked: a 0.4 CND failing on "Input should be an object"
+    never tells its reader that the version is the problem (spec §11)."""
+
+    def test_a_real_0_4_cnd_is_refused_with_its_version(self, capsys) -> None:
+        # main's minimal.cnd, a 0.3.0 file that parses unchanged as 0.4.0,
+        # stamped 0.4.0.
+        code, _, err = _run(capsys, "validate", LEGACY / "minimal-0.4.0.cnd")
+
+        assert code == 1
+        assert "cnd-version-unsupported" in err
+        assert "0.4.0" in err and "0.5.0" in err
+        assert "schema error" not in err
+
+    @pytest.mark.parametrize("version", ["0.4.0", "9.9.9"])
+    def test_a_0_5_shaped_cnd_stamped_with_another_version_is_refused(
+        self, capsys, tmp_path: Path, version: str,
+    ) -> None:
+        data = json.loads((FIXTURES / "minimal.cnd").read_text(encoding="utf-8"))
+        data["cnd_version"] = version
+        path = tmp_path / "stamped.cnd"
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+        code, out, err = _run(capsys, "validate", path)
+
+        assert code == 1
+        assert ": ok" not in out
+        assert "cnd-version-unsupported" in err and version in err
+
+    def test_hash_refuses_another_version_too(self, capsys) -> None:
+        """A 0.5 hash of a 0.4 document means nothing: every loader
+        refuses, not only validate."""
+        code, out, err = _run(capsys, "hash", LEGACY / "minimal-0.4.0.cnd")
+
+        assert code == 1
+        assert out == ""
+        assert "cnd-version-unsupported" in err
+
+    def test_a_real_0_1_declaration_is_refused_with_its_version(
+        self, capsys,
+    ) -> None:
+        # main's article.decl.yaml, byte for byte.
+        code, out, err = _run(capsys, "build", LEGACY / "article-0.1.0.decl.yaml")
+
+        assert code == 1
+        assert out == ""
+        assert "declaration-version-unsupported" in err
+        assert "0.1.0" in err and DECLARATION_VERSION in err
+        assert "Extra inputs" not in err
 
 
 class TestHash:

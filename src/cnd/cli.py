@@ -43,10 +43,10 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from cnd.builder import BuildError, build
-from cnd.core.cnd import Cnd
+from cnd.core.cnd import CND_VERSION, Cnd
 from cnd.core.hashing import content_hash, node_hash
 from cnd.core.validate import validate
-from cnd.declaration import Declaration
+from cnd.declaration import DECLARATION_VERSION, Declaration
 from cnd.reconcile import diff
 
 EXIT_OK = 0
@@ -79,7 +79,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "validate",
         help="check the invariants JSON Schema cannot express",
         description=(
-            "Id and label uniqueness, per-family link domains, text spans "
+            "The format version, id and label uniqueness, per-family link "
+            "domains, text spans "
             "and marks, all-or-nothing pagination, the bibliography content "
             "floor and doc.extra (spec section 9), over the body and the "
             "footnotes' content. Shape errors are the schema's job and are "
@@ -180,11 +181,26 @@ def _load(path: Path) -> tuple[Cnd | None, str | None]:
     Both failure modes — unreadable file and invalid shape — are reported
     the same way, because to a caller comparing implementations they are
     the same event: this file did not yield a CND.
+
+    The version is read before the shape: a CND of another format version
+    is refused by name (spec §11), rather than as the schema errors its
+    older shape would raise.
     """
     try:
-        return Cnd.model_validate_json(path.read_text(encoding="utf-8")), None
+        text = path.read_text(encoding="utf-8")
     except OSError as err:
         return None, f"cannot read: {err.strerror or err}"
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        data = None  # the schema parse below reports it
+    refusal = _version_refusal(
+        data, "cnd_version", CND_VERSION, "cnd-version-unsupported", "CND"
+    )
+    if refusal:
+        return None, refusal
+    try:
+        return Cnd.model_validate_json(text), None
     except ValidationError as err:
         count = err.error_count()
         first = err.errors()[0]
@@ -223,6 +239,16 @@ def _load_declaration(path: Path) -> tuple[Declaration | None, str | None]:
         except json.JSONDecodeError as err:
             return None, f"invalid JSON: {err}"
 
+    refusal = _version_refusal(
+        data,
+        "declaration_version",
+        DECLARATION_VERSION,
+        "declaration-version-unsupported",
+        "declaration version",
+    )
+    if refusal:
+        return None, refusal
+
     try:
         return Declaration.model_validate(data), None
     except ValidationError as err:
@@ -230,6 +256,25 @@ def _load_declaration(path: Path) -> tuple[Declaration | None, str | None]:
         first = err.errors()[0]
         location = ".".join(str(part) for part in first["loc"])
         return None, f"{count} schema error(s), first at {location}: {first['msg']}"
+
+
+def _version_refusal(
+    data: object, key: str, supported: str, rule: str, what: str
+) -> str | None:
+    """The error for a file stamped with another version, else ``None``.
+
+    Only a present, string version is judged here; a missing or mistyped
+    one is a shape error and is left to the schema.
+    """
+    if not isinstance(data, dict):
+        return None
+    found = data.get(key)
+    if not isinstance(found, str) or found == supported:
+        return None
+    return (
+        f"[{rule}] {key} {found} is not supported: this SDK reads "
+        f"{what} {supported} only, and ships no upgrader"
+    )
 
 
 def _run_validate(args: argparse.Namespace) -> int:
