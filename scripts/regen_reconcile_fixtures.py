@@ -11,7 +11,8 @@ not durable across builds in the real world (ADR 0015) — here they are
 fixture coordinates, nothing more.
 
 Cases 08 to 10 exercise what format 0.5 made finer (docs/proposals/0013):
-nodes inside list items and cells, and footnote content.
+nodes inside list items and cells, and footnote content. Case 11 pins the
+last pass matching v2 added (docs/adr/0029).
 """
 
 import json
@@ -190,7 +191,8 @@ CASES["10-footnote-content"] = (
 
 # 11 — a container whose nested content was edited and which also shifted
 # slot misses every earlier pass (its digest and its path both differ); the
-# last pass pairs it on its own node hash alone.
+# last pass, reported as container-hash (docs/adr/0029), pairs it on its own
+# node hash alone.
 CASES["11-container-edited-and-shifted"] = (
     cnd([para(11, 1, "intro"), table(11, 2, [para(11, 3, "a")], [para(11, 4, "b")])]),
     cnd(

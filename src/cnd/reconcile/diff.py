@@ -151,10 +151,13 @@ def diff(old: Cnd, new: Cnd) -> CndDiff:
     the heuristic: a node that is both edited *and* shifted by an
     insertion above it misses the hash passes (its content changed) and
     the path pass (its slot moved), so it is reported as ``added`` with
-    its predecessor ``removed``. This is the diff problem, not an
-    oversight — sequence-alignment tools do better and still miss. The
-    claim stays best-effort for unlabelled nodes and exact for labelled
-    ones; a producer that wants certainty labels the node.
+    its predecessor ``removed``. Matching v2 (docs/adr/0029) rescues
+    containers whose own hash survived, through its ``container-hash``
+    pass; every other node still fails this way. This is the diff
+    problem, not an oversight — sequence-alignment tools do better and
+    still miss. The claim stays best-effort for unlabelled nodes and
+    exact for labelled ones; a producer that wants certainty labels the
+    node.
     """
     old_entries = entries(old)
     new_entries = entries(new)

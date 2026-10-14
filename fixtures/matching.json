@@ -274,7 +274,7 @@
         },
         {
           "status": "moved",
-          "matched_by": "hash",
+          "matched_by": "container-hash",
           "old_id": "00000000-0000-4000-c011-000000000002",
           "new_id": "00000000-0000-4000-c011-000000000007"
         },

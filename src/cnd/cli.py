@@ -20,7 +20,7 @@ pairs under ``fixtures/declaration/``).
 
 ``diff`` is the odd one out and worth flagging to anyone comparing
 implementations: matching v2 is a *versioned reference algorithm*, not a
-normative rule (docs/adr/0018). Reproducing ``matching.json`` proves an
+normative rule (docs/adr/0018; v2 is docs/adr/0029). Reproducing ``matching.json`` proves an
 implementation runs v2; it is not a conformance requirement on the
 format, and a later version may legitimately differ.
 
@@ -114,7 +114,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "diff",
         help="what moved between two builds of a document",
         description=(
-            "Matching v2 (docs/adr/0018) over two CNDs: each node is added, "
+            "Matching v2 (docs/adr/0029, extending docs/adr/0018) over two "
+            "CNDs: each node is added, "
             "removed, changed, moved or unchanged, plus a label-keyed diff "
             "of both pools. A versioned reference algorithm, NOT part of "
             "the format — exact for labelled nodes, best-effort for the "

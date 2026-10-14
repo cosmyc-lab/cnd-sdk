@@ -1,5 +1,5 @@
 """Node matching across two CNDs — reference algorithm "matching v2"
-(docs/adr/0018).
+(docs/adr/0029, which extends docs/adr/0018).
 
 The matcher answers "is this the same node as in the previous build?"
 for two built CNDs. It is a **versioned reference algorithm, not part of
@@ -10,47 +10,53 @@ tag. Nothing here creates a conformance obligation on a producer.
 The claim it makes is deliberately narrow: **exact for labelled nodes,
 best-effort for everything else**. A label is the only durable identity
 CND has (docs/adr/0015), so a labelled node survives both edit and move;
-an unlabelled one is recovered by heuristics that can miss (see
-``ADR 0018`` and the ``diff`` docstring for the documented failure).
+an unlabelled one is recovered by heuristics that can miss (see ADR 0018,
+ADR 0029 and the ``diff`` docstring for the documented failures).
+
+**What v2 walks.** The full walk (spec §8): every node of the body,
+including those inside list items, term items, cells, quotes and
+admonitions, then the content of every footnote. The structural path is
+the spec §8 path, so the first paragraphs of two different cells sit in
+two different slots; inside a footnote the pool index is replaced by the
+note's label, so reordering the pool moves nothing. Finer nodes make the
+matcher finer too: an edited list item is matched and reported on its
+own, where a whole list used to be marked changed.
+
+**The container key.** A node hash excludes nested nodes (spec §10), so
+two containers of the same shape hash alike. A container — a list,
+terms, table, layout, quote or admonition — is therefore keyed on its
+node hash plus a digest of its descendants' hashes (``subtree``), which
+stops a surviving container taking the id of a deleted twin. Headings
+and figures are left out on purpose: their hash already carries their
+text or caption, and a heading whose section changed has not itself
+changed (spec §10), so a moved heading stays recognisable. Every other
+node has an empty digest, and its key is its node hash alone.
 
 The passes run strongest key first, and a node matched by an earlier
 pass is never reconsidered by a later one:
 
 1. ``label`` — exact, survives edit and move;
-2. ``node_hash`` + structural path — unchanged, in place;
-3. ``node_hash`` alone — moved but unchanged; recovers the nodes an
-   insertion shifted;
-4. structural path + ``type`` — same slot, edited content;
-5. (v2) ``node_hash`` alone, for containers only — see below;
+2. ``hash+path`` — node hash, container digest and structural path
+   agree: unchanged, in place;
+3. ``hash`` — node hash and container digest agree: moved but
+   unchanged; recovers the nodes an insertion shifted;
+4. ``path+type`` — structural path and ``type`` agree: same slot,
+   edited content;
+5. ``container-hash`` — for containers only, the node hash alone: a
+   container whose nested content was edited and that also shifted
+   keeps its id (twins have already paired through the digest in
+   passes 2 and 3);
 6. otherwise unmatched (a new node on the ``new`` side, a removed one on
    the ``old`` side).
 
 Ties within a pass — equal-hash duplicates, two nodes competing for one
 slot — break by reading order: the earliest unmatched candidate wins.
 
-**Matching v2** (format 0.5, docs/proposals/0013) keeps the passes of v1
-and changes what they run over. The matcher walks the full walk (spec
-§8): every node of the body, including those inside list items, term
-items, cells, quotes and admonitions, then the content of every
-footnote. The structural path is the spec §8 path, so the first
-paragraphs of two different cells sit in two different slots; inside a
-footnote the pool index is replaced by the note's label, so reordering
-the pool moves nothing. Finer nodes make the matcher finer too: an
-edited list item is matched and reported on its own, where a whole list
-used to be marked changed. Finally, a node hash excludes nested nodes
-(spec §10), so two containers of the same shape hash alike; in the two
-hash passes a list, terms, table, layout, quote or admonition is
-therefore keyed on its node hash plus a digest of its descendants'
-hashes, which stops a surviving container taking the id of a deleted
-twin. Headings and figures are left out on purpose: their hash already
-carries their text or caption, and a heading whose section changed has
-not itself changed (spec §10), so a moved heading stays recognisable.
-A last
-pass (reported as ``hash``) then pairs the containers still unmatched on
-their node hash alone, so a container whose nested content was edited and
-that also shifted position keeps its id; twins have already paired
-through the digest. The remaining limit: two headings or figures with identical titles can
-still swap. The node hash itself is unchanged.
+Known limits: two headings or figures with identical titles can swap,
+and so can two twin containers that were both edited and shifted. The
+combined case ADR 0018 documents (an edited node with an insertion
+above it) still fails for every node that is not a container. The node
+hash itself is unchanged by any of this.
 """
 
 import hashlib
@@ -63,15 +69,16 @@ from cnd.core.hashing import node_hash, pool_entry_hash
 from cnd.core.nodes import CndNode, FigureNode, HeadingNode, child_slots
 
 MATCHER_VERSION = "v2"
-"""The version of the reference algorithm implemented here (docs/adr/0018)."""
+"""The version of the reference algorithm implemented here (docs/adr/0029)."""
 
-MatchPass = Literal["label", "hash+path", "hash", "path+type"]
+MatchPass = Literal["label", "hash+path", "hash", "path+type", "container-hash"]
 """Which pass matched a pair."""
 
 PASS_LABEL: MatchPass = "label"
 PASS_HASH_PATH: MatchPass = "hash+path"
 PASS_HASH: MatchPass = "hash"
 PASS_PATH_TYPE: MatchPass = "path+type"
+PASS_CONTAINER_HASH: MatchPass = "container-hash"
 
 StructuralPath = tuple[str | int, ...]
 """A node's slot: its spec §8 path, such as ``("nodes", 0, "children", 4,
@@ -252,7 +259,7 @@ def match_entries(
         (PASS_HASH_PATH, _key_hash_path),
         (PASS_HASH, _key_hash),
         (PASS_PATH_TYPE, _key_path_type),
-        (PASS_HASH, _key_container_hash),
+        (PASS_CONTAINER_HASH, _key_container_hash),
     ):
         paired, remaining_old, remaining_new = _run_pass(
             remaining_old, remaining_new, key

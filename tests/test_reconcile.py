@@ -460,6 +460,15 @@ def test_an_edited_table_that_also_shifted_keeps_its_id():
     change = next(c for c in report.nodes if c.new.node.type == "table")
     assert change.old.node.id == table.id
     assert change.status == "moved"
+    # The last pass names itself: a caller can tell it from the "hash"
+    # pass, which pairs a container only when its nested content is equal.
+    assert change.matched_by == "container-hash"
+
+
+def test_the_container_hash_pass_is_exported():
+    from cnd.reconcile import PASS_CONTAINER_HASH
+
+    assert PASS_CONTAINER_HASH == "container-hash"
 
 
 def test_a_quote_that_gained_a_heading_and_moved_keeps_its_id():
