@@ -31,9 +31,12 @@ upgrader is shipped (spec §11): producers move by emitting 0.5.
   walk with spec §8 paths, keys footnote content by its note's label and
   containers by their nested content too. A last pass reports
   `matched_by: "container-hash"`. `fixtures/matching.json` is now v2.
-- **Typst package**: the `cnd.table` hint is `kind:`, the CND's
-  `table.kind`; it was `content_kind:`. After the table, a document-level
-  `kind` is restored.
+- **Typst package**: the `cnd.table` parameter is renamed from
+  `content_kind:` to `kind:`, after the CND's `table.kind`. The
+  `cnd.metadata` state carries the hint under the dedicated key
+  `table-kind` (it was `content_kind`), so it never collides with a
+  document-level `kind` an author sets; an emitter reads `table-kind`
+  and writes `table.kind`.
 
 ### Added
 
@@ -44,6 +47,11 @@ upgrader is shipped (spec §11): producers move by emitting 0.5.
   Markdown with no HTML at all.
 - HTML output renders `links` edges as `<a class="cnd-link">` around the
   text they span, for safe URLs only.
+- `Cnd.to_json()`: the public writer, which omits every default-valued
+  field (the result parses back to the same model and the same hash).
+- **Hyperlinks in declarations**: a declaration's full text form is the
+  CND's `RichText`, so it carries `links` like `refs`, `cites` and
+  `footnotes` (spec §12).
 - `BaseVisitor.visit(cnd, full=True)` walks the footnotes' content too,
   with spec §8 paths.
 
