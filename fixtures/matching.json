@@ -256,6 +256,48 @@
           "label": "fn-a"
         }
       ]
+    },
+    "11-container-edited-and-shifted": {
+      "why": "The table kept its own hash but its cell was edited and a paragraph was inserted above it: it is paired on its node hash alone (moved), the unedited cell moves with it, and the edited cell's paragraph is added while the old one is removed.",
+      "nodes": [
+        {
+          "status": "added",
+          "matched_by": null,
+          "old_id": null,
+          "new_id": "00000000-0000-4000-c011-000000000005"
+        },
+        {
+          "status": "moved",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c011-000000000001",
+          "new_id": "00000000-0000-4000-c011-000000000006"
+        },
+        {
+          "status": "moved",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c011-000000000002",
+          "new_id": "00000000-0000-4000-c011-000000000007"
+        },
+        {
+          "status": "moved",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c011-000000000003",
+          "new_id": "00000000-0000-4000-c011-000000000008"
+        },
+        {
+          "status": "added",
+          "matched_by": null,
+          "old_id": null,
+          "new_id": "00000000-0000-4000-c011-000000000009"
+        },
+        {
+          "status": "removed",
+          "matched_by": null,
+          "old_id": "00000000-0000-4000-c011-000000000004",
+          "new_id": null
+        }
+      ],
+      "footnotes": []
     }
   }
 }

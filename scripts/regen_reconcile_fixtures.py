@@ -188,6 +188,25 @@ CASES["10-footnote-content"] = (
     "with its own note's paragraph.",
 )
 
+# 11 — a container whose nested content was edited and which also shifted
+# slot misses every earlier pass (its digest and its path both differ); the
+# last pass pairs it on its own node hash alone.
+CASES["11-container-edited-and-shifted"] = (
+    cnd([para(11, 1, "intro"), table(11, 2, [para(11, 3, "a")], [para(11, 4, "b")])]),
+    cnd(
+        [
+            para(11, 5, "inserted"),
+            para(11, 6, "intro"),
+            table(11, 7, [para(11, 8, "a")], [para(11, 9, "b edited")]),
+        ]
+    ),
+    "The table kept its own hash but its cell was edited and a paragraph was "
+    "inserted above it: it is paired on its node hash alone (moved), the "
+    "unedited cell moves with it, and the edited cell's paragraph is added "
+    "while the old one is removed.",
+)
+
+
 
 def main() -> None:
     import sys
