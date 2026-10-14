@@ -135,6 +135,12 @@ def build(decl: Declaration, *, numbering: bool = False) -> Cnd:
             ]
         )
 
+    # The CND never shares a mutable object with the declaration it came
+    # from: source, doc, raw and every state_metadata would otherwise be
+    # the very objects the caller still holds, and editing the declaration
+    # after a build would silently edit the CND too.
+    decl = decl.model_copy(deep=True)
+
     builder = _Builder(numbering)
     # Body first, then the footnotes in pool order: the full walk (spec
     # §8), so the engine's counters run in the one order a CND defines.

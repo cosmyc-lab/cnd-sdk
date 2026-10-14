@@ -202,6 +202,39 @@ class TestTranscription:
         assert decl.nodes[0].text.value == "x"
 
 
+class TestNoSharedState:
+    """The CND never shares a mutable object with its declaration: two
+    builds of one declaration are two independent documents."""
+
+    def test_mutating_the_declaration_after_a_build_leaves_the_cnd_alone(
+        self,
+    ) -> None:
+        from cnd.reconcile import diff
+
+        decl = _decl(
+            [{"type": "paragraph", "text": "a",
+              "state_metadata": {"review": {"status": "draft"}}},
+             {"type": "math", "text": "x",
+              "raw": {"format": "typst", "value": "$x$"}}],
+            source={"type": "markdown", "hash": "sha256:00", "uri": "a.md"},
+            doc={"title": "T", "keywords": ["core"]},
+        )
+        c1 = build(decl)
+
+        decl.nodes[0].state_metadata["review"]["status"] = "final"
+        decl.nodes[1].raw.value = "$y$"
+        decl.source.uri = "b.md"
+        decl.doc.keywords.append("docs")
+        c2 = build(decl)
+
+        assert c1.nodes[0].state_metadata == {"review": {"status": "draft"}}
+        assert c1.nodes[1].raw.value == "$x$"
+        assert c1.source.uri == "a.md"
+        assert c1.doc.keywords == ["core"]
+        report = diff(c1, c2)
+        assert len(report.changed) == 2
+
+
 class TestListOrdinals:
     def test_sequential_from_one_when_no_overrides(self) -> None:
         decl = _decl(
