@@ -11,24 +11,25 @@ from typing_extensions import override
 
 from cnd.core.cnd import Cnd
 from cnd.core.nodes import (
-    CiteRef,
+    AdmonitionNode,
     CndNode,
     CodeNode,
     FigureNode,
-    FootnoteRef,
     HeadingNode,
     ImageNode,
+    LayoutNode,
     ListNode,
     MathNode,
-    NodeRef,
     NodeTraverseContext,
     ParagraphNode,
     QuoteNode,
     TableNode,
     TermsNode,
+    texts_of,
 )
-from cnd.core.node_text import render_table_markdown
+from cnd.core.node_text import blocks_plain_text, render_table_markdown
 from cnd.core.render import MarkdownRenderer, NodeRenderer
+from cnd.core.text import CiteRef, FootnoteRef, LinkRef, NodeRef, Numbering, RichText
 from cnd.display.theme import (
     NODE_STYLE,
     document_panel,
@@ -45,16 +46,46 @@ from cnd.display.theme import (
 from cnd.visitors.base_visitor import BaseVisitor, VisitTarget
 
 
-def _format_links(links: Sequence[NodeRef | CiteRef | FootnoteRef]) -> str:
-    """Format a link family for display, appending text spans when present."""
+#: The four link families, in the spec's enumeration order (spec §8).
+_FAMILIES = ("refs", "cites", "footnotes", "links")
+
+
+def _format_links(links: Sequence[NodeRef | CiteRef | FootnoteRef | LinkRef]) -> str:
+    """Format a link family for display, appending text spans when present.
+    A hyperlink has no label and shows its ``href``."""
     parts: list[str] = []
     for link in links:
-        text = format_node_ref(link.label)
+        text = link.href if isinstance(link, LinkRef) else format_node_ref(link.label)
         if link.text_span is not None:
             span = link.text_span
             text += f"[{span[0]}:{span[1]}]" if len(span) == 2 else str(span)
         parts.append(text)
     return ", ".join(parts)
+
+
+def _numbering_details(numbering: Numbering | None) -> dict[str, str]:
+    """``number`` (the resolved value) and ``counter`` (the word), when set."""
+    if numbering is None:
+        return {}
+    details = {"number": numbering.value}
+    if numbering.name:
+        details["counter"] = numbering.name
+    return details
+
+
+def _marks_detail(node: CndNode) -> dict[str, str]:
+    """The mark kinds of the node's own texts, in first-seen order."""
+    kinds: list[str] = []
+    for text in texts_of(node):
+        for mark in text.marks:
+            if mark.kind not in kinds:
+                kinds.append(mark.kind)
+    return {"marks": ",".join(kinds)} if kinds else {}
+
+
+def _plain(text: RichText | None) -> str:
+    """A text's plain value — marks dropped, words kept (spec §7)."""
+    return text.value if text is not None else ""
 
 
 class NodeDisplayVisitor(BaseVisitor):
@@ -110,20 +141,22 @@ class NodeDisplayVisitor(BaseVisitor):
     @override
     def visit_heading(self, node: HeadingNode, ctx: NodeTraverseContext) -> None:
         self._counts["heading"] += 1
-        title = f"H{node.level} {node.text}"
-        details = {
-            "number": node.number or "-",
-            "children": str(len(node.children)),
-        }
+        title = f"H{node.level} {_plain(node.text)}"
+        details = _numbering_details(node.numbering) or {"number": "-"}
+        details["children"] = str(len(node.children))
+        details.update(_marks_detail(node))
         self._render_node("heading", node, ctx, title, details)
 
     @override
     def visit_paragraph(self, node: ParagraphNode, ctx: NodeTraverseContext) -> None:
         self._counts["paragraph"] += 1
         details: dict[str, str] = {}
-        if node.lang:
-            details["lang"] = node.lang
-        self._render_node("paragraph", node, ctx, self._preview(node.text), details)
+        if node.text.lang:
+            details["lang"] = node.text.lang
+        details.update(_marks_detail(node))
+        self._render_node(
+            "paragraph", node, ctx, self._preview(_plain(node.text)), details
+        )
 
     @override
     def visit_table(self, node: TableNode, ctx: NodeTraverseContext) -> None:
@@ -131,23 +164,37 @@ class NodeDisplayVisitor(BaseVisitor):
         # Preview the actual cell content (inline pipe grid), like text nodes
         # preview their text; the label stays visible on the identity line.
         title = render_table_markdown(node) or node.label or "Table"
-        details: dict[str, str] = {
-            "cells": str(len(node.cells)),
-            "kind": node.kind,
-        }
-        if node.content_kind:
-            details["content_kind"] = node.content_kind
+        details: dict[str, str] = {"cells": str(len(node.cells))}
+        if node.kind:
+            details["kind"] = node.kind
         self._render_node("table", node, ctx, self._preview(title), details)
+
+    @override
+    def visit_layout(self, node: LayoutNode, ctx: NodeTraverseContext) -> None:
+        self._counts["layout"] += 1
+        # A layout's content is shown by its own nodes, cell by cell.
+        title = node.label or f"layout ({len(node.cells)} cells)"
+        details = {"cells": str(len(node.cells))}
+        self._render_node("layout", node, ctx, self._preview(title), details)
 
     @override
     def visit_quote(self, node: QuoteNode, ctx: NodeTraverseContext) -> None:
         self._counts["quote"] += 1
-        details: dict[str, str] = {}
+        # The quoted blocks are the quote's children, shown as nodes.
+        title = f"quote ({len(node.children)} blocks)"
+        details: dict[str, str] = {"children": str(len(node.children))}
         if node.attribution:
-            details["attribution"] = self._preview(node.attribution)
-        if node.lang:
-            details["lang"] = node.lang
-        self._render_node("quote", node, ctx, self._preview(node.text), details)
+            details["attribution"] = self._preview(_plain(node.attribution))
+        details.update(_marks_detail(node))
+        self._render_node("quote", node, ctx, title, details)
+
+    @override
+    def visit_admonition(self, node: AdmonitionNode, ctx: NodeTraverseContext) -> None:
+        self._counts["admonition"] += 1
+        title = _plain(node.title) or node.kind
+        details = {"kind": node.kind, "children": str(len(node.children))}
+        details.update(_marks_detail(node))
+        self._render_node("admonition", node, ctx, self._preview(title), details)
 
     @override
     def visit_code(self, node: CodeNode, ctx: NodeTraverseContext) -> None:
@@ -155,31 +202,30 @@ class NodeDisplayVisitor(BaseVisitor):
         details: dict[str, str] = {}
         if node.lang:
             details["lang"] = node.lang
+        if node.title:
+            details["title"] = node.title
         self._render_node("code", node, ctx, self._preview(node.text), details)
 
     @override
     def visit_math(self, node: MathNode, ctx: NodeTraverseContext) -> None:
         self._counts["math"] += 1
-        details: dict[str, str] = {}
-        if node.number:
-            details["number"] = node.number
+        details = _numbering_details(node.numbering)
         self._render_node("math", node, ctx, self._preview(node.text), details)
 
     @override
     def visit_figure(self, node: FigureNode, ctx: NodeTraverseContext) -> None:
         self._counts["figure"] += 1
-        title = node.caption or node.number or node.label or "Figure"
+        number = node.numbering.value if node.numbering else None
+        title = _plain(node.caption) or number or node.label or "Figure"
         details: dict[str, str] = {
             "children": str(len(node.children)),
         }
         if node.kind:
             details["kind"] = node.kind
-        if node.number:
-            details["number"] = node.number
-        if node.counter_label:
-            details["counter_label"] = node.counter_label
-        if node.caption and node.caption != title:
-            details["caption"] = self._preview(node.caption)
+        details.update(_numbering_details(node.numbering))
+        if node.description:
+            details["description"] = self._preview(_plain(node.description))
+        details.update(_marks_detail(node))
         self._render_node("figure", node, ctx, self._preview(title), details)
 
     @override
@@ -201,8 +247,10 @@ class NodeDisplayVisitor(BaseVisitor):
         details: dict[str, str] = {
             "ordered": str(node.ordered).lower(),
             "items": str(len(node.items)),
-            "tight": str(node.tight).lower(),
         }
+        checked = sum(1 for item in node.items if item.checked)
+        if any(item.checked is not None for item in node.items):
+            details["checked"] = f"{checked}/{len(node.items)}"
         preview = self._preview(self._renderer.render(node))
         self._render_node("list", node, ctx, preview or title, details)
 
@@ -210,10 +258,8 @@ class NodeDisplayVisitor(BaseVisitor):
     def visit_terms(self, node: TermsNode, ctx: NodeTraverseContext) -> None:
         self._counts["terms"] += 1
         title = f"terms ({len(node.items)} items)"
-        details: dict[str, str] = {
-            "items": str(len(node.items)),
-            "tight": str(node.tight).lower(),
-        }
+        details: dict[str, str] = {"items": str(len(node.items))}
+        details.update(_marks_detail(node))
         preview = self._preview(self._renderer.render(node))
         self._render_node("terms", node, ctx, preview or title, details)
 
@@ -263,7 +309,7 @@ class NodeDisplayVisitor(BaseVisitor):
             rows = [
                 (
                     f"@{entry.label}",
-                    self._preview(entry.formatted or entry.title or ""),
+                    self._preview(_plain(entry.formatted) or entry.title or ""),
                     f"id={str(entry.id)[:8]}   cited by {sources(entry.label)}",
                 )
                 for entry in cnd.bibliography
@@ -273,8 +319,10 @@ class NodeDisplayVisitor(BaseVisitor):
             rows = [
                 (
                     f"@{note.label}",
-                    self._preview(note.text),
-                    f"id={str(note.id)[:8]}   referenced by {sources(note.label)}",
+                    # The note's content is block nodes; previewed as text.
+                    self._preview(blocks_plain_text(note.children)),
+                    f"id={str(note.id)[:8]}   {len(note.children)} block(s)"
+                    f"   referenced by {sources(note.label)}",
                 )
                 for note in cnd.footnotes
             ]
@@ -310,7 +358,12 @@ class NodeDisplayVisitor(BaseVisitor):
         details: dict[str, str],
     ) -> None:
         self._max_depth = max(self._max_depth, ctx.depth)
-        self._refs_total += len(node.refs) + len(node.cites) + len(node.footnotes)
+        families = self._families(node)
+        # Cross-references are the label-keyed families; hyperlinks are
+        # shown on the refs line but resolve nowhere (docs/adr/0024).
+        self._refs_total += sum(
+            len(families[name]) for name in ("refs", "cites", "footnotes")
+        )
 
         body_parts: list[ConsoleRenderable] = []
         if title:
@@ -368,14 +421,11 @@ class NodeDisplayVisitor(BaseVisitor):
             path.append(" > ".join(ctx.heading_path), "italic cyan")
             lines.append(path)
 
-        if self._show_refs and (node.refs or node.cites or node.footnotes):
+        families = self._families(node)
+        if self._show_refs and any(families.values()):
             refs = Text()
             first = True
-            for name, links in (
-                ("refs", node.refs),
-                ("cites", node.cites),
-                ("footnotes", node.footnotes),
-            ):
+            for name, links in families.items():
                 if not links:
                     continue
                 if not first:
@@ -406,6 +456,16 @@ class NodeDisplayVisitor(BaseVisitor):
             lines.append(location)
 
         return lines
+
+    @staticmethod
+    def _families(node: CndNode) -> dict[str, list]:
+        """The node's link families, gathered from all of its own texts
+        (the families live in rich text, docs/adr/0025)."""
+        texts = texts_of(node)
+        return {
+            name: [edge for text in texts for edge in getattr(text, name)]
+            for name in _FAMILIES
+        }
 
     def _build_summary(self):
         total = sum(self._counts.values())

@@ -1,5 +1,6 @@
 {
-  "cnd_version": "0.3.0",
+  "id": "00000000-0000-4000-c004-000000000901",
+  "cnd_version": "0.5.0",
   "built_at": "2026-07-23T00:00:00Z",
   "doc": {
     "title": "Reconcile fixture"
@@ -8,14 +9,16 @@
     {
       "id": "00000000-0000-4000-c004-000000000003",
       "type": "paragraph",
-      "text": "alpha"
+      "text": {
+        "value": "alpha"
+      }
     },
     {
       "id": "00000000-0000-4000-c004-000000000004",
       "type": "paragraph",
-      "text": "beta edited"
+      "text": {
+        "value": "beta edited"
+      }
     }
-  ],
-  "bibliography": [],
-  "footnotes": []
+  ]
 }

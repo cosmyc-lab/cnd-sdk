@@ -21,12 +21,16 @@ from cnd.core.cnd import Cnd
 # swapped in row position: after the image<->quote color swap, olive-quote sat
 # next to amber-table (near-identical under protanopia); swapping their rows
 # moves olive clear of both amber and green so every adjacent pair stays
-# distinct. Legend and summary both follow this dict order.
+# distinct. Legend and summary both follow this dict order. The two 0.5
+# kinds, admonition and layout, take their alphabetical rows with hues the
+# first ten leave free (raspberry and slate).
 NODE_STYLE: dict[str, tuple[str, str]] = {
+    "admonition": ("#b8336a", "A"),
     "code": ("#00a3c4", "C"),
     "figure": ("#d95926", "Fg"),
     "heading": ("#8a55f2", "H"),
     "quote": ("#8a8c1a", "Q"),
+    "layout": ("#5b7083", "Ly"),
     "list": ("#9085e9", "L"),
     "math": ("#e66767", "M"),
     "paragraph": ("#008300", "P"),
@@ -145,18 +149,30 @@ def stat_cell(label: str, value: str) -> Text:
 
 def document_panel(cnd: Cnd) -> Panel:
     doc = cnd.doc
-    doc_table = Table.grid(expand=True)
+    # Every value is CND data: wrapped in Text so Rich never reads it as markup.
+    doc_table = Table.grid(expand=True, padding=(0, 1))
     doc_table.add_column(style="dim", ratio=1)
     doc_table.add_column(style="white", ratio=3)
-    doc_table.add_row("title", doc.title)
-    doc_table.add_row("version", f"v{cnd.cnd_version}")
-    doc_table.add_row("paginated", "yes" if cnd.paginated else "no")
+
+    def add(key: str, value: str) -> None:
+        doc_table.add_row(Text(key), Text(value))
+
+    add("title", doc.title)
+    # The format version; `version` below is the author's own (spec §3).
+    add("format", f"v{cnd.cnd_version}")
+    add("paginated", "yes" if cnd.paginated else "no")
     if cnd.source:
-        doc_table.add_row("source", f"{cnd.source.type}   {cnd.source.hash}")
+        add("source", f"{cnd.source.type}   {cnd.source.hash}")
     if doc.lang:
-        doc_table.add_row("lang", doc.lang)
+        add("lang", doc.lang)
     if doc.authors:
-        doc_table.add_row("authors", ", ".join(doc.authors))
+        add("authors", ", ".join(doc.authors))
+    if doc.status:
+        add("status", doc.status)
+    if doc.version:
+        add("version", doc.version)
+    for key, value in doc.extra.items():
+        add(key, value)
     return Panel(
         doc_table,
         title="[bold]Document[/]",
@@ -282,7 +298,7 @@ def pool_panel(title: str, rows: Sequence[tuple[str, str, str]]) -> Panel:
     grid.add_column(style="white", ratio=1)
     grid.add_column(style="dim", no_wrap=True, justify="right")
     for label, body, meta in rows:
-        grid.add_row(label, body, meta)
+        grid.add_row(Text(label), Text(body), Text(meta))
     return Panel(
         grid,
         title=f"[bold]{title}[/]",

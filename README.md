@@ -62,9 +62,15 @@ copy it into a project (e.g. as a root file `cnd.typ`), then:
 #import "/cnd.typ"
 
 #cnd.metadata.update(it => it + (revision: "4.2"))
-#cnd.table(table(columns: 2, [A], [B]), content_kind: "data")
+#cnd.table(table(columns: 2, [A], [B]), kind: "data")
 #cnd.decorative(image("logo.png", width: 2cm))
 ```
+
+`cnd.table(body, kind: ...)` records the table's kind for the emitter:
+`"data"` (each row a record) or `"content"` (cells to read). The state
+carries it under the dedicated key `table-kind`, which an emitter reads
+and the CND writes as `table.kind` (spec §6.3); your own metadata, a
+document-level `kind` included, is never touched.
 
 `cnd.decorative(body)` marks content as purely decorative — a logo, an
 ornament, an icon — so no producer emits it (spec §2, "Decorative
@@ -107,10 +113,11 @@ the corpus matches, carrying all four vector kinds the same ADR requires
 (foreign format → declaration) is not here and never will be: it belongs
 with the producers, not the hub (same ADR, §2).
 
-`diff` sits apart from the other four: matching v1 is a **versioned
+`diff` sits apart from the other four: matching v2 is a **versioned
 reference algorithm, not a normative rule**
-([`docs/adr/0018`](docs/adr/0018-reconciliation-reference-algorithm.md)).
-Reproducing `matching.json` proves an implementation runs v1 — it is not
+([`docs/adr/0018`](docs/adr/0018-reconciliation-reference-algorithm.md);
+v2 itself is [`docs/adr/0029`](docs/adr/0029-matching-v2.md)).
+Reproducing `matching.json` proves an implementation runs v2 — it is not
 something the format requires of anyone.
 
 ## Reconciliation
@@ -140,6 +147,16 @@ The matching is a **versioned reference algorithm, not part of the
 format** — exact for labelled nodes, best-effort for the rest, and every
 pairing reports which pass made it so a caller can tell the two apart.
 Pass `only_exact=True` to inherit ids on labels alone.
+
+The version implemented is **matching v2**
+([`docs/adr/0029`](docs/adr/0029-matching-v2.md)): it runs over the full
+walk (the body, then every footnote's content) with spec §8 paths, keys a
+footnote's content by its note's label, and keys a container (list,
+terms, table, layout, quote, admonition) on its own hash plus a digest of
+its nested content. A last `container-hash` pass pairs a container whose
+nested content was edited and that also moved. Twin headings or figures
+with identical titles, and twin containers both edited and shifted, can
+still swap.
 
 Turning a foreign format into a CND (`cnd declare`) is a different kind of
 absence: it belongs with the producers permanently, since bundling it would

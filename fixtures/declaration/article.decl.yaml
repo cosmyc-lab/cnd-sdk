@@ -1,15 +1,17 @@
 # A declaration — the source form the builder compiles into a CND
 # (docs/adr/0019). Note what is absent by construction: no node has an
-# `id`, a `location`, a `number`, or a `heading_path`. The builder
-# supplies all of those. What is here is authored content only —
-# including `counter_label`, whose word is authored, not derived
-# (docs/proposals/0010).
+# `id`, a `location`, a `numbering.value`, or a `heading_path`. The
+# builder supplies all of those. What is here is authored content only.
+#
+# A text is a plain string (the shorthand) or the full rich-text object
+# when a producer computes offsets for marks and links
+# (docs/proposals/0013, "Declaration").
 #
 # article.cnd is this declaration's expected build output (`cnd build`,
 # unnumbered). Compare the two after erasing every `id` and `built_at`:
 # ids are minted fresh per build (docs/adr/0015), and `built_at` is a
 # timestamp — neither is reproducible across builds.
-declaration_version: "0.1.0"
+declaration_version: "0.2.0"
 
 source:
   type: markdown
@@ -30,40 +32,67 @@ nodes:
     text: Handshake
     children:
       - type: paragraph
-        text: >-
-          The client opens with a version token, as the listing shows,
-          following Rivest. See the note on opacity.
-        refs:
-          - label: lst-open
-            text_span: [39, 57]
-        cites:
-          - label: rivest1978
-            form: prose
-        footnotes:
-          - label: fn-token
+        text:
+          value: >-
+            The client opens with a version token, as the listing shows,
+            following Rivest. See the note on opacity.
+          marks:
+            - { start: 24, end: 37, kind: emph }
+          refs:
+            - label: lst-open
+              text_span: [39, 57]
+          cites:
+            - label: rivest1978
+              form: prose
+          footnotes:
+            - label: fn-token
+
+      - type: paragraph
+        text:
+          value: The handshake is specified at example.org.
+          links:
+            - href: https://example.org/handshake
+              text_span: [30, 41]
 
       - type: figure
         label: lst-open
         kind: code
-        # The displayed counter word. Authored, not derived: the builder
-        # has no localized name for a "code" figure, so if the author wants
-        # "Listing 1" rather than nothing, the word lives here.
-        counter_label: Listing
         caption: Opening frame
         children:
           - type: code
             text: "OPEN v1\n"
             lang: text
+            title: open.txt
 
       - type: list
         ordered: true
         items:
           # An authored start override — the declaration keeps this, the
           # running ordinal it does not (that is the builder's to resolve).
-          - text: Negotiate the version.
-            number: 1
-          - text: Exchange capabilities.
-          - text: Confirm.
+          - number: 1
+            children:
+              - type: paragraph
+                text: Negotiate the version.
+          - children:
+              - type: paragraph
+                text: Exchange capabilities.
+              - type: list
+                items:
+                  - checked: true
+                    children:
+                      - { type: paragraph, text: Compression }
+                  - checked: false
+                    children:
+                      - { type: paragraph, text: Encryption }
+          - children:
+              - { type: paragraph, text: Confirm. }
+
+      - type: admonition
+        kind: note
+        title: Opacity
+        children:
+          - type: paragraph
+            text: Intermediaries never read the token.
 
 bibliography:
   - label: rivest1978
@@ -74,4 +103,6 @@ bibliography:
 
 footnotes:
   - label: fn-token
-    text: The version token is opaque to intermediaries.
+    children:
+      - type: paragraph
+        text: The version token is opaque to intermediaries.

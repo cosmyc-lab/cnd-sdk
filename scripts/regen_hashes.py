@@ -15,11 +15,11 @@ FIXTURES = Path(__file__).parent.parent / "fixtures"
 
 vectors = {}
 for path in sorted(FIXTURES.glob("*.cnd")):
-    cnd = Cnd.model_validate_json(path.read_text())
+    cnd = Cnd.model_validate_json(path.read_text(encoding="utf-8"))
     vectors[path.name] = {
         "content_hash": content_hash(cnd),
         "node_hashes": [node_hash(v.node) for v in cnd.iter_all()],
     }
 
-(FIXTURES / "hashes.json").write_text(json.dumps(vectors, indent=2) + "\n")
+(FIXTURES / "hashes.json").write_text(json.dumps(vectors, indent=2) + "\n", encoding="utf-8")
 print(f"wrote {len(vectors)} vectors")

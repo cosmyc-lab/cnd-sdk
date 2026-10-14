@@ -1,3 +1,4 @@
+import json
 from collections.abc import Iterator
 from datetime import datetime
 from typing import Any, Union
@@ -167,19 +168,27 @@ class Cnd(BaseModel):
             _totals=self._position_totals,
         )
 
-    def iter_all(self) -> Iterator[NodeTraverse]:
+    def iter_all(
+        self,
+        *,
+        max_depth: int | None = None,
+        stop_predicate: StopPredicate | None = None,
+    ) -> Iterator[NodeTraverse]:
         """The body walk, then the content of every footnote.
 
         Footnote content nodes are nodes in every respect (ids, labels,
         locations) but stay out of the body walk, so a consumer splitting
         the body never mixes notes into running text (docs/proposals/0013).
         Positions inside a footnote count within that footnote; ``slot`` is
-        ``"footnotes"`` and ``slot_index`` the pool index.
+        ``"footnotes"`` and ``slot_index`` the pool index. ``max_depth`` and
+        ``stop_predicate`` apply to the body and to each footnote alike.
         """
-        yield from self.iter()
+        yield from self.iter(max_depth=max_depth, stop_predicate=stop_predicate)
         for index, note in enumerate(self.footnotes):
             yield from iter_nodes(
                 note.children,
+                max_depth=max_depth,
+                stop_predicate=stop_predicate,
                 _base_path=("footnotes", index, "children"),
                 _slot="footnotes",
                 _slot_index=index,
@@ -187,6 +196,27 @@ class Cnd(BaseModel):
 
     def __iter__(self) -> Iterator[NodeTraverse]:
         return self.iter()
+
+    def to_json(self, *, indent: int | None = 2) -> str:
+        """This CND as JSON, every default-valued field omitted.
+
+        The one writer the SDK uses for a caller (the CLI, the fixture
+        scripts). Proposal 0013 lets a CND omit every field that holds its
+        default, and the finer 0.5 node model makes the empty lists worth
+        dropping. Omission changes nothing a reader sees: the result parses
+        back to the same model, and the content hash already drops defaults
+        (spec §10).
+
+        Required fields are never dropped, even when empty
+        (``heading_path: []``), and free-form objects (``state_metadata``,
+        ``BibEntry.fields``) are written as they are. ``id`` is kept
+        explicitly: it has a default factory, and whether pydantic counts a
+        freshly generated value as "the default" is not something to rely
+        on for a document's identity.
+        """
+        payload = self.model_dump(mode="json", exclude_defaults=True)
+        payload = {"id": str(self.id), **payload}
+        return json.dumps(payload, indent=indent, ensure_ascii=False)
 
     def resolve(self, label: str) -> LinkTarget | None:
         """The node or pool entry carrying ``label``, or ``None``.

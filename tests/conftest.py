@@ -38,17 +38,3 @@ def unpaginated_cnd_path() -> Path:
 @pytest.fixture
 def elements_cnd_path() -> Path:
     return FIXTURES_DIR / "elements.cnd"
-
-
-# Test modules not yet ported to format 0.5.0 (docs/proposals/0013). The
-# 0.5 series lands plan by plan on one integration branch; each plan
-# removes the entries it ports, and the list must be empty before that
-# branch merges into main.
-collect_ignore = [
-    "test_builder.py",
-    "test_cli.py",
-    "test_declaration.py",
-    "test_node_display_visitor.py",
-    "test_reconcile.py",
-    "test_visitor.py",
-]

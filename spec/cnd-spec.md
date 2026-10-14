@@ -99,8 +99,8 @@ part of the document. A producer MUST NOT emit it: it yields no node, no
 text inside another text, no pool entry, and no link edge.
 Everything nested inside decorative content is decorative, whatever its
 kind. A label inside it does not exist in the CND, so a reference to it
-from kept content yields no edge (its rendered text, if any, stays in the
-`value` of the kept text). A footnote declared inside it gets no pool
+from kept content yields no edge (the text the reference displays, if
+any, stays in the `value` of the kept text). A footnote declared inside it gets no pool
 entry, and no marker — its own or a re-reference — yields an edge to it;
 a kept footnote keeps the label the built document shows, even when a
 decorative one consumed a number before it. A marker written inside
@@ -215,7 +215,7 @@ Every slot that holds prose is a `RichText` object (§6, principle 1).
 | `links` | array of [`LinkRef`](#5-cross-references-and-link-families) | Outgoing hyperlinks, resolving nowhere in the CND. |
 
 ```json
-{ "type": "paragraph",
+{ "id": "…", "type": "paragraph",
   "text": { "value": "See Figure 2: the rate rose 103 times.",
             "marks": [ { "start": 30, "end": 31, "kind": "sup" } ],
             "refs":  [ { "label": "fig-rate", "text_span": [4, 12] } ] } }
@@ -236,7 +236,7 @@ Every slot that holds prose is a `RichText` object (§6, principle 1).
   `lang` covers a whole text; a foreign phrase
   inside a sentence is not modeled.
 - **Empty lists may be omitted.** Every list field defaults to empty, so
-  a plain paragraph is `{"type": "paragraph", "text": {"value": "…"}}`.
+  a plain paragraph is `{"id": "…", "type": "paragraph", "text": {"value": "…"}}`.
   Omitting an empty list and writing it out are the same content and
   hash the same (§10).
 
@@ -1000,13 +1000,15 @@ changed.
 **Conformance.** The fixture corpus carries `CND → expected walk`
 vectors (`fixtures/traversal.json`): for every fixture, the full walk as
 a sequence of `id`, `type`, `depth` and `path`. An implementation proves
-its walk order by reproducing them; `cnd inspect` shows the order a CND
-actually walks in.
+its walk order by reproducing them. `cnd inspect` shows the body walk
+only, not the footnotes' content; `cnd hash --nodes` lists every node
+hash in full-walk order.
 
 The reference SDK implements the body walk as `Cnd.iter()` /
 `iter_nodes()` and the full walk as `Cnd.iter_all()`, with
 `child_slots(node)` listing a node's slots, `BaseVisitor` dispatching a
-`visit_<type>` hook per node type and `should_stop_descent()` to prune.
+`visit_<type>` hook per node type over the body walk, or over the full walk
+with `visit(cnd, full=True)`, and `should_stop_descent()` to prune.
 `Cnd.incoming(label)` is the derived reverse index (§5) and
 `Cnd.resolve(label)` the label index (§5), both built over the full walk,
 lazily, and cached. `NodeDisplayVisitor` (requires the `display` extra)
@@ -1024,6 +1026,7 @@ reports.
 
 | Invariant | Rule | Where |
 |---|---|---|
+| `cnd_version` is the version the validator implements (`"0.5.0"` for this revision) | `cnd-version-unsupported` | §11 |
 | Global id uniqueness: body nodes, footnote content nodes, bibliography and footnote entries | `id-not-unique` | §2 |
 | Global label uniqueness, footnote content nodes included | `label-not-unique` | §2 |
 | Every label-keyed edge resolves (`links` is out of scope) | `link-unresolved` | §5 |
@@ -1043,6 +1046,13 @@ bypass the builder that checks them. A producer emitting a CND directly
 from its own compiler calls a validator itself — the reference SDK
 exposes `validate(cnd)`, which returns every violation rather than the
 first, and the same check as `cnd validate` on the command line.
+
+A file stamped with another `cnd_version` is refused by that rule
+before its shape is checked: the reference CLI reads the version first,
+so a 0.4 CND is reported as a 0.4 CND, not as the schema errors its
+older shape raises. Before 1.0.0 a minor version may change what a field
+means (§11), so a CND whose shape happens to parse under another version
+is still not conformant to this one.
 
 The asymmetry is real and worth naming rather than papering over: a
 build cannot be skipped, a validation call can be forgotten. It is the
@@ -1206,7 +1216,11 @@ is an SDK surface, recorded here so the two are not confused, and it stays
 non-normative until it has proven itself; any promotion is a separate ADR.
 Its schema is `schema/cnd-declaration.schema.json`, generated from the
 same models as the CND schema (docs/adr/0004), and it carries its own
-`declaration_version`, versioned independently of `cnd_version`.
+`declaration_version`, versioned independently of `cnd_version`. The
+reference builder accepts declaration version `"0.2.0"` only: an older
+declaration, such as a `"0.1.0"` one, is refused with a version error that
+names the version found and the one supported, before its shape is
+checked.
 
 A declaration is **the CND minus everything the builder derives**, the
 same derived-not-serialized rule (§2) applied to the production side: a
@@ -1239,11 +1253,25 @@ escaping, link notation).
 Because the declaration is authored by hand, an **unknown field is
 rejected rather than dropped** — a `capton` typed for `caption` raises
 instead of vanishing, so the mistake surfaces exactly where it is meant
-to be corrected. (This strictness reaches the declaration's own node and
-top-level fields; a stray key inside a value object it shares with the
-CND, like a table cell, is not caught.) Hyperlinks in declarations remain
-out of scope: the declarative door does not yet have a way to express
-one (docs/adr/0024).
+to be corrected. (This strictness reaches the declaration's own models:
+nodes, list items, term items, cells, footnotes, bibliography entries,
+`numbering` and the top level. A stray key inside a value object it shares with the CND — a
+`RichText`, a mark, a link edge, the document metadata — is not caught.)
+
+**Hyperlinks.** The full object form of a text is the CND's own
+`RichText`, so a declaration carries `links` exactly as it carries
+`refs`, `cites` and `footnotes`. The gap docs/adr/0024 recorded — the
+declarative door had no way to express a hyperlink — is closed by rich
+text.
+
+**Numbering.** A counter-bearing node (`heading`, `math`, `figure`) may
+author `numbering: {name: "Listing"}`, the word without its value. The
+builder's counter engine, when it runs, numbers every heading, figure
+and equation in full-walk order (§8) and pairs each value with the
+authored word, if any. When the engine does not run, an authored
+`numbering` cannot be built — a CND cannot hold a word without a value —
+and the builder reports it rather than dropping it. A list item's
+`number` stays an authored override of the sequential ordinal.
 
 One constraint the builder inherits from carrying spans: a mark or an
 edge's `text_span` indexes into the `value` of its `RichText` (§4.1),

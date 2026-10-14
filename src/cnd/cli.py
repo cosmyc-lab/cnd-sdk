@@ -19,9 +19,9 @@ four vector kinds ADR 0020 §4 requires (``hashes.json``,
 pairs under ``fixtures/declaration/``).
 
 ``diff`` is the odd one out and worth flagging to anyone comparing
-implementations: matching v1 is a *versioned reference algorithm*, not a
-normative rule (docs/adr/0018). Reproducing ``matching.json`` proves an
-implementation runs v1; it is not a conformance requirement on the
+implementations: matching v2 is a *versioned reference algorithm*, not a
+normative rule (docs/adr/0018; v2 is docs/adr/0029). Reproducing ``matching.json`` proves an
+implementation runs v2; it is not a conformance requirement on the
 format, and a later version may legitimately differ.
 
 Output is human-readable by default and machine-readable under ``--json``,
@@ -43,10 +43,10 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from cnd.builder import BuildError, build
-from cnd.core.cnd import Cnd
+from cnd.core.cnd import CND_VERSION, Cnd
 from cnd.core.hashing import content_hash, node_hash
 from cnd.core.validate import validate
-from cnd.declaration import Declaration
+from cnd.declaration import DECLARATION_VERSION, Declaration
 from cnd.reconcile import diff
 
 EXIT_OK = 0
@@ -79,9 +79,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "validate",
         help="check the invariants JSON Schema cannot express",
         description=(
-            "Global label uniqueness, per-family link domains, "
-            "all-or-nothing pagination, and the bibliography content floor "
-            "(spec sections 5, 9). Shape errors are the schema's job and are "
+            "The format version, id and label uniqueness, per-family link "
+            "domains, text spans "
+            "and marks, all-or-nothing pagination, the bibliography content "
+            "floor and doc.extra (spec section 9), over the body and the "
+            "footnotes' content. Shape errors are the schema's job and are "
             "reported as parse failures."
         ),
     )
@@ -101,7 +103,10 @@ def _build_parser() -> argparse.ArgumentParser:
     digest.add_argument(
         "--nodes",
         action="store_true",
-        help="also print each node hash, in reading order",
+        help=(
+            "also print each node hash, in full-walk order: the body, then "
+            "each footnote's content (spec section 8)"
+        ),
     )
     digest.set_defaults(run=_run_hash)
 
@@ -109,7 +114,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "diff",
         help="what moved between two builds of a document",
         description=(
-            "Matching v1 (docs/adr/0018) over two CNDs: each node is added, "
+            "Matching v2 (docs/adr/0029, extending docs/adr/0018) over two "
+            "CNDs: each node is added, "
             "removed, changed, moved or unchanged, plus a label-keyed diff "
             "of both pools. A versioned reference algorithm, NOT part of "
             "the format — exact for labelled nodes, best-effort for the "
@@ -132,9 +138,9 @@ def _build_parser() -> argparse.ArgumentParser:
         description=(
             "The declarative door: reads a declaration (JSON, or YAML with "
             "the yaml extra), derives everything the declaration omits, and "
-            "emits a validated CND. Numbering is opt-in — the declarative "
-            "door serves unnumbered sources, so inventing counters is a "
-            "choice, never a default."
+            "emits a validated CND, default-valued fields omitted. Numbering "
+            "is opt-in — the declarative door serves unnumbered sources, so "
+            "inventing counters is a choice, never a default."
         ),
     )
     produce.add_argument("file", type=Path, metavar="DECL")
@@ -176,11 +182,26 @@ def _load(path: Path) -> tuple[Cnd | None, str | None]:
     Both failure modes — unreadable file and invalid shape — are reported
     the same way, because to a caller comparing implementations they are
     the same event: this file did not yield a CND.
+
+    The version is read before the shape: a CND of another format version
+    is refused by name (spec §11), rather than as the schema errors its
+    older shape would raise.
     """
     try:
-        return Cnd.model_validate_json(path.read_text()), None
+        text = path.read_text(encoding="utf-8")
     except OSError as err:
         return None, f"cannot read: {err.strerror or err}"
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        data = None  # the schema parse below reports it
+    refusal = _version_refusal(
+        data, "cnd_version", CND_VERSION, "cnd-version-unsupported", "CND"
+    )
+    if refusal:
+        return None, refusal
+    try:
+        return Cnd.model_validate_json(text), None
     except ValidationError as err:
         count = err.error_count()
         first = err.errors()[0]
@@ -197,7 +218,7 @@ def _load_declaration(path: Path) -> tuple[Declaration | None, str | None]:
     (ADR 0005's ``[display]`` precedent).
     """
     try:
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
     except OSError as err:
         return None, f"cannot read: {err.strerror or err}"
 
@@ -219,6 +240,16 @@ def _load_declaration(path: Path) -> tuple[Declaration | None, str | None]:
         except json.JSONDecodeError as err:
             return None, f"invalid JSON: {err}"
 
+    refusal = _version_refusal(
+        data,
+        "declaration_version",
+        DECLARATION_VERSION,
+        "declaration-version-unsupported",
+        "declaration version",
+    )
+    if refusal:
+        return None, refusal
+
     try:
         return Declaration.model_validate(data), None
     except ValidationError as err:
@@ -226,6 +257,25 @@ def _load_declaration(path: Path) -> tuple[Declaration | None, str | None]:
         first = err.errors()[0]
         location = ".".join(str(part) for part in first["loc"])
         return None, f"{count} schema error(s), first at {location}: {first['msg']}"
+
+
+def _version_refusal(
+    data: object, key: str, supported: str, rule: str, what: str
+) -> str | None:
+    """The error for a file stamped with another version, else ``None``.
+
+    Only a present, string version is judged here; a missing or mistyped
+    one is a shape error and is left to the schema.
+    """
+    if not isinstance(data, dict):
+        return None
+    found = data.get(key)
+    if not isinstance(found, str) or found == supported:
+        return None
+    return (
+        f"[{rule}] {key} {found} is not supported: this SDK reads "
+        f"{what} {supported} only, and ships no upgrader"
+    )
 
 
 def _run_validate(args: argparse.Namespace) -> int:
@@ -277,7 +327,7 @@ def _run_hash(args: argparse.Namespace) -> int:
             continue
         entry = {"file": str(path), "content_hash": content_hash(cnd)}
         if args.nodes:
-            entry["node_hashes"] = [node_hash(v.node) for v in cnd.iter()]
+            entry["node_hashes"] = [node_hash(v.node) for v in cnd.iter_all()]
         results.append(entry)
 
     if args.json:
@@ -311,9 +361,9 @@ def _run_build(args: argparse.Namespace) -> int:
             )
         return EXIT_NONCONFORMANT
 
-    payload = cnd.model_dump_json(indent=2)
+    payload = cnd.to_json(indent=2)
     if args.output is not None:
-        args.output.write_text(payload + "\n")
+        args.output.write_text(payload + "\n", encoding="utf-8")
     else:
         print(payload)
     return EXIT_OK
