@@ -9,6 +9,44 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+The SDK implements CND **format 0.5.0** (docs/proposals/0013). This is a
+**breaking** format change: a `"0.4.0"` CND does not parse as `"0.5.0"`, and
+**every content hash changes** (spec §10, docs/adr/0028). No 0.4 → 0.5
+upgrader is shipped (spec §11): producers move by emitting 0.5.
+
+### Changed
+
+- **Rich text with marks**: prose is a `RichText` with standoff marks
+  (emphasis, strong, code, math, …), and the four link families moved
+  from the node into its texts (docs/adr/0025).
+- **Block containers**: every body lives in `children`, so list items,
+  term items, table cells and footnotes hold nodes. `numbering` replaces
+  `number` and `counter_label`.
+- **Declaration 0.2.0**: texts accept a string shorthand or a full
+  `RichText`, and an authored word is `numbering.name`. A 0.1.0 declaration,
+  like a CND stamped with another `cnd_version`, is refused with an error
+  that names both versions (`declaration-version-unsupported`,
+  `cnd-version-unsupported`).
+- **Matching v2** (docs/adr/0029, extending docs/adr/0018): runs over the full
+  walk with spec §8 paths, keys footnote content by its note's label and
+  containers by their nested content too. A last pass reports
+  `matched_by: "container-hash"`. `fixtures/matching.json` is now v2.
+- **Typst package**: the `cnd.table` hint is `kind:`, the CND's
+  `table.kind`; it was `content_kind:`. After the table, a document-level
+  `kind` is restored.
+
+### Added
+
+- **New nodes and fields**: `admonition` and `layout` nodes, list-item
+  checkboxes (`checked`), figure `description`, code `title`, and
+  `doc.status`, `doc.version` and `doc.extra`.
+- `MarkdownConverter(text_only=True)` and `MarkdownRenderer(text_only=…)`:
+  Markdown with no HTML at all.
+- HTML output renders `links` edges as `<a class="cnd-link">` around the
+  text they span, for safe URLs only.
+- `BaseVisitor.visit(cnd, full=True)` walks the footnotes' content too,
+  with spec §8 paths.
+
 ## [0.8.0] - 2026-10-11
 
 SDK release 0.8.0 still implements CND **format 0.4.0**: no schema change.
