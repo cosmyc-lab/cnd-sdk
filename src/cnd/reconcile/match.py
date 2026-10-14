@@ -38,10 +38,14 @@ the pool moves nothing. Finer nodes make the matcher finer too: an
 edited list item is matched and reported on its own, where a whole list
 used to be marked changed. Finally, a node hash excludes nested nodes
 (spec §10), so two containers of the same shape hash alike; in the two
-hash passes a node with child slots is therefore keyed on its node hash
-plus a digest of its descendants' hashes, which stops a surviving
-container taking the id of a deleted twin. The node hash itself is
-unchanged.
+hash passes a list, terms, table, layout, quote or admonition is
+therefore keyed on its node hash plus a digest of its descendants'
+hashes, which stops a surviving container taking the id of a deleted
+twin. Headings and figures are left out on purpose: their hash already
+carries their text or caption, and a heading whose section changed has
+not itself changed (spec §10), so a moved heading stays recognisable.
+The remaining limit: two headings or figures with identical titles can
+still swap. The node hash itself is unchanged.
 """
 
 import hashlib
@@ -51,7 +55,7 @@ from typing import Literal, Optional
 
 from cnd.core.cnd import BibEntry, Cnd, Footnote
 from cnd.core.hashing import node_hash, pool_entry_hash
-from cnd.core.nodes import CndNode, child_slots
+from cnd.core.nodes import CndNode, FigureNode, HeadingNode, child_slots
 
 MATCHER_VERSION = "v2"
 """The version of the reference algorithm implemented here (docs/adr/0018)."""
@@ -168,7 +172,11 @@ def entries(cnd: Cnd) -> list[NodeEntry]:
                 path=_matching_path(cnd, visit.ctx.path),
                 hash=_hash_of(node, hashes),
                 order=order,
-                subtree=_subtree_of(node, hashes, subtrees),
+                subtree=(
+                    ""
+                    if isinstance(node, (HeadingNode, FigureNode))
+                    else _subtree_of(node, hashes, subtrees)
+                ),
             )
         )
     return result

@@ -303,12 +303,9 @@ def test_moving_a_node_into_a_section_is_a_move_not_a_rewrite():
     new = _cnd([_heading("Section", children=[_para("body")])])
 
     report = diff(old, new)
-    # The heading moved up a slot and gained a child. A container is keyed
-    # on its nested content too (matching v2), so the hash passes no longer
-    # pair it, and it moved slot, so path+type does not either: it is
-    # reported added. The re-parented paragraph is the subject here.
-    assert {_text(change.new.node) for change in report.moved} == {"body"}
-    assert _by_text(report, "Section").status == "added"
+    # The heading moved up a slot too, so both nodes are moved; only the
+    # re-parented one is the subject here.
+    assert {_text(change.new.node) for change in report.moved} == {"Section", "body"}
     change = _by_text(report, "body")
     assert change.status == "moved"
     assert change.old.path == ("nodes", 0)
