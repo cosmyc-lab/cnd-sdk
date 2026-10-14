@@ -62,9 +62,13 @@ copy it into a project (e.g. as a root file `cnd.typ`), then:
 #import "/cnd.typ"
 
 #cnd.metadata.update(it => it + (revision: "4.2"))
-#cnd.table(table(columns: 2, [A], [B]), content_kind: "data")
+#cnd.table(table(columns: 2, [A], [B]), kind: "data")
 #cnd.decorative(image("logo.png", width: 2cm))
 ```
+
+`cnd.table(body, kind: ...)` records the table's `kind` for the emitter:
+`"data"` (each row a record) or `"content"` (cells to read), the CND's
+`table.kind` (spec §6.3).
 
 `cnd.decorative(body)` marks content as purely decorative — a logo, an
 ornament, an icon — so no producer emits it (spec §2, "Decorative
