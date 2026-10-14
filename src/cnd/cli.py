@@ -182,7 +182,7 @@ def _load(path: Path) -> tuple[Cnd | None, str | None]:
     the same event: this file did not yield a CND.
     """
     try:
-        return Cnd.model_validate_json(path.read_text()), None
+        return Cnd.model_validate_json(path.read_text(encoding="utf-8")), None
     except OSError as err:
         return None, f"cannot read: {err.strerror or err}"
     except ValidationError as err:
@@ -201,7 +201,7 @@ def _load_declaration(path: Path) -> tuple[Declaration | None, str | None]:
     (ADR 0005's ``[display]`` precedent).
     """
     try:
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
     except OSError as err:
         return None, f"cannot read: {err.strerror or err}"
 
@@ -317,7 +317,7 @@ def _run_build(args: argparse.Namespace) -> int:
 
     payload = cnd.to_json(indent=2)
     if args.output is not None:
-        args.output.write_text(payload + "\n")
+        args.output.write_text(payload + "\n", encoding="utf-8")
     else:
         print(payload)
     return EXIT_OK

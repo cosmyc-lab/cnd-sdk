@@ -224,8 +224,8 @@ def main() -> None:
         old = Cnd.model_validate({"id": uid(case, 900), **old_doc})
         new = Cnd.model_validate({"id": uid(case, 901), **new_doc})
         # The SDK's own writer: default-valued fields omitted.
-        (case_dir / "old.cnd").write_text(old.to_json() + "\n")
-        (case_dir / "new.cnd").write_text(new.to_json() + "\n")
+        (case_dir / "old.cnd").write_text(old.to_json() + "\n", encoding="utf-8")
+        (case_dir / "new.cnd").write_text(new.to_json() + "\n", encoding="utf-8")
 
         report = diff(old, new)
         vectors["cases"][name] = {
@@ -246,7 +246,7 @@ def main() -> None:
         }
 
     (FIXTURES.parent / "matching.json").write_text(
-        json.dumps(vectors, indent=2) + "\n"
+        json.dumps(vectors, indent=2) + "\n", encoding="utf-8"
     )
     print(f"wrote {len(CASES)} pairs + matching.json")
 
