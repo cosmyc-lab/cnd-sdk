@@ -1216,7 +1216,11 @@ is an SDK surface, recorded here so the two are not confused, and it stays
 non-normative until it has proven itself; any promotion is a separate ADR.
 Its schema is `schema/cnd-declaration.schema.json`, generated from the
 same models as the CND schema (docs/adr/0004), and it carries its own
-`declaration_version`, versioned independently of `cnd_version`.
+`declaration_version`, versioned independently of `cnd_version`. The
+reference builder accepts declaration version `"0.2.0"` only: an older
+declaration, such as a `"0.1.0"` one, is refused with a version error that
+names the version found and the one supported, before its shape is
+checked.
 
 A declaration is **the CND minus everything the builder derives**, the
 same derived-not-serialized rule (§2) applied to the production side: a
@@ -1250,8 +1254,8 @@ Because the declaration is authored by hand, an **unknown field is
 rejected rather than dropped** — a `capton` typed for `caption` raises
 instead of vanishing, so the mistake surfaces exactly where it is meant
 to be corrected. (This strictness reaches the declaration's own models:
-nodes, list items, term items, cells, footnotes, `numbering` and the top
-level. A stray key inside a value object it shares with the CND — a
+nodes, list items, term items, cells, footnotes, bibliography entries,
+`numbering` and the top level. A stray key inside a value object it shares with the CND — a
 `RichText`, a mark, a link edge, the document metadata — is not caught.)
 
 **Hyperlinks.** The full object form of a text is the CND's own
