@@ -28,6 +28,18 @@ __all__ = ["MarkdownConverter", "format_bib_entry", "markdown_label"]
 _LABEL_SAFE_PUNCTUATION = frozenset("-._:")
 
 
+def _fold_stable(ch: str) -> bool:
+    """Whether every way a reader compares labels leaves ``ch`` itself.
+
+    CommonMark says "Unicode case fold" (Python ``casefold``); markdown-it
+    and other JavaScript readers lower then upper. A character kept by
+    ``markdown_label`` must be a fixed point of both, and its upper-case
+    form must lower back to it, so two kept characters never meet: this
+    is what sends dotless ``ı`` (which uppercases to ``I``) to an escape.
+    """
+    return ch.casefold() == ch and ch.lower() == ch and ch.upper().lower() == ch
+
+
 def markdown_label(label: str) -> str:
     """``label`` as the converter writes it in Markdown: letters, digits
     (any script) and ``-._:`` as they are when case folding leaves them
@@ -37,16 +49,16 @@ def markdown_label(label: str) -> str:
     A label is free text (spec §4), but a GFM footnote label stops at a
     space or a ``]`` and a bracketed marker must not turn into a link or
     HTML. The mapping is injective — ``urllib.parse.unquote`` undoes it —
-    and it stays injective under Unicode case folding, which is how
-    CommonMark and GFM compare labels: an upper-case letter, ``ß``, a
-    final sigma or a ligature is encoded, so ``Fn`` and ``fn`` never
-    fold to one label (only the hex digits of an escape fold, and they
-    decode the same either way). A footnote marker and its definition,
+    and it stays injective under the case-insensitive comparison
+    CommonMark, GFM and markdown-it apply to labels: an upper-case
+    letter, ``ß``, a final sigma, a ligature or a dotless ``ı`` is
+    encoded, so ``Fn`` and ``fn`` never meet (only the hex digits of an
+    escape change case, and they decode the same either way). A footnote marker and its definition,
     written through this one function, still match.
     """
     return "".join(
         ch
-        if (ch.isalnum() or ch in _LABEL_SAFE_PUNCTUATION) and ch.casefold() == ch
+        if (ch.isalnum() or ch in _LABEL_SAFE_PUNCTUATION) and _fold_stable(ch)
         else "".join(f"%{byte:02X}" for byte in ch.encode("utf-8", "surrogatepass"))
         for ch in label
     )

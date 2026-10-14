@@ -123,6 +123,24 @@ class TestMarkdownLabels:
             mapped = markdown_label(label)
             assert unquote(mapped.casefold()) == unquote(mapped) == label
 
+    def test_no_two_characters_meet_under_any_label_normalization(self) -> None:
+        """Every code point of the Basic Multilingual Plane, as a one-character
+        label, stays distinct under Python case folding and under
+        markdown-it's ``normalizeReference`` (lower then upper), which is
+        how a JavaScript-based reader compares labels. Dotless ``ı`` and
+        ``i`` meet under the second one only."""
+        from markdown_it.common.utils import normalizeReference
+
+        chars = [chr(cp) for cp in range(0x10000) if not 0xD800 <= cp <= 0xDFFF]
+        mapped = [markdown_label(ch) for ch in chars]
+        assert len({m.casefold() for m in mapped}) == len(chars)
+        assert len({normalizeReference(m) for m in mapped}) == len(chars)
+
+    def test_dotless_i_stays_apart_from_i(self) -> None:
+        from markdown_it.common.utils import normalizeReference
+
+        assert normalizeReference(markdown_label("\u0131")) != normalizeReference(markdown_label("i"))
+
     def test_case_variants_resolve_to_their_own_footnote(self) -> None:
         """Footnotes ``Fn`` and ``fn`` keep separate definitions under a
         case-insensitive reader: no two definition labels fold alike."""
