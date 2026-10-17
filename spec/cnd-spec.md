@@ -179,6 +179,8 @@ such as a title page reading "Status: Approved, Version 1.2". They have
 no relation to `cnd_version`, and they do not give a CND a version
 history of its own (§11): they are authored values, not a build lineage.
 
+A Typst producer reads them from the authoring package (ADR 0030).
+
 The keys of `extra` are an open vocabulary (§6.0) of which this
 specification defines none; a consumer may use or ignore them. **An
 `extra` key MUST NOT repeat the name of a `DocMetadata` field** — `extra`
@@ -676,6 +678,7 @@ A code block, verbatim. Inline code is a `code` mark (§4.1). `lang` is
 the programming language, an open vocabulary (§6.0). `title` is the
 label an author attaches to a listing, typically a file name
 (`"main.py"`) — a plain string, because it is metadata, not prose.
+A Typst producer reads it from the authoring package (ADR 0030).
 
 ### 6.6 `math`
 
@@ -804,6 +807,8 @@ widely used Markdown alert syntax: `note`, `tip`, `important`,
 document's language, or null. **Fallback for an unknown kind:** a
 generic callout — a quote block headed by the title, or by the kind
 when there is no title.
+
+A Typst producer reads them from the authoring package (ADR 0030).
 
 ### 6.12 `layout`
 

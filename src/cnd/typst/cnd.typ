@@ -48,3 +48,69 @@
 // Never wrap content that carries meaning: a chart or a diagram goes in a
 // `figure` with a caption that says what it shows.
 #let decorative(body) = pdf.artifact(body)
+
+
+// Declares the document-level metadata a title page prints, as the author
+// wrote it: `status` ("Approved") and `version` ("1.2"), plus any other
+// title-page pair in `extra`. The marker is a labelled `metadata` element,
+// found with `query(<cnd-document>)`; it renders nothing. The title,
+// authors, date, keywords, description and language come from Typst's own
+// `set document(..)` and `set text(lang: ..)`, so `extra` may not repeat
+// one of them, nor `status`, `version` or `extra` (spec §3). Every `extra`
+// value is a string. (ADR 0030.)
+#let document(status: none, version: none, extra: (:)) = {
+  let reserved = (
+    "title", "authors", "date", "keywords", "description", "lang",
+    "status", "version", "extra",
+  )
+  for (key, value) in extra {
+    assert(type(value) == str, message: "cnd.document: extra." + key + " must be a string")
+    assert(
+      key not in reserved,
+      message: "cnd.document: extra may not use the reserved key `" + key + "`",
+    )
+  }
+  [#std.metadata((status: status, version: version, extra: extra)) <cnd-document>]
+}
+
+// A callout, such as a note or a warning. `kind` is an open vocabulary; the
+// known values are `note`, `tip`, `important`, `warning` and `caution`
+// (spec §6.11). Two labelled markers bracket the body, `<cnd-admonition>`
+// before (carrying `kind` and `title`) and `<cnd-admonition-end>` after, so
+// an emitter reads the content between them as the admonition's children.
+// The title, when given, is the block's first child under
+// `<cnd-admonition-title>`. (ADR 0030.)
+#let admonition(body, kind: "note", title: none) = {
+  [#std.metadata((kind: kind, title: title)) <cnd-admonition>]
+  block(
+    width: 100%,
+    inset: (left: 1em, y: 0.6em),
+    stroke: (left: 2pt + luma(150)),
+    {
+      if title != none {
+        [#block(strong(title)) <cnd-admonition-title>]
+      }
+      body
+    },
+  )
+  [#std.metadata(none) <cnd-admonition-end>]
+}
+
+// Wraps already-built content (typically a `raw(..)` block) and brackets it
+// with the listing's title in the cnd.metadata state under the dedicated
+// key `code-title`, which an emitter writes as `code.title` (spec §6.5).
+// Same pattern as `table`: set before the content, removed after, and the
+// content is passed in so its span stays at the document's call site
+// (ADR 0023). (ADR 0030.)
+#let code(body, title: none) = {
+  if title == none {
+    return body
+  }
+  metadata.update(it => it + ("code-title": title))
+  body
+  metadata.update(it => {
+    let d = it
+    let _ = d.remove("code-title", default: none)
+    d
+  })
+}
