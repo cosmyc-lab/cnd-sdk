@@ -161,8 +161,9 @@ def test_document_marker_is_queryable(tmp_path: Path) -> None:
     ["(title: \"x\")", "(extra: \"x\")", "(version: \"x\")", "(n: 1)"],
 )
 def test_document_rejects_bad_extra(tmp_path: Path, extra: str) -> None:
-    with pytest.raises(subprocess.CalledProcessError):
+    with pytest.raises(subprocess.CalledProcessError) as excinfo:
         _query(tmp_path, f"#cnd.document(extra: {extra})\n", "<cnd-document>")
+    assert "cnd.document: extra" in excinfo.value.stderr, excinfo.value.stderr
 
 
 @needs_typst
