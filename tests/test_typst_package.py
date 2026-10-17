@@ -25,6 +25,29 @@ def test_decorative_helper_is_pdf_artifact() -> None:
     assert "#let decorative(body) = pdf.artifact(body)" in text
 
 
+def test_document_helper_emits_labelled_metadata() -> None:
+    text = (files("cnd") / "typst" / "cnd.typ").read_text(encoding="utf-8")
+    assert "#let document(status: none, version: none, extra: (:))" in text
+    assert "std.metadata((status: status, version: version, extra: extra))" in text
+    assert "<cnd-document>" in text
+
+
+def test_admonition_helper_brackets_its_body() -> None:
+    text = (files("cnd") / "typst" / "cnd.typ").read_text(encoding="utf-8")
+    assert '#let admonition(body, kind: "note", title: none)' in text
+    assert "std.metadata((kind: kind, title: title))" in text
+    assert "<cnd-admonition>" in text
+    assert "<cnd-admonition-title>" in text
+    assert "<cnd-admonition-end>" in text
+
+
+def test_code_title_is_stored_as_code_title() -> None:
+    text = (files("cnd") / "typst" / "cnd.typ").read_text(encoding="utf-8")
+    assert "#let code(body, title: none)" in text
+    assert '("code-title": title)' in text
+    assert 'remove("code-title"' in text
+
+
 # -- compiled behaviour -------------------------------------------------
 #
 # These compile a document against the package with the `typst` binary and
@@ -103,3 +126,70 @@ def test_a_document_level_kind_survives_hinted_tables(tmp_path: Path) -> None:
         "kind": "report", "revision": "1", "table-kind": "content"
     }
     assert states["after"] == {"kind": "report", "revision": "1"}
+
+
+def _query(tmp_path: Path, body: str, selector: str) -> list:
+    package = (files("cnd") / "typst" / "cnd.typ").read_text(encoding="utf-8")
+    (tmp_path / "cnd.typ").write_text(package, encoding="utf-8")
+    doc = tmp_path / "doc.typ"
+    doc.write_text('#import "/cnd.typ"\n' + body, encoding="utf-8")
+    result = subprocess.run(
+        ["typst", "query", "--root", str(tmp_path), str(doc), selector],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return json.loads(result.stdout)
+
+
+@needs_typst
+def test_document_marker_is_queryable(tmp_path: Path) -> None:
+    items = _query(
+        tmp_path,
+        '#cnd.document(status: "Approved", version: "1.2", extra: (client: "ACME"))\n',
+        "<cnd-document>",
+    )
+    assert len(items) == 1
+    assert items[0]["value"] == {
+        "status": "Approved", "version": "1.2", "extra": {"client": "ACME"}
+    }
+
+
+@needs_typst
+@pytest.mark.parametrize(
+    "extra",
+    ["(title: \"x\")", "(extra: \"x\")", "(version: \"x\")", "(n: 1)"],
+)
+def test_document_rejects_bad_extra(tmp_path: Path, extra: str) -> None:
+    with pytest.raises(subprocess.CalledProcessError):
+        _query(tmp_path, f"#cnd.document(extra: {extra})\n", "<cnd-document>")
+
+
+@needs_typst
+def test_admonition_brackets_its_body(tmp_path: Path) -> None:
+    body = '#cnd.admonition(kind: "warning", title: "Careful")[Mind the gap.]\n'
+    start = _query(tmp_path, body, "<cnd-admonition>")
+    end = _query(tmp_path, body, "<cnd-admonition-end>")
+    title = _query(tmp_path, body, "<cnd-admonition-title>")
+    assert len(start) == 1 and len(end) == 1 and len(title) == 1
+    assert start[0]["value"] == {"kind": "warning", "title": "Careful"}
+
+
+@needs_typst
+def test_admonition_without_title_has_no_title_element(tmp_path: Path) -> None:
+    body = "#cnd.admonition[Plain.]\n"
+    start = _query(tmp_path, body, "<cnd-admonition>")
+    assert start[0]["value"] == {"kind": "note", "title": None}
+    assert _query(tmp_path, body, "<cnd-admonition-title>") == []
+    assert len(_query(tmp_path, body, "<cnd-admonition-end>")) == 1
+
+
+@needs_typst
+def test_code_title_bracket_is_removed_after(tmp_path: Path) -> None:
+    states = _compile(
+        tmp_path,
+        '#cnd.code([#raw("x = 1") ' + _probe("inside") + '], title: "main.py")\n'
+        + _probe("after") + "\n",
+    )
+    assert states["inside"] == {"code-title": "main.py"}
+    assert states["after"] == {}
