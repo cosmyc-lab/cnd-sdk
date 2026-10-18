@@ -9,6 +9,8 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-18
+
 The SDK implements CND **format 0.5.0** (docs/proposals/0013). This is a
 **breaking** format change: a `"0.4.0"` CND does not parse as `"0.5.0"`, and
 **every content hash changes** (spec §10, docs/adr/0028). No 0.4 → 0.5
