@@ -14,6 +14,13 @@ The SDK implements CND **format 0.5.0** (docs/proposals/0013). This is a
 **every content hash changes** (spec §10, docs/adr/0028). No 0.4 → 0.5
 upgrader is shipped (spec §11): producers move by emitting 0.5.
 
+### Added
+
+- **Typst authoring helpers** (docs/adr/0030, extending docs/adr/0023):
+  `cnd.document(status:, version:, extra:)` for the document's printed
+  status, version and title-page pairs, `cnd.admonition(body, kind:, title:)`
+  for callouts, and `cnd.code(body, title:)` for a listing's title.
+
 ### Changed
 
 - **Rich text with marks**: prose is a `RichText` with standoff marks

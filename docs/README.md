@@ -30,13 +30,14 @@ conventions.
 | [0020](adr/0020-repository-as-conformance-hub.md) | The repository is a conformance hub; the hub ships a conformance CLI | accepted |
 | [0021](adr/0021-artifact-naming-and-file-identity.md) | Artifact naming and file identity — the CND and the declaration | accepted |
 | [0022](adr/0022-rust-succession-plan.md) | Rust succession plan — Python is the reference until the format freezes | proposed |
-| [0023](adr/0023-pure-typst-authoring-package.md) | Pure-Typst authoring package for CND metadata | accepted |
+| [0023](adr/0023-pure-typst-authoring-package.md) | Pure-Typst authoring package for CND metadata | accepted, extended by 0030 |
 | [0024](adr/0024-hyperlinks-as-a-node-family.md) | Hyperlinks are a fourth forward family, href-keyed and outside label resolution | accepted |
 | [0025](adr/0025-inline-edges-belong-to-rich-text.md) | Inline edges belong to rich text, not to the node | accepted |
 | [0026](adr/0026-open-vocabularies.md) | Open vocabularies — known values, free values, a fallback per field | accepted |
 | [0027](adr/0027-no-compatibility-guarantee-before-1-0.md) | No compatibility guarantee before format 1.0.0 | accepted |
 | [0028](adr/0028-content-hashing-0-5.md) | Content hashing, 0.5 amendments — defaults dropped, nested nodes excluded, paths in the document hash | accepted |
 | [0029](adr/0029-matching-v2.md) | Matching v2 — the full walk, spec §8 paths and container keys | accepted, extends 0018 |
+| [0030](adr/0030-typst-authoring-markers.md) | Typst authoring markers — labelled metadata and a code-title state key | accepted, extends 0023 |
 
 ## Proposals (docs/proposals/)
 
