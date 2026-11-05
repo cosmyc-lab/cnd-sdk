@@ -103,8 +103,8 @@ Relevés bruts
 
 # 2 Références
 
-Grille brute en annexe. Les travaux antérieurs couvrent la méthode, l'auteur, l'année et une citation muette.
-[grid-layout] [^fn-proto] [https://example.org/appendix/grid-raw](https://example.org/appendix/grid-raw) [@nguyen2023] @durand2025 @nguyen2023
+Grille brute en [annexe](https://example.org/appendix/grid-raw). Les travaux antérieurs couvrent la méthode, l'auteur, l'année et une citation muette.
+[grid-layout] [^fn-proto] [@nguyen2023] @durand2025 @nguyen2023
 
 ## Footnotes
 

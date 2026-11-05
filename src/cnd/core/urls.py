@@ -7,14 +7,21 @@ renderer asks the same question here.
 """
 
 import re
+from collections.abc import Iterable
 
-__all__ = ["is_safe_image_source", "is_safe_url"]
+__all__ = ["allowed_link_schemes", "is_safe_image_source", "is_safe_url"]
 
 SAFE_SCHEMES = frozenset({"http", "https", "mailto"})
 """Schemes a renderer may link to; a URL without a scheme is relative."""
 
+NEVER_LINKED_SCHEMES = frozenset({"javascript", "vbscript", "data"})
+"""Schemes that run code or embed a document: no caller may allow them
+(``allowed_link_schemes``), and ``is_safe_url`` refuses them even when
+they are passed."""
+
 _SCHEME = re.compile(r"([A-Za-z][A-Za-z0-9+.\-]*):")
-_LEADING = re.compile(r"^[\s\x00-\x20\ufeff]+")
+_SCHEME_NAME = re.compile(r"[a-z][a-z0-9+.\-]*")
+_LEADING = re.compile(r"^[\s\x00-\x20﻿]+")
 _TAB_OR_NEWLINE = re.compile(r"[\t\n\r]")
 
 
@@ -34,11 +41,38 @@ def url_scheme(url: str) -> str | None:
     return match.group(1).lower() if match else None
 
 
-def is_safe_url(url: str) -> bool:
+def allowed_link_schemes(schemes: Iterable[str]) -> frozenset[str]:
+    """The extra schemes a caller allows a renderer to link to, checked.
+
+    A consumer that resolves an application scheme of its own allows it
+    here (spec §8, "URL rule"). Schemes match in any case, so names are
+    lower-cased. A name that is not a scheme (RFC 3986: a letter, then
+    letters, digits, ``+``, ``-`` or ``.``), or one of
+    ``NEVER_LINKED_SCHEMES``, raises ``ValueError``; a bare string, which
+    would be read one character at a time, raises ``TypeError``."""
+    if isinstance(schemes, str):
+        raise TypeError("allowed_link_schemes takes a collection of scheme names, not one string")
+    allowed: set[str] = set()
+    for scheme in schemes:
+        name = scheme.lower() if isinstance(scheme, str) else None
+        if name is None or not _SCHEME_NAME.fullmatch(name):
+            raise ValueError(f"not a URL scheme name: {scheme!r}")
+        if name in NEVER_LINKED_SCHEMES:
+            raise ValueError(f"the {name!r} scheme can never become a link")
+        allowed.add(name)
+    return frozenset(allowed)
+
+
+def is_safe_url(url: str, extra_schemes: frozenset[str] = frozenset()) -> bool:
     """Whether ``url`` may become a link target: its scheme is ``http``,
-    ``https`` or ``mailto`` (any case), or it has no scheme at all."""
+    ``https`` or ``mailto`` (any case), or one of ``extra_schemes`` (the
+    result of ``allowed_link_schemes``), or it has no scheme at all. A
+    scheme of ``NEVER_LINKED_SCHEMES`` is refused whatever the caller
+    passes."""
     scheme = url_scheme(url)
-    return scheme is None or scheme in SAFE_SCHEMES
+    if scheme is None or scheme in SAFE_SCHEMES:
+        return True
+    return scheme in extra_schemes and scheme not in NEVER_LINKED_SCHEMES
 
 
 def is_safe_image_source(path: str) -> bool:

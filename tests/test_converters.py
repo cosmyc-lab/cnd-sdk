@@ -205,15 +205,14 @@ def test_resolved_marker_label_is_none_for_a_links_marker() -> None:
 
 def test_silent_citation_emits_no_marker() -> None:
     text = MarkdownConverter().convert(load("full_coverage")).text
-    line = next(line for line in text.splitlines() if line.startswith("[grid-layout]"))
+    lines = text.splitlines()
+    index = next(i for i, line in enumerate(lines) if line.startswith("[grid-layout]"))
     # spans: refs[0,11], footnotes[7,12], links[16,22], cites[24,42],
     # cites[58,67], cites[69,77]; the fourth cites edge is form="none"
-    # (no marker) and the links edge sorts between footnotes and cites.
-    assert line == (
-        "[grid-layout] [^fn-proto] "
-        "[https://example.org/appendix/grid-raw](https://example.org/appendix/grid-raw) "
-        "[@nguyen2023] @durand2025 @nguyen2023"
-    )
+    # (no marker), and the links edge is written over its words in the
+    # paragraph (docs/adr/0031), so the marker line does not repeat it.
+    assert lines[index] == "[grid-layout] [^fn-proto] [@nguyen2023] @durand2025 @nguyen2023"
+    assert "[annexe](https://example.org/appendix/grid-raw)" in lines[index - 1]
 
 
 def test_html_markers_are_links_to_pool_anchors() -> None:

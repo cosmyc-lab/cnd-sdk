@@ -10,6 +10,7 @@ is a plain ``NodeRenderer`` any caller may still use directly.
 """
 
 import re
+from collections.abc import Iterable
 from html import escape
 
 from cnd.core.cnd import Cnd
@@ -34,7 +35,7 @@ from cnd.core.nodes import (
 )
 from cnd.core.render import NodeRenderer, expand_headings, holds_several_blocks
 from cnd.core.text import Edge, LinkRef, RichText
-from cnd.core.urls import is_safe_image_source, is_safe_url
+from cnd.core.urls import allowed_link_schemes, is_safe_image_source, is_safe_url
 
 from cnd.converters.base import (
     CndConverter,
@@ -67,14 +68,6 @@ pre { overflow-x: auto; padding: .75rem; }
 .cnd-unresolved { text-decoration: underline wavy; }
 .cnd-missing-image { font-style: italic; opacity: .7; }
 """
-
-
-def _link_wrap(edge: Edge) -> tuple[str, str] | None:
-    """The ``<a>`` around the text a ``links`` edge spans; ``None`` for
-    the other families, and for an href that is not safe to link to."""
-    if not isinstance(edge, LinkRef) or not is_safe_url(edge.href):
-        return None
-    return f'<a class="cnd-link" href="{escape(edge.href, quote=True)}">', "</a>"
 
 
 _RESERVED_META = frozenset(
@@ -116,14 +109,24 @@ class HtmlNodeRenderer(NodeRenderer):
     never nest: of two links whose spans overlap, the outer or first
     one wins. ``inline_links`` says which links a text renders inline.
     ``links=False`` leaves every text plain, for a caller that renders
-    links elsewhere.
+    links elsewhere. ``link_schemes`` adds schemes to the URL rule
+    (``cnd.core.urls.allowed_link_schemes``), for a consumer that resolves
+    an application scheme of its own.
     """
 
-    def __init__(self, *, links: bool = True) -> None:
+    def __init__(self, *, links: bool = True, link_schemes: Iterable[str] = ()) -> None:
         self.links = links
+        self.link_schemes = allowed_link_schemes(link_schemes)
 
     def render_text(self, text: RichText) -> str:
-        return render_inline(text, "html", edge_wrap=_link_wrap if self.links else None)
+        return render_inline(text, "html", edge_wrap=self._link_wrap if self.links else None)
+
+    def _link_wrap(self, edge: Edge) -> tuple[str, str] | None:
+        """The ``<a>`` around the text a ``links`` edge spans; ``None`` for
+        the other families, and for an href the URL rule refuses."""
+        if not isinstance(edge, LinkRef) or not is_safe_url(edge.href, self.link_schemes):
+            return None
+        return f'<a class="cnd-link" href="{escape(edge.href, quote=True)}">', "</a>"
 
     def inline_links(self, text: RichText) -> list[LinkRef]:
         """The links ``render_text`` turns into anchors in ``text``. A
@@ -132,7 +135,7 @@ class HtmlNodeRenderer(NodeRenderer):
         not in the list, so a caller can render it elsewhere."""
         if not self.links:
             return []
-        return [edge for edge in wrapped_edges(text, _link_wrap) if isinstance(edge, LinkRef)]
+        return [edge for edge in wrapped_edges(text, self._link_wrap) if isinstance(edge, LinkRef)]
 
     def _blocks(self, nodes: list[CndNode]) -> str:
         return "".join(self.render(node) for node in expand_headings(nodes))
@@ -441,8 +444,9 @@ class HtmlConverter(CndConverter):
 
     def _markers(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
         inline = self._inline_link_ids(node)
+        schemes = getattr(self.renderer, "link_schemes", frozenset())
         rendered = [
-            self._marker(marker, (marker.text_index, id(marker.link)) in inline)
+            self._marker(marker, (marker.text_index, id(marker.link)) in inline, schemes)
             for marker in resolve_markers(cnd, node, warnings)
         ]
         parts = [part for part in rendered if part]
@@ -466,12 +470,14 @@ class HtmlConverter(CndConverter):
         }
 
     @staticmethod
-    def _marker(marker: ResolvedMarker, inline: bool = False) -> str:
+    def _marker(
+        marker: ResolvedMarker, inline: bool = False, schemes: frozenset[str] = frozenset()
+    ) -> str:
         if marker.family == "links":
             href = marker.link.href
             if inline:
                 return ""  # the renderer links the spanned text itself
-            if not is_safe_url(href):
+            if not is_safe_url(href, schemes):
                 return escape(href)
             return f'<a class="cnd-link" href="{escape(href, quote=True)}">{escape(href)}</a>'
         label = escape(marker.label)

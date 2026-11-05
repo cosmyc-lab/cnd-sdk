@@ -873,11 +873,13 @@ renders what it supports and leaves the text of anything else unchanged.
   order, row by row. A `math` block renders as a fenced block with the
   info string `math`, holding its source when that source is LaTeX and
   its `text` otherwise. `doc.status`, `doc.version` and `doc.extra`
-  render wherever the other document metadata does. A `links` edge
-  renders as a marker after its block, `[href](href)`, its text and
-  destination escaped so that the destination parses back to the href;
-  an href that fails the URL rule below is written as escaped plain
-  text, never as a link.
+  render wherever the other document metadata does. A `links` edge with
+  a `text_span` makes the text it spans a link, `[text](href)`, under
+  the same rules as the HTML anchor below (docs/adr/0031). Every link
+  that does not render inline goes to the marker line after its block,
+  `[href](href)`, its text and destination escaped so that the
+  destination parses back to the href. An href that fails the URL rule
+  below is written as escaped plain text, never as a link.
 - **HTML.** Marks map to `<strong>`, `<em>`, `<code>`, `<s>`, `<sup>`,
   `<sub>`, `<u>`, `<mark>`; a `math` mark keeps its source in a
   `<code class="math">` element. An `admonition` maps to an `<aside>`
@@ -895,7 +897,9 @@ renders what it supports and leaves the text of anything else unchanged.
   (a relative path, a fragment). The scheme is read as leniently as any
   reader of the output reads it: leading controls and leading Unicode
   whitespace ignored (a browser strips the first, a Markdown parser the
-  second), tabs and newlines removed anywhere. Anything else
+  second), tabs and newlines removed anywhere. A caller may allow
+  further schemes that it resolves itself (an application scheme), never
+  `javascript`, `vbscript` or `data`. Anything else
   stays plain text: the spanned text without an anchor, the href as
   text in the marker line.
 - **Plain text** drops all marks; a `math` mark renders its `value`.

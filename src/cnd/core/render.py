@@ -19,13 +19,14 @@ This module is part of the zero-dependency core — it must not import
 
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 
 try:  # Python >= 3.11
     from typing import assert_never
 except ImportError:  # pragma: no cover — Python 3.10, via pydantic's typing-extensions
     from typing_extensions import assert_never
 
-from cnd.core.inline import concat_texts, render_inline, with_whole_mark
+from cnd.core.inline import concat_texts, render_inline, with_whole_mark, wrapped_edges
 from cnd.core.markdown_escape import escape_block, escape_destination, escape_inline
 from cnd.core.node_text import (
     NodeTextMode,
@@ -58,8 +59,8 @@ from cnd.core.nodes import (
     TableNode,
     TermsNode,
 )
-from cnd.core.text import RichText
-from cnd.core.urls import is_safe_image_source
+from cnd.core.text import Edge, LinkRef, RichText
+from cnd.core.urls import allowed_link_schemes, is_safe_image_source, is_safe_url
 
 __all__ = ["MarkdownRenderer", "NodeRenderer", "expand_headings", "holds_several_blocks"]
 
@@ -284,6 +285,21 @@ class MarkdownRenderer(NodeRenderer):
     consumers (chunk text, embeddings) must not receive backslashes, and
     heading numbers would change their text. ``MarkdownConverter`` turns
     both on.
+
+    ``links`` (off by default, for the same consumers) writes a ``links``
+    edge with a ``text_span`` as a Markdown link over the text it spans,
+    ``[text](href)``, when its href passes the URL rule
+    (``cnd.core.urls.is_safe_url``); ``link_schemes`` adds schemes to that
+    rule (``cnd.core.urls.allowed_link_schemes``). Links never nest: of two links
+    whose spans overlap, the outer or first one wins, as in HTML. A link
+    left out (no usable span, inside a ``code`` or ``math`` atom, losing
+    to an overlapping link, a refused href, a text a placeholder holds,
+    a caption composed with its counter, a table whose cells hold blocks)
+    is written as plain text. ``links`` needs ``escape``: unescaped text
+    could close the link early or open another one.
+    ``written_links`` lists the links the last ``render`` call wrote, so
+    a converter can put every other link on the marker line.
+    ``MarkdownConverter`` turns ``links`` on.
     """
 
     def __init__(
@@ -294,15 +310,64 @@ class MarkdownRenderer(NodeRenderer):
         escape: bool = False,
         heading_numbers: bool = False,
         text_only: bool = False,
+        links: bool = False,
+        link_schemes: Iterable[str] = (),
     ) -> None:
         self.tables = tables
         self.figures = figures
         self.escape = escape
         self.heading_numbers = heading_numbers
         self.text_only = text_only
+        if links and not escape:
+            # Unescaped text could close the link early or open another.
+            raise ValueError("links=True needs escape=True")
+        self.links = links
+        self.link_schemes = allowed_link_schemes(link_schemes)
+        self._depth = 0
+        self._inline: list[LinkRef] = []
+
+    def render(self, node: CndNode) -> str:
+        """Dispatch ``node``; the outermost call starts a new record of
+        the links written inline (``written_links``)."""
+        if self._depth == 0:
+            self._inline = []
+        self._depth += 1
+        try:
+            return super().render(node)
+        finally:
+            self._depth -= 1
+
+    def written_links(self) -> list[LinkRef]:
+        """The links the last outermost ``render`` call wrote inline, in
+        the order it wrote them; a link it wrote twice is listed twice.
+        Every other link of the node is the caller's to place."""
+        return list(self._inline)
 
     def render_text(self, text: RichText) -> str:
-        return render_inline(text, "markdown", escape=self.escape, text_only=self.text_only)
+        if not self.links:
+            return render_inline(text, "markdown", escape=self.escape, text_only=self.text_only)
+        rendered = render_inline(
+            text,
+            "markdown",
+            escape=self.escape,
+            text_only=self.text_only,
+            edge_wrap=self._link_wrap,
+        )
+        self._inline.extend(
+            edge
+            for edge in wrapped_edges(text, self._link_wrap, "markdown", text_only=self.text_only)
+            if isinstance(edge, LinkRef)
+        )
+        return rendered
+
+    def _link_wrap(self, edge: Edge) -> tuple[str, str] | None:
+        """``[`` and ``](href)`` around the text a ``links`` edge spans;
+        ``None`` for the other families and for a refused href. The
+        destination is escaped so that it parses back to the href and
+        stays on its line."""
+        if not isinstance(edge, LinkRef) or not is_safe_url(edge.href, self.link_schemes):
+            return None
+        return "[", f"]({escape_destination(edge.href)})"
 
     def _plain(self, text: str) -> str:
         """A plain string (a kind, a title, a column header) as Markdown."""
@@ -313,9 +378,14 @@ class MarkdownRenderer(NodeRenderer):
         ``escape`` so that it cannot become a link, an image or HTML."""
         return escape_inline(value) if self.escape else value
 
+    def _rendered(self, nodes: list[CndNode]) -> list[tuple[CndNode, str]]:
+        """Each block of ``nodes`` that renders to something, rendered
+        once (a second render would record its links twice)."""
+        pairs = [(node, self.render(node).strip("\n")) for node in expand_headings(nodes)]
+        return [(node, block) for node, block in pairs if block]
+
     def _blocks(self, nodes: list[CndNode], separator: str = "\n\n") -> str:
-        rendered = (self.render(node).strip("\n") for node in expand_headings(nodes))
-        return separator.join(block for block in rendered if block)
+        return separator.join(block for _, block in self._rendered(nodes))
 
     def _prefixed_blocks(self, nodes: list[CndNode], prefix: str, separator: str = "\n\n") -> str:
         """``nodes`` rendered as blocks behind an inline ``prefix`` (a
@@ -327,15 +397,13 @@ class MarkdownRenderer(NodeRenderer):
         of its own and the blocks start on the next one; the caller indents
         that line to the content column like the others.
         """
-        content = self._blocks(nodes, separator)
-        if not content:
+        rendered = self._rendered(nodes)
+        if not rendered:
             return ""
+        content = separator.join(block for _, block in rendered)
         if not prefix:
             return content
-        first = next(
-            (node for node in expand_headings(nodes) if self.render(node).strip("\n")), None
-        )
-        if isinstance(first, (ParagraphNode, ImageNode)):
+        if isinstance(rendered[0][0], (ParagraphNode, ImageNode)):
             return f"{prefix}{content}"
         return f"{prefix.rstrip()}\n{content}"
 
@@ -481,7 +549,8 @@ class MarkdownRenderer(NodeRenderer):
         """
         from cnd.converters.html import HtmlNodeRenderer
 
-        # The converter already appends every link to the marker line.
+        # No link is written inside the HTML block, and none is recorded:
+        # a converter puts every link of the table on its marker line.
         return HtmlNodeRenderer(links=False).render_table(node).replace("\n", "&#10;")
 
     def _linear_rows(self, node: TableNode) -> str:

@@ -9,6 +9,34 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-05
+
+The CND format stays **0.5.0**: no model, schema or hash changes. The default
+Markdown conversion changes for every document with a spanned link.
+
+### Added
+
+- `link_schemes` on `MarkdownRenderer`, `HtmlNodeRenderer`, `MarkdownConverter`
+  and `MarkdownConverter.default_renderer`, checked by
+  `cnd.core.urls.allowed_link_schemes`. A consumer that resolves an
+  application scheme of its own can let links use it. `javascript`,
+  `vbscript` and `data` are always refused, and `is_safe_url` takes the
+  allowed set as `extra_schemes` (docs/adr/0031).
+- `MarkdownRenderer(links=True)` and `MarkdownRenderer.written_links()`.
+
+### Changed
+
+- **Markdown writes a link where its words are** (docs/adr/0031): a `links`
+  edge with a usable `text_span` becomes `[text](href)` in its sentence, as
+  the HTML converter already writes an anchor. `MarkdownConverter`'s default
+  renderer turns this on. The marker line keeps only the links the renderer
+  could not place:
+  - a link without a span;
+  - a link inside a code or math span;
+  - the inner one of two overlapping links;
+  - a link in a placeholder, in a figure caption composed with its counter,
+    or in a table whose cells hold blocks.
+
 ## [0.9.0] - 2026-10-18
 
 The SDK implements CND **format 0.5.0** (docs/proposals/0013). This is a

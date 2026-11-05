@@ -188,7 +188,9 @@ def _md_links(text: str) -> list[str]:
 
 class TestMarkdownLinkMarker:
     def test_safe_link_marker_is_a_link(self) -> None:
-        node = para(rt("site", links=[LinkRef(href="https://e.com/x", text_span=[0, 4])]))
+        # No span: a spanned link is written over its words instead
+        # (docs/adr/0031, tests/test_markdown_inline_links.py).
+        node = para(rt("site", links=[LinkRef(href="https://e.com/x")]))
         md = MarkdownConverter().convert(_cnd([node])).text
         assert "[https://e.com/x](https://e.com/x)" in md
         assert _md_links(md) == ["https://e.com/x"]

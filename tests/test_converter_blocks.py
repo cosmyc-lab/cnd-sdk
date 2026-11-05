@@ -116,7 +116,9 @@ class TestMarkers:
         assert not self._inside(tokens, "list_item_open", "list_item_close", "[t]")
 
     def test_marker_under_a_table_is_not_a_row(self) -> None:
-        link = LinkRef(href="http://x", text_span=[0, 1])
+        # No span: a spanned link is written in its cell (docs/adr/0031),
+        # and this test needs one on the marker line.
+        link = LinkRef(href="http://x")
         table = TableNode(type="table", id=uuid4(), kind="content", cells=[
             cell(0, 0, "h", is_header=True), cell(1, 0, None, children=[para(rt("c", links=[link]))]),
         ])
