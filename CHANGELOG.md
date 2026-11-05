@@ -22,7 +22,9 @@ Markdown conversion changes for every document with a spanned link.
   application scheme of its own can let links use it. `javascript`,
   `vbscript` and `data` are always refused, and `is_safe_url` takes the
   allowed set as `extra_schemes` (docs/adr/0031).
-- `MarkdownRenderer(links=True)` and `MarkdownRenderer.written_links()`.
+- `MarkdownRenderer(links=True)`, and `cnd.core.render.recording_written_links`:
+  a per-context record of the links a renderer writes inline, which both
+  converters read to place every other link on the marker line.
 
 ### Changed
 
@@ -34,6 +36,7 @@ Markdown conversion changes for every document with a spanned link.
   - a link without a span;
   - a link inside a code or math span;
   - the inner one of two overlapping links;
+  - a link whose words hold a blank line, or any line break in a heading;
   - a link in a placeholder, in a figure caption composed with its counter,
     or in a table whose cells hold blocks.
 

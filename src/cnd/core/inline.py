@@ -340,6 +340,12 @@ class _MarkdownWriter:
                 and previous[0].end == child.start
             )
             rendered, _ = self._piece(child, touches_star)
+            if self.escape and rendered.startswith("[") and _ends_with_bang("".join(out)):
+                # Escaped text writes no bare "[", so this one opens a link,
+                # and "![" would make it an image: the words alt text, the
+                # href an image source.
+                written = "".join(out)
+                out = [f"{written[:-1]}\\!"]
             out.append(rendered)
             previous = (child, rendered)
         return "".join(out)
@@ -399,6 +405,15 @@ class _MarkdownWriter:
         if delimiter.startswith("~") and "~" in (prev, first, last, nxt):
             return False
         return _left_flanking(prev, first) and _right_flanking(last, nxt)
+
+
+def _ends_with_bang(text: str) -> bool:
+    """Whether ``text`` ends in a ``!`` that no backslash escapes (an
+    even run of backslashes before it escapes only themselves)."""
+    if not text.endswith("!"):
+        return False
+    backslashes = len(text[:-1]) - len(text[:-1].rstrip("\\"))
+    return backslashes % 2 == 0
 
 
 def _one_line(text: str) -> str:

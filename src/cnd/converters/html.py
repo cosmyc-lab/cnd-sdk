@@ -10,6 +10,7 @@ is a plain ``NodeRenderer`` any caller may still use directly.
 """
 
 import re
+from collections import Counter
 from collections.abc import Iterable
 from html import escape
 
@@ -33,7 +34,14 @@ from cnd.core.nodes import (
     TableNode,
     TermsNode,
 )
-from cnd.core.render import NodeRenderer, expand_headings, holds_several_blocks
+from cnd.core.render import (
+    NodeRenderer,
+    expand_headings,
+    holds_several_blocks,
+    is_recording_links,
+    note_written_links,
+    recording_written_links,
+)
 from cnd.core.text import Edge, LinkRef, RichText
 from cnd.core.urls import allowed_link_schemes, is_safe_image_source, is_safe_url
 
@@ -119,6 +127,8 @@ class HtmlNodeRenderer(NodeRenderer):
         self.link_schemes = allowed_link_schemes(link_schemes)
 
     def render_text(self, text: RichText) -> str:
+        if self.links and is_recording_links():
+            note_written_links(self.inline_links(text))
         return render_inline(text, "html", edge_wrap=self._link_wrap if self.links else None)
 
     def _link_wrap(self, edge: Edge) -> tuple[str, str] | None:
@@ -436,19 +446,29 @@ class HtmlConverter(CndConverter):
         return [block for block in blocks if block]
 
     def _block(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
-        rendered = self.renderer.render(node)
-        markers = self._markers(cnd, node, warnings)
+        with recording_written_links() as written:
+            rendered = self.renderer.render(node)
+        markers = self._markers(cnd, node, warnings, written)
         if markers:
             rendered = f"{rendered}\n{markers}"
         return rendered
 
-    def _markers(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
+    def _markers(
+        self, cnd: Cnd, node: CndNode, warnings: list[str], written: list[LinkRef]
+    ) -> str:
         inline = self._inline_link_ids(node)
+        # A renderer without ``inline_links`` (a Markdown renderer writing
+        # links) is judged by what it noted while rendering the block.
+        judged_by_record = getattr(self.renderer, "inline_links", None) is None
+        pending = Counter(id(link) for link in written) if judged_by_record else Counter()
         schemes = getattr(self.renderer, "link_schemes", frozenset())
-        rendered = [
-            self._marker(marker, (marker.text_index, id(marker.link)) in inline, schemes)
-            for marker in resolve_markers(cnd, node, warnings)
-        ]
+        rendered: list[str] = []
+        for marker in resolve_markers(cnd, node, warnings):
+            written_inline = (marker.text_index, id(marker.link)) in inline
+            if not written_inline and marker.family == "links" and pending[id(marker.link)] > 0:
+                pending[id(marker.link)] -= 1
+                written_inline = True
+            rendered.append(self._marker(marker, written_inline, schemes))
         parts = [part for part in rendered if part]
         if not parts:
             return ""

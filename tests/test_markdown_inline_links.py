@@ -21,7 +21,7 @@ from cnd.core.nodes import (
     TermsNode,
 )
 from cnd.core.render import MarkdownRenderer
-from cnd.core.text import FootnoteRef, LinkRef, Mark
+from cnd.core.text import FootnoteRef, LinkRef, Mark, Numbering, RichText
 from cnd.core.urls import allowed_link_schemes, is_safe_url
 
 
@@ -320,6 +320,11 @@ def _every_placement():
         description=_linked("description", "the description", "description"),
         children=[para(_linked("figure-body", "figure body", "body"))],
     )
+    numbered = FigureNode(
+        type="figure", id=uuid4(), numbering=Numbering(name="Figure", value="2"),
+        caption=_linked("numbered-caption", "a numbered caption", "caption"),
+        children=[para("numbered body")],
+    )
     terms = TermsNode(type="terms", id=uuid4(), items=[TermItem(
         term=_linked("term", "the term", "term"),
         children=[para(_linked("definition", "the definition", "definition"))],
@@ -351,7 +356,7 @@ def _every_placement():
     body = para(rt("Text.", footnotes=[FootnoteRef(label="n1")]))
     note = Footnote(id=uuid4(), label="n1",
                     children=[para(_linked("footnote", "in the note", "note"))])
-    nodes = [heading, lst, gfm, blocks, figure, terms, admonition, quote, layout,
+    nodes = [heading, lst, gfm, blocks, figure, numbered, terms, admonition, quote, layout,
              atom, overlap, spanless, refused, body]
     return nodes, [note]
 
@@ -391,7 +396,7 @@ class TestEveryLinkExactlyOnce:
     def test_each_safe_link_once_and_the_refused_one_as_text(self, make) -> None:
         nodes, footnotes = _every_placement()
         expected = _safe_hrefs(nodes, footnotes)
-        assert len(expected) == len(set(expected)) == 21
+        assert len(expected) == len(set(expected)) == 22
         md = make().convert(_cnd(nodes, footnotes)).text
         found = _all_hrefs(md)
         assert sorted(found) == sorted(expected)
@@ -402,7 +407,8 @@ class TestEveryLinkExactlyOnce:
         md = MarkdownConverter().convert(_cnd(nodes, footnotes)).text
         inline = {
             "heading": "link", "under-heading": "heading", "item": "item",
-            "nested-item": "item", "gfm-cell": "cell", "description": "description",
+            "nested-item": "item", "gfm-cell": "cell", "caption": "caption",
+            "description": "description",
             "figure-body": "body", "term": "term", "definition": "definition",
             "admonition-title": "title", "admonition-body": "body",
             "attribution": "author", "quote-body": "words", "layout-cell": "cell",
@@ -412,7 +418,7 @@ class TestEveryLinkExactlyOnce:
         for place, words in inline.items():
             assert f"[{words}](https://e.example/{place})" in md, place
         # Written on a marker line, where the renderer could not place them.
-        for place in ("block-cell", "caption", "in-code", "inner", "spanless"):
+        for place in ("block-cell", "numbered-caption", "in-code", "inner", "spanless"):
             href = f"https://e.example/{place}"
             assert f"[{href}]({href})" in md, place
 
@@ -422,3 +428,113 @@ def test_a_link_over_a_whole_code_span_wraps_it() -> None:
               links=[LinkRef(href="https://e.com/", text_span=[4, 7])])
     md = _convert([para(text)])
     assert _body(md) == "run [`cmd`](https://e.com/) now"
+
+
+# -- review findings -------------------------------------------------------------
+
+
+class TestABangBeforeALink:
+    """``![`` would make the link an image: its href an image source."""
+
+    def test_a_bang_in_the_text(self) -> None:
+        text = rt("Wow!here", links=[LinkRef(href="https://e.com/", text_span=[4, 8])])
+        md = _convert([para(text)])
+        assert _body(md) == "Wow\\![here](https://e.com/)"
+        assert _links(md) == [("here", "https://e.com/")]
+
+    def test_a_bang_left_by_a_dropped_mark(self) -> None:
+        text = rt("wow!here", marks=[Mark(start=0, end=4, kind="underline")],
+                  links=[LinkRef(href="https://e.com/", text_span=[4, 8])])
+        md = MarkdownConverter(text_only=True).convert(_cnd([para(text)])).text
+        assert _links(md) == [("here", "https://e.com/")]
+        assert "image" not in [t.type for t in MarkdownIt("commonmark").parse(_body(md))[1].children]
+
+    def test_a_literal_backslash_before_the_bang(self) -> None:
+        text = rt("a\\!here", links=[LinkRef(href="https://e.com/", text_span=[3, 7])])
+        md = _convert([para(text)])
+        assert _links(md) == [("here", "https://e.com/")]
+
+    def test_a_bang_already_escaped_stays_as_it_is(self) -> None:
+        # "!" then a mark that opens with the link: still one escape.
+        text = rt("go!now", marks=[Mark(start=3, end=6, kind="strong")],
+                  links=[LinkRef(href="https://e.com/", text_span=[3, 6])])
+        md = _convert([para(text)])
+        assert _links(md) == [("now", "https://e.com/")]
+
+
+class TestWordsAMarkdownLinkCannotHold:
+    def test_a_blank_line_in_the_words_goes_to_the_marker_line(self) -> None:
+        text = rt("a\n\nb", links=[LinkRef(href="https://e.com/", text_span=[0, 4])])
+        md = _convert([para(text)])
+        assert _links(md) == [("https://e.com/", "https://e.com/")]
+
+    def test_a_line_break_in_a_heading_goes_to_the_marker_line(self) -> None:
+        from cnd.core.nodes import HeadingNode
+
+        heading = HeadingNode(type="heading", id=uuid4(), level=2, heading_path=["a b"],
+                              text=rt("a\nb", links=[LinkRef(href="https://e.com/h", text_span=[0, 3])]))
+        md = _convert([heading])
+        assert [href for _, href in _links(md)] == ["https://e.com/h"]
+
+    def test_a_single_line_break_in_a_paragraph_stays_a_link(self) -> None:
+        text = rt("a\nb", links=[LinkRef(href="https://e.com/", text_span=[0, 3])])
+        assert [href for _, href in _links(_convert([para(text)]))] == ["https://e.com/"]
+
+    def test_two_cells_at_one_position_lose_no_link(self) -> None:
+        hidden = LinkRef(href="https://e.com/hidden", text_span=[0, 6])
+        kept = LinkRef(href="https://e.com/kept", text_span=[0, 4])
+        table = TableNode(type="table", id=uuid4(), kind="content", cells=[
+            cell(0, 0, "h", is_header=True),
+            cell(1, 0, None, children=[para(rt("hidden", links=[hidden]))]),
+            cell(1, 0, None, children=[para(rt("kept", links=[kept]))]),
+        ])
+        md = _convert([table])
+        assert sorted(href for _, href in _links(md, "table")) == [
+            "https://e.com/hidden", "https://e.com/kept",
+        ]
+
+
+class TestSchemeArguments:
+    def test_the_converter_refuses_one_string(self) -> None:
+        with pytest.raises(TypeError):
+            MarkdownConverter(link_schemes="git")
+
+    def test_is_safe_url_refuses_one_string(self) -> None:
+        with pytest.raises(TypeError):
+            is_safe_url("file:///etc/passwd", "profile")
+
+    def test_a_subclass_with_the_old_default_renderer_signature(self) -> None:
+        class Old(MarkdownConverter):
+            @classmethod
+            def default_renderer(cls, *, text_only: bool = False):
+                return MarkdownRenderer(tables="inline", figures="inline", escape=True)
+
+        md = Old().convert(_cnd([para("x")])).text
+        assert _body(md) == "x"
+
+
+class TestRenderersShareNothing:
+    def test_one_converter_in_several_threads(self) -> None:
+        from concurrent.futures import ThreadPoolExecutor
+
+        converter = MarkdownConverter()
+
+        def convert(n: int) -> str:
+            text = rt(f"link {n}", links=[LinkRef(href=f"https://e.com/{n}", text_span=[0, 4])])
+            return _body(converter.convert(_cnd([para(text)] * 20)).text)
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(convert, range(64)))
+        for n, body in enumerate(results):
+            assert body == "\n\n".join([f"[link](https://e.com/{n}) {n}"] * 20)
+
+    def test_an_html_renderer_in_the_markdown_converter(self) -> None:
+        text = rt("the site", links=[LinkRef(href="https://e.com/", text_span=[4, 8])])
+        md = MarkdownConverter(HtmlNodeRenderer()).convert(_cnd([para(text)])).text
+        assert md.count("https://e.com/") == 1
+
+    def test_a_markdown_renderer_in_the_html_converter(self) -> None:
+        text = rt("the site", links=[LinkRef(href="https://e.com/", text_span=[4, 8])])
+        renderer = MarkdownRenderer(escape=True, links=True)
+        html = HtmlConverter(renderer).convert(_cnd([para(text)])).text
+        assert html.count("https://e.com/") == 1

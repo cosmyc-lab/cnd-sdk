@@ -11,9 +11,14 @@ from collections.abc import Iterable
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
 from cnd.core.markdown_escape import escape_block, escape_destination, escape_inline
 from cnd.core.nodes import CndNode, HeadingNode, ParagraphNode
-from cnd.core.render import MarkdownRenderer, NodeRenderer, expand_headings
-from cnd.core.text import RichText
-from cnd.core.urls import is_safe_url
+from cnd.core.render import (
+    MarkdownRenderer,
+    NodeRenderer,
+    expand_headings,
+    recording_written_links,
+)
+from cnd.core.text import LinkRef, RichText
+from cnd.core.urls import allowed_link_schemes, is_safe_url
 
 from cnd.converters.base import (
     CndConverter,
@@ -144,7 +149,7 @@ class MarkdownConverter(CndConverter):
       the edges of every text in the block: ``[label]`` for ``refs``,
       pandoc-style ``[@label]`` / ``@label`` for ``cites``, ``[^label]``
       for ``footnotes``, and ``[href](href)`` for every ``links`` edge
-      the renderer did not write inline (``MarkdownRenderer.written_links``)
+      the renderer did not write inline (``cnd.core.render.recording_written_links``)
       — the href is the only text a ``LinkRef`` carries, so it stands in
       for the display text a Markdown link normally has. An href the URL
       rule refuses (``cnd.core.urls.is_safe_url``: ``http``, ``https``,
@@ -209,18 +214,19 @@ class MarkdownConverter(CndConverter):
         footnotes_title: str = "Footnotes",
         bibliography_title: str = "Bibliography",
     ) -> None:
-        link_schemes = tuple(link_schemes)
+        schemes = allowed_link_schemes(link_schemes)
         if renderer is not None and text_only:
             raise ValueError("text_only shapes the default renderer; set it on the renderer you inject")
-        if renderer is not None and link_schemes:
+        if renderer is not None and schemes:
             raise ValueError(
                 "link_schemes shapes the default renderer; set it on the renderer you inject"
             )
-        super().__init__(
-            renderer
-            if renderer is not None
-            else self.default_renderer(text_only=text_only, link_schemes=link_schemes)
-        )
+        if renderer is None:
+            # Passed only when set, so a subclass overriding the 0.9
+            # ``default_renderer(text_only=...)`` keeps working.
+            options = {"link_schemes": schemes} if schemes else {}
+            renderer = self.default_renderer(text_only=text_only, **options)
+        super().__init__(renderer)
         self.footnotes_title = footnotes_title
         self.bibliography_title = bibliography_title
 
@@ -289,8 +295,9 @@ class MarkdownConverter(CndConverter):
 
     def _block(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
         """One block and, on its own line under it, its markers."""
-        rendered = self.renderer.render(node).strip()
-        markers = self._marker_line(cnd, node, warnings)
+        with recording_written_links() as written:
+            rendered = self.renderer.render(node).strip()
+        markers = self._marker_line(cnd, node, warnings, written)
         if markers and rendered:
             # Only a paragraph or a heading takes its markers on the next
             # line. Under any other block (list, table, quote, admonition,
@@ -300,13 +307,14 @@ class MarkdownConverter(CndConverter):
             return f"{rendered}{chr(10) if tight else chr(10) * 2}{markers}"
         return markers or rendered
 
-    def _marker_line(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
+    def _marker_line(
+        self, cnd: Cnd, node: CndNode, warnings: list[str], written: list[LinkRef]
+    ) -> str:
         """The markers of the block the renderer has just rendered. A link
-        the renderer wrote inline (``written_links``) is left out, once
-        per time it was written; a renderer without ``written_links``
-        wrote none, so all its links are here."""
-        written = getattr(self.renderer, "written_links", None)
-        pending = Counter(id(link) for link in written()) if written is not None else Counter()
+        the renderer noted as written inline (``written``, from
+        ``cnd.core.render.recording_written_links``) is left out, once per
+        time it was written; every other link is here."""
+        pending = Counter(id(link) for link in written)
         schemes = getattr(self.renderer, "link_schemes", frozenset())
         rendered: list[str] = []
         for marker in resolve_markers(cnd, node, warnings):

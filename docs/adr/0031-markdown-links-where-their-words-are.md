@@ -44,18 +44,26 @@ never became links in either Markdown or HTML.
    HTML anchor (`cnd.core.inline`, `edge_wrap`):
    - links never nest; of two overlapping links the outer or first wins;
    - a link inside a `code` or `math` atom is left out;
-   - a refused href leaves the words plain.
+   - a refused href leaves the words plain;
+   - words a Markdown link cannot hold (a blank line, or any line break in
+     a heading) stay plain;
+   - a `!` written just before the link is escaped, so it never becomes
+     an image.
 
    `links` needs `escape`, because unescaped prose could close the link
    or open another. It stays off by default for the same reason `escape`
    does: chunk text and embeddings must not change.
 2. `MarkdownConverter`'s default renderer turns `links` on. The marker
-   line keeps every link the renderer did not write. The renderer records
-   the links each top-level `render` call wrote (`written_links`), and
-   the converter leaves exactly those out, once per write. This record
-   covers what the renderer writes in other ways:
+   line keeps every link the renderer did not write. The converter
+   renders each block inside a record (`cnd.core.render.recording_written_links`,
+   a context variable, so one renderer shared across threads stays safe);
+   the renderer notes there each link it writes, and the converter leaves
+   exactly those out, once per write. Both converters read the record,
+   so either one accepts the other's renderer without writing a link
+   twice. The record covers what the renderer writes in other ways:
    - a placeholder holds a text without rendering it;
-   - a figure caption is recomposed with its counter;
+   - a figure caption is recomposed with its counter (a caption without
+     one keeps its links);
    - a table whose cells hold blocks is an HTML block.
 
    Their links go to the marker line, so no link is lost and none is
@@ -78,8 +86,8 @@ never became links in either Markdown or HTML.
   format, schema and hashes do not change. This is an SDK minor release.
 - Markdown now matches HTML for links. A link without a span, or one the
   renderer cannot place, still reaches the marker line.
-- A renderer that writes texts outside `render_text` must not report them
-  in `written_links`. The tests pin every placement of a link: exactly
+- A renderer that writes a link must note it in the open record, and must
+  not note one it did not write. The tests pin every placement of a link: exactly
   once, inline or on the marker line.
 - Allowing a scheme is the caller's responsibility: the SDK refuses only
   the schemes that run code or embed a document.

@@ -21,7 +21,7 @@ they are passed."""
 
 _SCHEME = re.compile(r"([A-Za-z][A-Za-z0-9+.\-]*):")
 _SCHEME_NAME = re.compile(r"[a-z][a-z0-9+.\-]*")
-_LEADING = re.compile(r"^[\s\x00-\x20﻿]+")
+_LEADING = re.compile(r"^[\s\x00-\x20\ufeff]+")
 _TAB_OR_NEWLINE = re.compile(r"[\t\n\r]")
 
 
@@ -69,6 +69,8 @@ def is_safe_url(url: str, extra_schemes: frozenset[str] = frozenset()) -> bool:
     result of ``allowed_link_schemes``), or it has no scheme at all. A
     scheme of ``NEVER_LINKED_SCHEMES`` is refused whatever the caller
     passes."""
+    if isinstance(extra_schemes, str):
+        raise TypeError("extra_schemes is a set of scheme names, not one string")
     scheme = url_scheme(url)
     if scheme is None or scheme in SAFE_SCHEMES:
         return True
