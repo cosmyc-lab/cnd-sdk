@@ -5,13 +5,20 @@ Target 1 of docs/proposals/0007, built directly on
 """
 
 import re
+from collections import Counter
+from collections.abc import Iterable
 
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
 from cnd.core.markdown_escape import escape_block, escape_destination, escape_inline
 from cnd.core.nodes import CndNode, HeadingNode, ParagraphNode
-from cnd.core.render import MarkdownRenderer, NodeRenderer, expand_headings
-from cnd.core.text import RichText
-from cnd.core.urls import is_safe_url
+from cnd.core.render import (
+    MarkdownRenderer,
+    NodeRenderer,
+    expand_headings,
+    recording_written_links,
+)
+from cnd.core.text import LinkRef, RichText
+from cnd.core.urls import allowed_link_schemes, is_safe_url
 
 from cnd.converters.base import (
     CndConverter,
@@ -134,43 +141,48 @@ class MarkdownConverter(CndConverter):
       pool order — pools are out of tree and out of reading order
       (spec §8). Footnote blocks and references go through the renderer,
       like the body.
+    - ``links`` edges written where their words are: the default
+      renderer writes a link with a usable ``text_span`` as
+      ``[text](href)`` over the text it spans, as the HTML converter
+      writes an anchor (docs/adr/0031).
     - Per-block markers appended on their own line under each block, for
       the edges of every text in the block: ``[label]`` for ``refs``,
       pandoc-style ``[@label]`` / ``@label`` for ``cites``, ``[^label]``
-      for ``footnotes``, and ``[href](href)`` for ``links`` — the href is
-      the only text a ``LinkRef`` carries, so it stands in for the display
-      text a Markdown link normally has. An href whose scheme is not
-      ``http``, ``https`` or ``mailto`` (``cnd.core.urls.is_safe_url``)
-      is written as plain text, never as a link. A line ending in an
-      href becomes a space in the marker's text and is percent-encoded
-      in its destination, so the marker stays on its line. Every label
-      (markers, footnote definitions, bibliography) goes through
-      ``markdown_label``, and a cite supplement is escaped. Markers are ordered text by text,
-      then by ``text_span`` where one exists, then by family (spec §8). A
-      ``links`` marker is **appended**, like the other three families,
-      never spliced into the text at its span: splicing would make marker
-      position renderer-specific again and would rewrite every existing
-      golden document for a change that only one family needs.
+      for ``footnotes``, and ``[href](href)`` for every ``links`` edge
+      the renderer did not write inline (``cnd.core.render.recording_written_links``)
+      — the href is the only text a ``LinkRef`` carries, so it stands in
+      for the display text a Markdown link normally has. An href the URL
+      rule refuses (``cnd.core.urls.is_safe_url``: ``http``, ``https``,
+      ``mailto``, and the schemes the renderer allows) is written as
+      plain text, never as a link, inline as on the marker line. A line
+      ending in an href becomes a space in the marker's text and is
+      percent-encoded in its destination, so the marker stays on its
+      line. Every label (markers, footnote definitions, bibliography)
+      goes through ``markdown_label``, and a cite supplement is escaped.
+      Markers are ordered text by text, then by ``text_span`` where one
+      exists, then by family (spec §8).
 
     The default renderer is ``MarkdownRenderer(tables="inline",
-    figures="inline", escape=True, heading_numbers=True)``: a standalone
+    figures="inline", escape=True, heading_numbers=True, links=True)``: a standalone
     document wants its content, not the ``[[figure:…]]`` placeholders
     that serve chunking pipelines. It escapes free text so that a
     Markdown parser reads the structure the CND has and not structure
     the prose happens to spell; code and math are emitted verbatim. It
     keeps heading numbering as a prefix on the heading line.
     ``text_only=True`` makes it a Markdown output with no HTML at all
-    (see ``MarkdownRenderer``). Inject another renderer to change any of
-    that; ``text_only`` then belongs to the renderer you inject.
+    (see ``MarkdownRenderer``); ``link_schemes`` adds schemes the links
+    may use (``cnd.core.urls.allowed_link_schemes``). Inject another
+    renderer to change any of that; ``text_only`` and ``link_schemes``
+    then belong to the renderer you inject.
 
     **Irreducibly dropped** — properties of Markdown as a target, the
     same for every document (docs/proposals/0007):
 
-    - ``text_span`` — markers are appended under the block, not spliced
-      into the text at their standoff offsets, so marker *position*
-      inside a text is lost. Their relative order is preserved.
-      This holds for ``links`` exactly as it does for the other three
-      families.
+    - ``text_span`` of ``refs``, ``cites`` and ``footnotes``, and of a
+      link that is not written inline — those markers are appended under
+      the block, not spliced into the text at their standoff offsets, so
+      marker *position* inside a text is lost. Their relative order is
+      preserved.
     - ``CiteRef.form`` — only the ``none`` (silent citation) and
       prose-vs-bracketed distinctions survive; ``full``, ``author`` and
       ``year`` collapse into their neighbours.
@@ -198,26 +210,48 @@ class MarkdownConverter(CndConverter):
         renderer: NodeRenderer | None = None,
         *,
         text_only: bool = False,
+        link_schemes: Iterable[str] = (),
         footnotes_title: str = "Footnotes",
         bibliography_title: str = "Bibliography",
     ) -> None:
+        schemes = allowed_link_schemes(link_schemes)
         if renderer is not None and text_only:
             raise ValueError("text_only shapes the default renderer; set it on the renderer you inject")
-        super().__init__(renderer if renderer is not None else self.default_renderer(text_only=text_only))
+        if renderer is not None and schemes:
+            raise ValueError(
+                "link_schemes shapes the default renderer; set it on the renderer you inject"
+            )
+        if renderer is None:
+            # Passed only when set, so a subclass overriding the 0.9
+            # ``default_renderer(text_only=...)`` keeps working.
+            options = {"link_schemes": schemes} if schemes else {}
+            renderer = self.default_renderer(text_only=text_only, **options)
+        super().__init__(renderer)
         self.footnotes_title = footnotes_title
         self.bibliography_title = bibliography_title
 
     @classmethod
-    def default_renderer(cls, *, text_only: bool = False) -> NodeRenderer:
+    def default_renderer(
+        cls, *, text_only: bool = False, link_schemes: Iterable[str] = ()
+    ) -> NodeRenderer:
         return MarkdownRenderer(
             tables="inline",
             figures="inline",
             escape=True,
             heading_numbers=True,
             text_only=text_only,
+            links=True,
+            link_schemes=link_schemes,
         )
 
     def convert(self, cnd: Cnd) -> ConversionResult:
+        # The whole conversion runs in a record of its own: a text rendered
+        # outside any block (the bibliography) never notes its links into a
+        # record a caller opened around this conversion.
+        with recording_written_links():
+            return self._convert(cnd)
+
+    def _convert(self, cnd: Cnd) -> ConversionResult:
         warnings: list[str] = []
         sections = [
             self._front_matter(cnd),
@@ -268,8 +302,9 @@ class MarkdownConverter(CndConverter):
 
     def _block(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
         """One block and, on its own line under it, its markers."""
-        rendered = self.renderer.render(node).strip()
-        markers = self._marker_line(cnd, node, warnings)
+        with recording_written_links() as written:
+            rendered = self.renderer.render(node).strip()
+        markers = self._marker_line(cnd, node, warnings, written)
         if markers and rendered:
             # Only a paragraph or a heading takes its markers on the next
             # line. Under any other block (list, table, quote, admonition,
@@ -279,12 +314,25 @@ class MarkdownConverter(CndConverter):
             return f"{rendered}{chr(10) if tight else chr(10) * 2}{markers}"
         return markers or rendered
 
-    def _marker_line(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
-        rendered = [self._marker(marker) for marker in resolve_markers(cnd, node, warnings)]
+    def _marker_line(
+        self, cnd: Cnd, node: CndNode, warnings: list[str], written: list[LinkRef]
+    ) -> str:
+        """The markers of the block the renderer has just rendered. A link
+        the renderer noted as written inline (``written``, from
+        ``cnd.core.render.recording_written_links``) is left out, once per
+        time it was written; every other link is here."""
+        pending = Counter(id(link) for link in written)
+        schemes = getattr(self.renderer, "link_schemes", frozenset())
+        rendered: list[str] = []
+        for marker in resolve_markers(cnd, node, warnings):
+            if marker.family == "links" and pending[id(marker.link)] > 0:
+                pending[id(marker.link)] -= 1
+                continue
+            rendered.append(self._marker(marker, schemes))
         return " ".join(part for part in rendered if part)
 
     @staticmethod
-    def _marker(marker: ResolvedMarker) -> str:
+    def _marker(marker: ResolvedMarker, schemes: frozenset[str] = frozenset()) -> str:
         if marker.family == "refs":
             return f"[{_label_text(marker.label)}]"
         if marker.family == "footnotes":
@@ -293,7 +341,7 @@ class MarkdownConverter(CndConverter):
             href = marker.link.href
             # A line ending would let the rest of the href start a block.
             text = _single_line(href)
-            if not is_safe_url(href):
+            if not is_safe_url(href, schemes):
                 return escape_block(text)
             return f"[{escape_inline(text)}]({escape_destination(href)})"
         form = getattr(marker.link, "form", None)
