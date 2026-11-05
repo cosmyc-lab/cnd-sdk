@@ -58,9 +58,11 @@ never became links in either Markdown or HTML.
    renders each block inside a record (`cnd.core.render.recording_written_links`,
    a context variable, so one renderer shared across threads stays safe);
    the renderer notes there each link it writes, and the converter leaves
-   exactly those out, once per write. Both converters read the record,
-   so either one accepts the other's renderer without writing a link
-   twice. The record covers what the renderer writes in other ways:
+   exactly those out, once per write. `HtmlConverter` reads the record
+   when its renderer has no `inline_links` (a Markdown renderer), so
+   either converter accepts the other's renderer without writing a link
+   twice. Each conversion runs in a record of its own, so a converter
+   nested in another's block never notes into the outer record. The record covers what the renderer writes in other ways:
    - a placeholder holds a text without rendering it;
    - a figure caption is recomposed with its counter (a caption without
      one keeps its links);

@@ -245,6 +245,13 @@ class MarkdownConverter(CndConverter):
         )
 
     def convert(self, cnd: Cnd) -> ConversionResult:
+        # The whole conversion runs in a record of its own: a text rendered
+        # outside any block (the bibliography) never notes its links into a
+        # record a caller opened around this conversion.
+        with recording_written_links():
+            return self._convert(cnd)
+
+    def _convert(self, cnd: Cnd) -> ConversionResult:
         warnings: list[str] = []
         sections = [
             self._front_matter(cnd),

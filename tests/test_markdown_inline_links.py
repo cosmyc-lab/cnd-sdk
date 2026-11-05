@@ -538,3 +538,26 @@ class TestRenderersShareNothing:
         renderer = MarkdownRenderer(escape=True, links=True)
         html = HtmlConverter(renderer).convert(_cnd([para(text)])).text
         assert html.count("https://e.com/") == 1
+
+
+def test_a_nested_conversion_does_not_note_into_the_outer_record() -> None:
+    """A renderer that converts another document inside its own block: the
+    inner bibliography, rendered outside the inner blocks, must not note
+    its links into the outer block's record."""
+    from cnd.core.cnd import BibEntry
+
+    shared = LinkRef(href="https://e.com/shared", text_span=[7, 8])
+    inner = _cnd([para("inner")])
+    inner.bibliography = [BibEntry(id=uuid4(), label="b", formatted=rt("0123456789", links=[shared]))]
+
+    class Nesting(MarkdownRenderer):
+        def render_paragraph(self, node):
+            if node.text.value.startswith("abc"):
+                MarkdownConverter().convert(inner)
+                HtmlConverter().convert(inner)
+            return super().render_paragraph(node)
+
+    outer = _cnd([para(rt("abcdefghij", marks=[Mark(start=6, end=9, kind="code")], links=[shared]))])
+    md = MarkdownConverter(Nesting(escape=True, links=True)).convert(outer).text
+    # The outer link sits inside a code span: it must reach the marker line.
+    assert _body(md).endswith("[https://e.com/shared](https://e.com/shared)")
