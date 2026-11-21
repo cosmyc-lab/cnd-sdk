@@ -61,7 +61,7 @@ from cnd.core.nodes import (
     TableNode,
     TermsNode,
 )
-from cnd.core.text import Edge, LinkRef, RichText
+from cnd.core.text import Edge, LinkRef, NodeRef, RichText
 from cnd.core.urls import allowed_link_schemes, is_safe_image_source, is_safe_url
 
 __all__ = [
@@ -70,7 +70,9 @@ __all__ = [
     "expand_headings",
     "holds_several_blocks",
     "is_recording_links",
+    "markdown_anchor",
     "note_written_links",
+    "providing_ref_targets",
     "recording_written_links",
 ]
 
@@ -258,17 +260,21 @@ _CLOSING_HASHES = re.compile(r"(?:^|(?<=[ \t]))(#+)[ \t]*$")
 _BLANK_LINE = re.compile(r"(?:\r\n|\r|\n)[ \t]*(?:\r\n|\r|\n)")
 _LINE_BREAK = re.compile(r"[\r\n]")
 
-_WRITTEN_LINKS: ContextVar[list[LinkRef] | None] = ContextVar("cnd_written_links", default=None)
+_WRITTEN_LINKS: ContextVar[list[LinkRef | NodeRef] | None] = ContextVar(
+    "cnd_written_links", default=None
+)
 
 
 @contextmanager
-def recording_written_links() -> Iterator[list[LinkRef]]:
+def recording_written_links() -> Iterator[list[LinkRef | NodeRef]]:
     """A list that collects every link a renderer writes inline while the
     block is open, in the order written (a link written twice is there
-    twice). A converter renders one block inside it, then puts every
-    other link of the block on the marker line. The record is per
-    context (thread, task), so a shared renderer stays safe."""
-    links: list[LinkRef] = []
+    twice): the ``links`` edges, and the ``refs`` edges written as links
+    to an anchor (``MarkdownRenderer(ref_links=True)``). A converter
+    renders one block inside it, then puts every other edge of the block
+    on the marker line. The record is per context (thread, task), so a
+    shared renderer stays safe."""
+    links: list[LinkRef | NodeRef] = []
     token = _WRITTEN_LINKS.set(links)
     try:
         yield links
@@ -281,12 +287,50 @@ def is_recording_links() -> bool:
     return _WRITTEN_LINKS.get() is not None
 
 
-def note_written_links(links: Iterable[LinkRef]) -> None:
+def note_written_links(links: Iterable[LinkRef | NodeRef]) -> None:
     """Add ``links`` to the open record; nothing when none is open. A
     renderer calls it for the links it has just written inline."""
     record = _WRITTEN_LINKS.get()
     if record is not None:
         record.extend(links)
+
+
+_ANCHOR_SAFE = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._:-")
+
+
+def markdown_anchor(label: str) -> str:
+    """The anchor id Markdown output writes for the node labelled
+    ``label``; a link to it is ``#`` followed by the same string.
+
+    ASCII letters, digits and ``._:-`` stay as they are, every other
+    character is percent-encoded as UTF-8 (``%`` included), so the id
+    holds no character an HTML attribute, a URL fragment or a Markdown
+    link destination would read differently. The same string in the id
+    and in the link is what a browser matches first. The mapping is
+    injective: ``urllib.parse.unquote`` undoes it.
+    """
+    return "".join(
+        ch if ch in _ANCHOR_SAFE
+        else "".join(f"%{byte:02X}" for byte in ch.encode("utf-8", "surrogatepass"))
+        for ch in label
+    )
+
+
+_REF_TARGETS: ContextVar[frozenset[str] | None] = ContextVar("cnd_ref_targets", default=None)
+
+
+@contextmanager
+def providing_ref_targets(targets: Iterable[str]) -> Iterator[None]:
+    """While the block is open, a ``MarkdownRenderer`` built with
+    ``ref_links`` links the ``refs`` edges whose label is in ``targets``,
+    in place of the ``ref_targets`` it was built with. A converter opens
+    it for one conversion, with the labels it writes an anchor for, so a
+    renderer passed to it or shared between threads is never changed."""
+    token = _REF_TARGETS.set(frozenset(targets))
+    try:
+        yield
+    finally:
+        _REF_TARGETS.reset(token)
 
 
 class MarkdownRenderer(NodeRenderer):
@@ -343,6 +387,19 @@ class MarkdownRenderer(NodeRenderer):
     or open another one. Inside ``recording_written_links`` the renderer
     notes every link it writes, so a converter can put every other link on
     the marker line. ``MarkdownConverter`` turns ``links`` on.
+
+    ``ref_links`` (off by default) writes a ``refs`` edge with a
+    ``text_span`` whose label is a target as a link to that label's anchor,
+    ``[text](#anchor)``, the anchor being ``markdown_anchor(label)``. The
+    targets are the labels the caller writes an anchor for: ``ref_targets``,
+    or the ones a converter provides for its conversion
+    (``providing_ref_targets``). A ``refs`` edge follows the same rules as
+    a ``links`` edge (no nesting, no link in an atom or over words a
+    Markdown link cannot hold), and the record notes it the same way.
+    Writing the anchors is the caller's job; ``MarkdownConverter`` does it
+    (``MarkdownConverter(ref_links=True)``). ``ref_links`` needs
+    ``escape``, like ``links``, and refuses ``text_only``: the anchor it
+    links to is an HTML element.
     """
 
     def __init__(
@@ -355,6 +412,8 @@ class MarkdownRenderer(NodeRenderer):
         text_only: bool = False,
         links: bool = False,
         link_schemes: Iterable[str] = (),
+        ref_links: bool = False,
+        ref_targets: frozenset[str] = frozenset(),
     ) -> None:
         self.tables = tables
         self.figures = figures
@@ -364,8 +423,15 @@ class MarkdownRenderer(NodeRenderer):
         if links and not escape:
             # Unescaped text could close the link early or open another.
             raise ValueError("links=True needs escape=True")
+        if ref_links and not escape:
+            raise ValueError("ref_links=True needs escape=True")
+        if ref_links and text_only:
+            # The anchor a reference links to is an HTML element.
+            raise ValueError("ref_links=True writes HTML anchors; it cannot be used with text_only")
         self.links = links
         self.link_schemes = allowed_link_schemes(link_schemes)
+        self.ref_links = ref_links
+        self.ref_targets = frozenset(ref_targets)
 
     def render_text(self, text: RichText) -> str:
         return self._inline_markdown(text, single_line=False)
@@ -374,7 +440,7 @@ class MarkdownRenderer(NodeRenderer):
         """``text`` in Markdown, its links written inline under ``links``.
         ``single_line`` leaves out a link whose words cross a line break
         (a heading ends at one)."""
-        if not self.links:
+        if not self.links and not self.ref_links:
             return render_inline(text, "markdown", escape=self.escape, text_only=self.text_only)
         wrap = self._link_wrap_for(text, single_line)
         rendered = render_inline(
@@ -384,17 +450,30 @@ class MarkdownRenderer(NodeRenderer):
             note_written_links(
                 edge
                 for edge in wrapped_edges(text, wrap, "markdown", text_only=self.text_only)
-                if isinstance(edge, LinkRef)
+                if isinstance(edge, (LinkRef, NodeRef))
             )
         return rendered
 
     def _link_wrap_for(self, text: RichText, single_line: bool) -> EdgeWrap:
+        provided = _REF_TARGETS.get()
+        targets = self.ref_targets if provided is None else provided
+
         def wrap(edge: Edge) -> tuple[str, str] | None:
-            """``[`` and ``](href)`` around the words of a ``links`` edge;
-            ``None`` for the other families, a refused href, and words a
-            Markdown link cannot hold. The destination is escaped so that
-            it parses back to the href and stays on its line."""
-            if not isinstance(edge, LinkRef) or not is_safe_url(edge.href, self.link_schemes):
+            """``[`` and ``](href)`` around the words of a ``links`` edge
+            (under ``links``) or ``](#anchor)`` for a ``refs`` edge to a
+            target (under ``ref_links``); ``None`` for the other families,
+            a refused href, a label with no anchor, and words a Markdown
+            link cannot hold. The destination is escaped so that it parses
+            back to the href and stays on its line."""
+            if isinstance(edge, LinkRef):
+                if not self.links or not is_safe_url(edge.href, self.link_schemes):
+                    return None
+                after = f"]({escape_destination(edge.href)})"
+            elif isinstance(edge, NodeRef):
+                if not self.ref_links or edge.label not in targets:
+                    return None
+                after = f"](#{markdown_anchor(edge.label)})"
+            else:
                 return None
             span = edge.text_span
             if not span or len(span) != 2:
@@ -402,7 +481,7 @@ class MarkdownRenderer(NodeRenderer):
             words = text.value[max(span[0], 0) : span[1]]
             if _BLANK_LINE.search(words) or (single_line and _LINE_BREAK.search(words)):
                 return None
-            return "[", f"]({escape_destination(edge.href)})"
+            return "[", after
 
         return wrap
 

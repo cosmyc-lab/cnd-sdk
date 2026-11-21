@@ -9,6 +9,30 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+### Added
+
+- **Markdown output keeps internal references navigable** (docs/adr/0032):
+  `MarkdownConverter(ref_links=True)` writes a `refs` edge with a usable
+  `text_span` as `[text](#anchor)` where its words are, and puts
+  `<a id="anchor"></a>` on every node a reference names (in a heading line
+  after the `#`s, at the start of a paragraph, on its own line before any
+  other block). A reference without a span becomes `[label](#anchor)` on the
+  marker line; an unresolved one keeps its `[label]`. Off by default, so the
+  default conversion does not change. Footnotes and citations are unchanged.
+- `MarkdownRenderer(ref_links=..., ref_targets=...)` and
+  `MarkdownConverter.default_renderer(ref_links=...)`. A renderer injected
+  with `ref_links=True` gets the conversion's targets through
+  `cnd.core.render.providing_ref_targets`, without being changed.
+  `ref_links` needs `escape` and refuses `text_only`.
+- `cnd.core.render.markdown_anchor(label)`: the anchor id for a label,
+  `[A-Za-z0-9._:-]` kept, everything else percent-encoded as UTF-8; a link
+  to it is `#` plus the same string.
+
+### Changed
+
+- `cnd.core.render.recording_written_links` also records the `refs` edges a
+  renderer writes inline as links to anchors.
+
 ## [0.10.0] - 2026-11-05
 
 The CND format stays **0.5.0**: no model, schema or hash changes. The default

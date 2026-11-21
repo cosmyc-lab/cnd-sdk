@@ -42,7 +42,7 @@ from cnd.core.render import (
     note_written_links,
     recording_written_links,
 )
-from cnd.core.text import Edge, LinkRef, RichText
+from cnd.core.text import Edge, LinkRef, NodeRef, RichText
 from cnd.core.urls import allowed_link_schemes, is_safe_image_source, is_safe_url
 
 from cnd.converters.base import (
@@ -461,7 +461,7 @@ class HtmlConverter(CndConverter):
         return rendered
 
     def _markers(
-        self, cnd: Cnd, node: CndNode, warnings: list[str], written: list[LinkRef]
+        self, cnd: Cnd, node: CndNode, warnings: list[str], written: list[LinkRef | NodeRef]
     ) -> str:
         inline = self._inline_link_ids(node)
         # A renderer without ``inline_links`` (a Markdown renderer writing
