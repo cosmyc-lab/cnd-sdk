@@ -472,17 +472,26 @@ def _ref_targets(cnd: Cnd) -> frozenset[str]:
 
 def _target_labels(node: CndNode, targets: frozenset[str]) -> list[str]:
     """The target labels of ``node`` and of every node its block renders,
-    in reading order: a heading's section is made of blocks of their own,
-    any other container renders its nested nodes itself (the walk of
-    ``cnd.converters.base.marker_texts``), so a nested target is anchored
-    at the block that holds it."""
+    in reading order (the walk of ``cnd.converters.base.marker_texts``):
+    the section of the block's own heading is made of blocks of their own,
+    but any other container renders everything nested in it itself, a
+    nested heading's section included, so a nested target is anchored at
+    the block that holds it."""
     if not targets:
         return []
     labels = [node.label] if node.label in targets else []
     if not isinstance(node, HeadingNode):
-        for slot in child_slots(node):
-            for child in slot.nodes:
-                labels.extend(_target_labels(child, targets))
+        labels.extend(_nested_target_labels(node, targets))
+    return labels
+
+
+def _nested_target_labels(node: CndNode, targets: frozenset[str]) -> list[str]:
+    labels: list[str] = []
+    for slot in child_slots(node):
+        for child in slot.nodes:
+            if child.label in targets:
+                labels.append(child.label)
+            labels.extend(_nested_target_labels(child, targets))
     return labels
 
 

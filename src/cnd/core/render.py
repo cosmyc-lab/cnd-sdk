@@ -307,7 +307,9 @@ def markdown_anchor(label: str) -> str:
     holds no character an HTML attribute, a URL fragment or a Markdown
     link destination would read differently. The same string in the id
     and in the link is what a browser matches first. The mapping is
-    injective: ``urllib.parse.unquote`` undoes it.
+    injective (each character maps to its own escape, a lone surrogate
+    included); ``urllib.parse.unquote`` undoes it for any label that is
+    valid Unicode.
     """
     return "".join(
         ch if ch in _ANCHOR_SAFE

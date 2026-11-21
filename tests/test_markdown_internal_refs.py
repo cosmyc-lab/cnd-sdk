@@ -8,11 +8,19 @@ from uuid import uuid4
 import pytest
 from markdown_it import MarkdownIt
 
-from factories import item, para, rt
+from factories import cell, item, para, rt
 
 from cnd.converters import MarkdownConverter
 from cnd.core.cnd import Cnd, DocMetadata, Footnote
-from cnd.core.nodes import FigureNode, HeadingNode, ImageNode, ListNode, TableNode
+from cnd.core.nodes import (
+    FigureNode,
+    HeadingNode,
+    ImageNode,
+    LayoutNode,
+    ListNode,
+    QuoteNode,
+    TableNode,
+)
 from cnd.core.render import MarkdownRenderer, markdown_anchor
 from cnd.core.text import CiteRef, FootnoteRef, LinkRef, NodeRef, Numbering
 
@@ -174,6 +182,37 @@ def test_a_nested_target_is_anchored_at_the_block_that_renders_it() -> None:
     _assert_every_link_lands(md)
 
 
+def test_a_target_under_a_heading_nested_in_a_container_is_anchored() -> None:
+    """A container renders a nested heading's whole section itself, so a
+    target in that section is anchored at the container's block."""
+    deep = para("the deep point", label="deep")
+    quote = QuoteNode(type="quote", id=uuid4(),
+                      children=[_heading("inner", "Inner", deep, level=3)])
+    md = _convert(_cnd([_ref("see deep", "deep", [4, 8]), quote]), ref_links=True)
+    assert "see [deep](#deep)" in _body(md)
+    assert _anchor_ids(md) == ["deep"]
+    _assert_every_link_lands(md)
+
+
+def test_a_quote_target_and_a_layout_target_are_anchored() -> None:
+    quote = QuoteNode(type="quote", id=uuid4(), label="q", children=[para("quoted")])
+    layout = LayoutNode(type="layout", id=uuid4(),
+                        cells=[cell(0, 0, None, children=[para("in a cell", label="c")])])
+    md = _convert(_cnd([quote, layout, _ref("see q and c", "q", [4, 5]),
+                        _ref("and c", "c", [4, 5])]), ref_links=True)
+    assert '<a id="q"></a>\n\n> quoted' in _body(md)
+    assert sorted(_anchor_ids(md)) == ["c", "q"]
+    _assert_every_link_lands(md)
+
+
+def test_a_ref_in_heading_text_links_on_the_heading_line() -> None:
+    heading = HeadingNode(type="heading", id=uuid4(), level=2, heading_path=["See Method"],
+                          text=rt("See Method", refs=[NodeRef(label="method", text_span=[4, 10])]))
+    md = _convert(_cnd([heading, _heading("method", "Method")]), ref_links=True)
+    assert "## See [Method](#method)" in _body(md).splitlines()
+    _assert_every_link_lands(md)
+
+
 def test_a_target_inside_a_footnote_is_anchored_there() -> None:
     note = Footnote(id=uuid4(), label="fn", children=[para("note text", label="in-note")])
     nodes = [
@@ -301,7 +340,7 @@ def test_one_converter_in_several_threads() -> None:
 
     def convert(n: int) -> str:
         label = f"t{n}"
-        cnd = _cnd([_heading(label, "H"), _ref("see H", label, [4, 5])] * 1)
+        cnd = _cnd([_heading(label, "H"), _ref("see H", label, [4, 5])])
         return _body(converter.convert(cnd).text)
 
     with ThreadPoolExecutor(max_workers=8) as pool:
