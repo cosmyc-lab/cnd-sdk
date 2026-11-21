@@ -343,7 +343,8 @@ class MarkdownConverter(CndConverter):
         with recording_written_links() as written:
             rendered = self.renderer.render(node).strip()
         anchors = "".join(
-            f'<a id="{markdown_anchor(label)}"></a>' for label in _target_labels(node, targets)
+            f'<a id="{markdown_anchor(label)}"></a>'
+            for label in _target_labels(cnd, node, targets)
         )
         if anchors:
             rendered = _with_anchors(node, rendered, anchors)
@@ -470,29 +471,35 @@ def _ref_targets(cnd: Cnd) -> frozenset[str]:
     )
 
 
-def _target_labels(node: CndNode, targets: frozenset[str]) -> list[str]:
+def _target_labels(cnd: Cnd, node: CndNode, targets: frozenset[str]) -> list[str]:
     """The target labels of ``node`` and of every node its block renders,
     in reading order (the walk of ``cnd.converters.base.marker_texts``):
     the section of the block's own heading is made of blocks of their own,
     but any other container renders everything nested in it itself, a
     nested heading's section included, so a nested target is anchored at
-    the block that holds it."""
+    the block that holds it. A label counts only on the node
+    ``Cnd.resolve`` returns for it, so an id is written once, where a
+    reference resolves, even in a CND that repeats a label."""
     if not targets:
         return []
-    labels = [node.label] if node.label in targets else []
+    labels = [node.label] if _is_anchored(cnd, node, targets) else []
     if not isinstance(node, HeadingNode):
-        labels.extend(_nested_target_labels(node, targets))
+        labels.extend(_nested_target_labels(cnd, node, targets))
     return labels
 
 
-def _nested_target_labels(node: CndNode, targets: frozenset[str]) -> list[str]:
+def _nested_target_labels(cnd: Cnd, node: CndNode, targets: frozenset[str]) -> list[str]:
     labels: list[str] = []
     for slot in child_slots(node):
         for child in slot.nodes:
-            if child.label in targets:
+            if _is_anchored(cnd, child, targets):
                 labels.append(child.label)
-            labels.extend(_nested_target_labels(child, targets))
+            labels.extend(_nested_target_labels(cnd, child, targets))
     return labels
+
+
+def _is_anchored(cnd: Cnd, node: CndNode, targets: frozenset[str]) -> bool:
+    return node.label in targets and cnd.resolve(node.label) is node
 
 
 _HEADING_START = re.compile(r"#{1,6}(?:[ \t]+|$)")

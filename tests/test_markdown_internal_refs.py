@@ -194,6 +194,17 @@ def test_a_target_under_a_heading_nested_in_a_container_is_anchored() -> None:
     _assert_every_link_lands(md)
 
 
+def test_a_label_on_two_nodes_is_anchored_once_where_it_resolves() -> None:
+    """Labels are unique in a valid CND; in one that is not, the anchor
+    goes where ``Cnd.resolve`` sends the reference (the first node)."""
+    first = para("first", label="dup")
+    second = para("second", label="dup")
+    md = _convert(_cnd([first, second, _ref("see dup", "dup", [4, 7])]), ref_links=True)
+    assert _anchor_ids(md) == ["dup"]
+    assert _body(md).startswith('<a id="dup"></a>first\n\nsecond')
+    _assert_every_link_lands(md)
+
+
 def test_a_quote_target_and_a_layout_target_are_anchored() -> None:
     quote = QuoteNode(type="quote", id=uuid4(), label="q", children=[para("quoted")])
     layout = LayoutNode(type="layout", id=uuid4(),
