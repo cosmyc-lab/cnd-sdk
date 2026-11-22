@@ -9,6 +9,15 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+### Fixed
+
+- Markdown tables: a table whose header cells do not start at row 0 (only in
+  the first column, or a header row after data rows) no longer renders as
+  broken text; it is one GFM table with an empty header row ahead of the data,
+  and no cell is lost.
+- Markdown tables: a cell with `rowspan` or `colspan` greater than 1 now
+  repeats its text in every position it covers instead of leaving them blank.
+
 ## [0.10.0] - 2026-11-05
 
 The CND format stays **0.5.0**: no model, schema or hash changes. The default
