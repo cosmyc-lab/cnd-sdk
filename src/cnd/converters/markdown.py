@@ -147,18 +147,22 @@ class MarkdownConverter(CndConverter):
       renderer writes a link with a usable ``text_span`` as
       ``[text](href)`` over the text it spans, as the HTML converter
       writes an anchor (docs/adr/0031).
-    - Under ``ref_links`` (off by default), internal references kept
-      navigable (docs/adr/0032): a ``refs`` edge whose label resolves to
-      a node is written ``[text](#anchor)`` over the text it spans, and
-      every node such a reference names carries ``<a id="anchor"></a>``,
+    - Internal references kept navigable (docs/adr/0032): a ``refs``
+      edge whose label resolves to a node is written ``[text](#anchor)``
+      over the text it spans, and every node such a reference names
+      carries ``<a id="anchor"></a>``,
       inside its heading line after the ``#``s, at the start of its
       paragraph, or on a line of its own before any other block (a node
       nested in a container is anchored at that container's block). The
       anchor is ``cnd.core.render.markdown_anchor(label)``. A reference
       without a usable span is ``[label](#anchor)`` on the marker line;
-      one whose label resolves to nothing keeps its ``[label]``.
+      one whose label resolves to nothing keeps its ``[label]``. A
+      text-only conversion writes no anchor (it is HTML), so every
+      reference there keeps its ``[label]`` on the marker line.
     - Per-block markers appended on their own line under each block, for
-      the edges of every text in the block: ``[label]`` for ``refs``,
+      the edges of every text in the block: ``[label](#anchor)`` (or
+      ``[label]``, see above) for every ``refs`` edge the renderer did
+      not write inline,
       pandoc-style ``[@label]`` / ``@label`` for ``cites``, ``[^label]``
       for ``footnotes``, and ``[href](href)`` for every ``links`` edge
       the renderer did not write inline (``cnd.core.render.recording_written_links``)
@@ -183,34 +187,32 @@ class MarkdownConverter(CndConverter):
     keeps heading numbering as a prefix on the heading line.
     ``text_only=True`` makes it a Markdown output with no HTML at all
     (see ``MarkdownRenderer``); ``link_schemes`` adds schemes the links
-    may use (``cnd.core.urls.allowed_link_schemes``); ``ref_links``
-    writes internal references as links to anchors (it needs HTML, so it
-    refuses ``text_only``). Inject another renderer to change any of
-    that; ``text_only``, ``link_schemes`` and ``ref_links`` then belong to
-    the renderer you inject. An injected renderer built with
-    ``ref_links=True`` gets this conversion's targets
-    (``cnd.core.render.providing_ref_targets``) and its anchors are
-    written as for the default one.
+    may use (``cnd.core.urls.allowed_link_schemes``). Inject another
+    renderer to change any of that; ``text_only`` and ``link_schemes``
+    then belong to the renderer you inject. Whatever the renderer, the
+    conversion writes the anchors and hands the renderer its targets
+    (``cnd.core.render.providing_ref_targets``), unless the renderer has
+    ``text_only`` set. A ``MarkdownRenderer`` that escapes free text
+    writes the references in place; any other renderer leaves them to the
+    marker line, as ``[label](#anchor)``.
 
     **Irreducibly dropped** — properties of Markdown as a target, the
     same for every document (docs/proposals/0007):
 
-    - ``text_span`` of ``refs`` (unless written inline under
-      ``ref_links``), ``cites`` and ``footnotes``, and of a link that is
-      not written inline — those markers are appended under
-      the block, not spliced into the text at their standoff offsets, so
-      marker *position* inside a text is lost. Their relative order is
+    - ``text_span`` of ``cites`` and ``footnotes``, and of a reference
+      or a link that is not written inline — those markers are appended
+      under the block, not spliced into the text at their standoff
+      offsets, so marker *position* inside a text is lost. Their relative order is
       preserved.
     - ``CiteRef.form`` — only the ``none`` (silent citation) and
       prose-vs-bracketed distinctions survive; ``full``, ``author`` and
       ``year`` collapse into their neighbours.
     - ``state_metadata`` on every node, and ``NodeLocation.page``:
       Markdown has no page model and no place for producer state.
-    - Node ``id``, and ``label`` unless ``ref_links`` is on: Markdown has
-      no element identity, so cross-reference markers degrade to plain
-      bracketed labels rather than links. Under ``ref_links`` a referenced
-      node's label survives as an HTML anchor; an unreferenced one is
-      still dropped.
+    - Node ``id``, and the ``label`` of a node no reference names:
+      Markdown has no element identity. A referenced node's label
+      survives as an HTML anchor (not in a text-only conversion, where
+      references degrade to plain bracketed labels).
     - ``RawSource`` (``raw`` on math, figure and a ``math`` mark) and
       ``BibEntry.fields``: the producer's verbatim source and the full
       structured bibliography entry have no Markdown target, except that
@@ -231,7 +233,6 @@ class MarkdownConverter(CndConverter):
         *,
         text_only: bool = False,
         link_schemes: Iterable[str] = (),
-        ref_links: bool = False,
         footnotes_title: str = "Footnotes",
         bibliography_title: str = "Bibliography",
     ) -> None:
@@ -242,16 +243,10 @@ class MarkdownConverter(CndConverter):
             raise ValueError(
                 "link_schemes shapes the default renderer; set it on the renderer you inject"
             )
-        if renderer is not None and ref_links:
-            raise ValueError(
-                "ref_links shapes the default renderer; set it on the renderer you inject"
-            )
         if renderer is None:
             # Passed only when set, so a subclass overriding the 0.9
             # ``default_renderer(text_only=...)`` keeps working.
             options: dict[str, object] = {"link_schemes": schemes} if schemes else {}
-            if ref_links:
-                options["ref_links"] = True
             renderer = self.default_renderer(text_only=text_only, **options)
         super().__init__(renderer)
         self.footnotes_title = footnotes_title
@@ -263,7 +258,6 @@ class MarkdownConverter(CndConverter):
         *,
         text_only: bool = False,
         link_schemes: Iterable[str] = (),
-        ref_links: bool = False,
     ) -> NodeRenderer:
         return MarkdownRenderer(
             tables="inline",
@@ -273,7 +267,6 @@ class MarkdownConverter(CndConverter):
             text_only=text_only,
             links=True,
             link_schemes=link_schemes,
-            ref_links=ref_links,
         )
 
     def convert(self, cnd: Cnd) -> ConversionResult:
@@ -281,8 +274,10 @@ class MarkdownConverter(CndConverter):
         # outside any block (the bibliography) never notes its links into a
         # record a caller opened around this conversion. The reference
         # targets are this conversion's too, handed to the renderer for its
-        # duration without changing it.
-        targets = _ref_targets(cnd) if getattr(self.renderer, "ref_links", False) else frozenset()
+        # duration without changing it. A text-only output has no HTML, so
+        # no anchor for a reference to link to.
+        text_only = getattr(self.renderer, "text_only", False)
+        targets = frozenset() if text_only else _ref_targets(cnd)
         with recording_written_links(), providing_ref_targets(targets):
             return self._convert(cnd, targets)
 

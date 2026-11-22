@@ -21,7 +21,7 @@ from cnd.core.nodes import (
     QuoteNode,
     TableNode,
 )
-from cnd.core.render import MarkdownRenderer, markdown_anchor
+from cnd.core.render import MarkdownRenderer, markdown_anchor, providing_ref_targets
 from cnd.core.text import CiteRef, FootnoteRef, LinkRef, NodeRef, Numbering
 
 
@@ -106,11 +106,11 @@ def _convert(cnd: Cnd, **options) -> str:
     return MarkdownConverter(**options).convert(cnd).text
 
 
-# -- the option on -------------------------------------------------------------
+# -- references link to anchors -------------------------------------------------------------
 
 
 def test_ref_with_span_links_to_the_heading_anchor() -> None:
-    md = _convert(_document(), ref_links=True)
+    md = _convert(_document())
     body = _body(md)
     assert "see [Section 2](#method)" in body
     assert '## <a id="method"></a>2 Method' in body.splitlines()
@@ -119,13 +119,13 @@ def test_ref_with_span_links_to_the_heading_anchor() -> None:
 
 
 def test_ref_without_span_links_on_the_marker_line() -> None:
-    md = _convert(_document(), ref_links=True)
+    md = _convert(_document())
     assert "as drawn\n[fig:arch](#fig:arch)" in _body(md)
     assert ("fig:arch", "#fig:arch") in _links(md)
 
 
 def test_unresolved_ref_keeps_todays_marker() -> None:
-    result = MarkdownConverter(ref_links=True).convert(_document())
+    result = MarkdownConverter().convert(_document())
     assert "lost\n[ghost]" in _body(result.text)
     assert "ghost" not in _anchor_ids(result.text)
     assert not any(href == "#ghost" for _, href in _links(result.text))
@@ -133,7 +133,7 @@ def test_unresolved_ref_keeps_todays_marker() -> None:
 
 
 def test_anchor_on_non_heading_target() -> None:
-    md = _convert(_document(), ref_links=True)
+    md = _convert(_document())
     assert _anchor_ids(md).count("fig:arch") == 1
     # On a line of its own: a table, a list or a fence must start its line.
     assert '<a id="fig:arch"></a>\n\n![Architecture](arch.png)' in _body(md)
@@ -149,7 +149,7 @@ def test_label_needing_escape_matches_in_anchor_and_link() -> None:
         _ref("read the summary", label, [9, 16]),
         _ref("again", label),
     ])
-    md = _convert(cnd, ref_links=True)
+    md = _convert(cnd)
     body = _body(md)
     assert f'## <a id="{anchor}"></a>Summary' in body
     assert f"read the [summary](#{anchor})" in body
@@ -165,7 +165,7 @@ def test_markdown_anchor_keeps_fragment_characters_as_they_are() -> None:
 
 
 def test_unreferenced_labels_get_no_anchor() -> None:
-    md = _convert(_document(), ref_links=True)
+    md = _convert(_document())
     ids = _anchor_ids(md)
     assert "intro" not in ids
     assert "plain" not in ids
@@ -175,7 +175,7 @@ def test_unreferenced_labels_get_no_anchor() -> None:
 def test_a_nested_target_is_anchored_at_the_block_that_renders_it() -> None:
     target = para("the nested point", label="point")
     lst = ListNode(type="list", id=uuid4(), items=[item(target)])
-    md = _convert(_cnd([_ref("see the point", "point", [8, 13]), lst]), ref_links=True)
+    md = _convert(_cnd([_ref("see the point", "point", [8, 13]), lst]))
     assert "see the [point](#point)" in _body(md)
     assert _anchor_ids(md) == ["point"]
     assert '<a id="point"></a>\n\n- the nested point' in _body(md)
@@ -188,7 +188,7 @@ def test_a_target_under_a_heading_nested_in_a_container_is_anchored() -> None:
     deep = para("the deep point", label="deep")
     quote = QuoteNode(type="quote", id=uuid4(),
                       children=[_heading("inner", "Inner", deep, level=3)])
-    md = _convert(_cnd([_ref("see deep", "deep", [4, 8]), quote]), ref_links=True)
+    md = _convert(_cnd([_ref("see deep", "deep", [4, 8]), quote]))
     assert "see [deep](#deep)" in _body(md)
     assert _anchor_ids(md) == ["deep"]
     _assert_every_link_lands(md)
@@ -199,7 +199,7 @@ def test_a_label_on_two_nodes_is_anchored_once_where_it_resolves() -> None:
     goes where ``Cnd.resolve`` sends the reference (the first node)."""
     first = para("first", label="dup")
     second = para("second", label="dup")
-    md = _convert(_cnd([first, second, _ref("see dup", "dup", [4, 7])]), ref_links=True)
+    md = _convert(_cnd([first, second, _ref("see dup", "dup", [4, 7])]))
     assert _anchor_ids(md) == ["dup"]
     assert _body(md).startswith('<a id="dup"></a>first\n\nsecond')
     _assert_every_link_lands(md)
@@ -210,7 +210,7 @@ def test_a_quote_target_and_a_layout_target_are_anchored() -> None:
     layout = LayoutNode(type="layout", id=uuid4(),
                         cells=[cell(0, 0, None, children=[para("in a cell", label="c")])])
     md = _convert(_cnd([quote, layout, _ref("see q and c", "q", [4, 5]),
-                        _ref("and c", "c", [4, 5])]), ref_links=True)
+                        _ref("and c", "c", [4, 5])]))
     assert '<a id="q"></a>\n\n> quoted' in _body(md)
     assert sorted(_anchor_ids(md)) == ["c", "q"]
     _assert_every_link_lands(md)
@@ -219,7 +219,7 @@ def test_a_quote_target_and_a_layout_target_are_anchored() -> None:
 def test_a_ref_in_heading_text_links_on_the_heading_line() -> None:
     heading = HeadingNode(type="heading", id=uuid4(), level=2, heading_path=["See Method"],
                           text=rt("See Method", refs=[NodeRef(label="method", text_span=[4, 10])]))
-    md = _convert(_cnd([heading, _heading("method", "Method")]), ref_links=True)
+    md = _convert(_cnd([heading, _heading("method", "Method")]))
     assert "## See [Method](#method)" in _body(md).splitlines()
     _assert_every_link_lands(md)
 
@@ -230,14 +230,13 @@ def test_a_target_inside_a_footnote_is_anchored_there() -> None:
         para(rt("body", footnotes=[FootnoteRef(label="fn")])),
         _ref("see the note", "in-note", [8, 12]),
     ]
-    md = _convert(_cnd(nodes, [note]), ref_links=True)
+    md = _convert(_cnd(nodes, [note]))
     assert '[^fn]: <a id="in-note"></a>note text' in md
     assert ("note", "#in-note") in _links(md)
 
 
 def test_a_paragraph_target_takes_its_anchor_inline() -> None:
-    md = _convert(_cnd([para("Claim.", label="claim"), _ref("by claim", "claim", [3, 8])]),
-                  ref_links=True)
+    md = _convert(_cnd([para("Claim.", label="claim"), _ref("by claim", "claim", [3, 8])]))
     assert _body(md).startswith('<a id="claim"></a>Claim.')
 
 
@@ -249,7 +248,9 @@ def test_footnotes_citations_and_links_are_unchanged() -> None:
         links=[LinkRef(href="https://e.com/", text_span=[0, 5])],
     )
     cnd = _cnd([para(text)], [Footnote(id=uuid4(), label="fn", children=[para("n")])])
-    assert _convert(cnd, ref_links=True) == _convert(cnd)
+    assert _body(_convert(cnd)) == (
+        "[words](https://e.com/) and more\n[@knuth] [^fn]\n\n## Footnotes\n\n[^fn]: n"
+    )
 
 
 def test_a_ref_and_a_link_over_the_same_words_write_one_link() -> None:
@@ -257,7 +258,7 @@ def test_a_ref_and_a_link_over_the_same_words_write_one_link() -> None:
     before links) wins, and the other goes to the marker line."""
     text = rt("see Method", refs=[NodeRef(label="method", text_span=[4, 10])],
               links=[LinkRef(href="https://e.com/", text_span=[4, 10])])
-    md = _convert(_cnd([_heading("method", "Method"), para(text)]), ref_links=True)
+    md = _convert(_cnd([_heading("method", "Method"), para(text)]))
     body = _body(md)
     assert "see [Method](#method)\n[https://e.com/](https://e.com/)" in body
     _assert_every_link_lands(md)
@@ -268,28 +269,62 @@ def test_a_ref_inside_code_goes_to_the_marker_line() -> None:
 
     text = rt("call run()", marks=[Mark(kind="code", start=5, end=10)],
               refs=[NodeRef(label="method", text_span=[5, 8])])
-    md = _convert(_cnd([_heading("method", "Method"), para(text)]), ref_links=True)
+    md = _convert(_cnd([_heading("method", "Method"), para(text)]))
     assert "call `run()`\n[method](#method)" in _body(md)
 
 
 def test_each_ref_written_exactly_once() -> None:
-    md = _convert(_document(), ref_links=True)
+    md = _convert(_document())
     assert [href for _, href in _links(md)].count("#method") == 1
     assert [href for _, href in _links(md)].count("#fig:arch") == 1
 
 
-# -- off by default ------------------------------------------------------------
+# -- the default conversion ---------------------------------------------------
 
 
-def test_off_by_default_output_unchanged() -> None:
-    """What 0.10.0 wrote for the same document, byte for byte."""
+def test_the_default_conversion_links_references() -> None:
+    """A converter built with no option writes references in place and
+    anchors their targets; ``ghost`` resolves to nothing and keeps its
+    ``[label]``."""
     assert _convert(_document()) == (
         '---\ntitle: "T"\ncnd_version: "0.5.0"\n'
         'built_at: "2026-11-05T00:00:00+00:00"\n---\n\n'
-        "## Intro\n\nPlain words.\n\n## 2 Method\n\n"
-        "see Section 2\n[method]\n\nas drawn\n[fig:arch]\n\nlost\n[ghost]\n\n"
-        "![Architecture](arch.png)\n\n*The parts*\n"
+        '## Intro\n\nPlain words.\n\n## <a id="method"></a>2 Method\n\n'
+        "see [Section 2](#method)\n\nas drawn\n[fig:arch](#fig:arch)\n\nlost\n[ghost]\n\n"
+        '<a id="fig:arch"></a>\n\n![Architecture](arch.png)\n\n*The parts*\n'
     )
+
+
+def test_there_is_no_option_to_turn_it_off() -> None:
+    with pytest.raises(TypeError):
+        MarkdownConverter(ref_links=False)  # type: ignore[call-arg]
+    with pytest.raises(TypeError):
+        MarkdownRenderer(escape=True, ref_links=False)  # type: ignore[call-arg]
+
+
+# -- text-only output ----------------------------------------------------------
+
+
+def _assert_no_internal_link(md: str) -> None:
+    assert "<a id" not in md
+    assert not any(href.startswith("#") for _, href in _links(md))
+
+
+def test_text_only_writes_no_anchor_and_keeps_bracketed_labels() -> None:
+    """Text-only output has no HTML, so no anchor to link to: every
+    reference keeps its ``[label]`` on the marker line."""
+    md = _convert(_document(), text_only=True)
+    _assert_no_internal_link(md)
+    body = _body(md)
+    assert "see Section 2\n[method]" in body
+    assert "as drawn\n[fig:arch]" in body
+
+
+def test_an_injected_text_only_renderer_writes_no_anchor_either() -> None:
+    renderer = MarkdownConverter.default_renderer(text_only=True)
+    md = MarkdownConverter(renderer).convert(_document()).text
+    assert md == _convert(_document(), text_only=True)
+    _assert_no_internal_link(md)
 
 
 # -- explicit renderers and guards ---------------------------------------------
@@ -299,55 +334,61 @@ class _Subclass(MarkdownRenderer):
     pass
 
 
-def test_explicit_renderer_with_ref_links_gets_targets_and_anchors() -> None:
+def test_an_injected_renderer_gets_targets_and_anchors() -> None:
     renderer = _Subclass(tables="inline", figures="inline", escape=True,
-                         heading_numbers=True, links=True, ref_links=True)
+                         heading_numbers=True, links=True)
     md = MarkdownConverter(renderer).convert(_document()).text
-    assert md == _convert(_document(), ref_links=True)
+    assert md == _convert(_document())
     # The converter hands the targets for its conversion only.
     assert renderer.ref_targets == frozenset()
     assert renderer.render_text(rt("see Method", refs=[NodeRef(label="method",
                                                                text_span=[4, 10])])) == "see Method"
 
 
-def test_an_explicit_renderer_without_ref_links_keeps_todays_output() -> None:
-    renderer = MarkdownConverter.default_renderer()
-    assert MarkdownConverter(renderer).convert(_document()).text == _convert(_document())
+def test_an_injected_renderer_without_escape_links_on_the_marker_line() -> None:
+    """Unescaped text cannot hold a link, so the renderer writes the words
+    plain; the converter still anchors the target and links the label on
+    the marker line, so the reference stays navigable."""
+    renderer = MarkdownRenderer(tables="inline", figures="inline")
+    md = MarkdownConverter(renderer).convert(_document()).text
+    body = _body(md)
+    assert '## <a id="method"></a>Method' in body
+    assert "see Section 2\n[method](#method)" in body
+    assert sorted(_anchor_ids(md)) == ["fig:arch", "method"]
+    _assert_every_link_lands(md)
+
+
+def test_a_plain_text_renderer_never_links_a_reference() -> None:
+    """A renderer without ``escape`` (chunk text, embeddings) writes the
+    words of a reference plain, even while a conversion provides targets."""
+    text = rt("see M", refs=[NodeRef(label="m", text_span=[4, 5])])
+    with providing_ref_targets({"m"}):
+        assert MarkdownRenderer().render_text(text) == "see M"
+        assert MarkdownRenderer(escape=True, text_only=True).render_text(text) == "see M"
 
 
 def test_a_renderer_alone_links_the_targets_it_is_given() -> None:
-    renderer = MarkdownRenderer(escape=True, ref_links=True, ref_targets=frozenset({"m"}))
+    renderer = MarkdownRenderer(escape=True, ref_targets=frozenset({"m"}))
     text = rt("see M and N", refs=[NodeRef(label="m", text_span=[4, 5]),
                                    NodeRef(label="n", text_span=[10, 11])])
     assert renderer.render_text(text) == "see [M](#m) and N"
+    assert MarkdownRenderer(escape=True).render_text(text) == "see M and N"
 
 
-def test_the_default_renderer_takes_ref_links() -> None:
-    renderer = MarkdownConverter.default_renderer(ref_links=True)
-    assert isinstance(renderer, MarkdownRenderer) and renderer.ref_links
-
-
-def test_ref_links_needs_escape() -> None:
+def test_ref_targets_need_escape() -> None:
     with pytest.raises(ValueError, match="escape"):
-        MarkdownRenderer(ref_links=True)
+        MarkdownRenderer(ref_targets=frozenset({"m"}))
 
 
-def test_ref_links_writes_html_so_text_only_refuses_it() -> None:
+def test_ref_targets_link_to_html_anchors_so_text_only_refuses_them() -> None:
     with pytest.raises(ValueError, match="text_only"):
-        MarkdownRenderer(escape=True, text_only=True, ref_links=True)
-    with pytest.raises(ValueError, match="text_only"):
-        MarkdownConverter(text_only=True, ref_links=True)
-
-
-def test_ref_links_belongs_to_an_injected_renderer() -> None:
-    with pytest.raises(ValueError, match="ref_links"):
-        MarkdownConverter(MarkdownConverter.default_renderer(), ref_links=True)
+        MarkdownRenderer(escape=True, text_only=True, ref_targets=frozenset({"m"}))
 
 
 def test_one_converter_in_several_threads() -> None:
     from concurrent.futures import ThreadPoolExecutor
 
-    converter = MarkdownConverter(ref_links=True)
+    converter = MarkdownConverter()
 
     def convert(n: int) -> str:
         label = f"t{n}"
@@ -365,7 +406,7 @@ def test_a_table_target_keeps_its_table() -> None:
 
     table = TableNode(type="table", id=uuid4(), kind="content", label="tab",
                       cells=[cell(0, 0, "a"), cell(0, 1, "b"), cell(1, 0, "1"), cell(1, 1, "2")])
-    md = _convert(_cnd([table, _ref("in the table", "tab", [7, 12])]), ref_links=True)
+    md = _convert(_cnd([table, _ref("in the table", "tab", [7, 12])]))
     tokens = MarkdownIt("commonmark").enable("table").parse(_body(md))
     assert any(token.type == "table_open" for token in tokens)
     _assert_every_link_lands(md)

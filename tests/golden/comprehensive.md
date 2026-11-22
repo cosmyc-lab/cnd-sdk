@@ -23,12 +23,14 @@ Résumé exécutif placé avant le premier titre. Ce paragraphe doit produire un
 Le système DCS repose sur trois couches fonctionnelles : acquisition, traitement et supervision.
 
 ## 1.1 Couche d'acquisition
-[tab-plages-mesure]
+[tab-plages-mesure](#tab-plages-mesure)
 
 Les capteurs analogiques et numériques sont regroupés par bus de terrain. Voir le tableau des plages de mesure.
-[tab-plages-mesure]
+[tab-plages-mesure](#tab-plages-mesure)
 
 La fréquence d'échantillonnage nominale est de 10 Hz pour les boucles rapides.
+
+<a id="tab-plages-mesure"></a>
 
 | Capteur |  | Plage |
 | --- | --- | --- |
@@ -39,10 +41,10 @@ La fréquence d'échantillonnage nominale est de 10 Hz pour les boucles rapides.
 *Table 1: Plages de mesure des capteurs de terrain.*
 
 ## 1.2 Couche de traitement
-[tab-plages-mesure] [tab-recap-signaux]
+[tab-plages-mesure](#tab-plages-mesure) [tab-recap-signaux](#tab-recap-signaux)
 
 Les algorithmes de régulation s'exécutent sur le contrôleur redondant. Les plages capteurs (Table 1) et le récapitulatif annexe (Table 4) doivent rester cohérents.
-[tab-plages-mesure] [tab-recap-signaux]
+[tab-plages-mesure](#tab-plages-mesure) [tab-recap-signaux](#tab-recap-signaux)
 
 | Boucle | Mode | Kp |
 | --- | --- | --- |
@@ -56,12 +58,14 @@ Les algorithmes de régulation s'exécutent sur le contrôleur redondant. Les pl
 ## 2.1 Surveillance opérateur
 
 ### 2.1.1 Gestion des alarmes
-[tab-delais-alarmes]
+[tab-delais-alarmes](#tab-delais-alarmes)
 
 Les alarmes sont classées en quatre niveaux de criticité : info, avertissement, alarme, critique.
 
 Le délai d'acquittement maximal est défini par la politique site. Consulter la matrice des délais.
-[tab-delais-alarmes]
+[tab-delais-alarmes](#tab-delais-alarmes)
+
+<a id="tab-delais-alarmes"></a>
 
 | Niveau |  | Délai max |
 | --- | --- | --- |
@@ -75,6 +79,8 @@ Le délai d'acquittement maximal est défini par la politique site. Consulter la
 Les interventions planifiées suivent le calendrier OEM. Aucune table n'est associée à cette section.
 
 # 3 Annexes
+
+<a id="tab-recap-signaux"></a>
 
 | Tag | Unité | Bus |
 | --- | --- | --- |

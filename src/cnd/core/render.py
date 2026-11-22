@@ -270,7 +270,7 @@ def recording_written_links() -> Iterator[list[LinkRef | NodeRef]]:
     """A list that collects every link a renderer writes inline while the
     block is open, in the order written (a link written twice is there
     twice): the ``links`` edges, and the ``refs`` edges written as links
-    to an anchor (``MarkdownRenderer(ref_links=True)``). A converter
+    to an anchor (``MarkdownRenderer``, given reference targets). A converter
     renders one block inside it, then puts every other edge of the block
     on the marker line. The record is per context (thread, task), so a
     shared renderer stays safe."""
@@ -323,9 +323,9 @@ _REF_TARGETS: ContextVar[frozenset[str] | None] = ContextVar("cnd_ref_targets", 
 
 @contextmanager
 def providing_ref_targets(targets: Iterable[str]) -> Iterator[None]:
-    """While the block is open, a ``MarkdownRenderer`` built with
-    ``ref_links`` links the ``refs`` edges whose label is in ``targets``,
-    in place of the ``ref_targets`` it was built with. A converter opens
+    """While the block is open, a ``MarkdownRenderer`` that escapes free
+    text links the ``refs`` edges whose label is in ``targets``, in place
+    of the ``ref_targets`` it was built with. A converter opens
     it for one conversion, with the labels it writes an anchor for, so a
     renderer passed to it or shared between threads is never changed."""
     token = _REF_TARGETS.set(frozenset(targets))
@@ -390,18 +390,20 @@ class MarkdownRenderer(NodeRenderer):
     notes every link it writes, so a converter can put every other link on
     the marker line. ``MarkdownConverter`` turns ``links`` on.
 
-    ``ref_links`` (off by default) writes a ``refs`` edge with a
-    ``text_span`` whose label is a target as a link to that label's anchor,
-    ``[text](#anchor)``, the anchor being ``markdown_anchor(label)``. The
-    targets are the labels the caller writes an anchor for: ``ref_targets``,
-    or the ones a converter provides for its conversion
+    A ``refs`` edge with a ``text_span`` whose label is a reference target
+    is written as a link to that label's anchor, ``[text](#anchor)``, the
+    anchor being ``markdown_anchor(label)``. The targets are the labels the
+    caller writes an anchor for: ``ref_targets`` (none by default), or the
+    ones a converter provides for its conversion
     (``providing_ref_targets``). A ``refs`` edge follows the same rules as
     a ``links`` edge (no nesting, no link in an atom or over words a
     Markdown link cannot hold), and the record notes it the same way.
-    Writing the anchors is the caller's job; ``MarkdownConverter`` does it
-    (``MarkdownConverter(ref_links=True)``). ``ref_links`` needs
-    ``escape``, like ``links``, and refuses ``text_only``: the anchor it
-    links to is an HTML element.
+    Writing the anchors is the caller's job; ``MarkdownConverter`` does it.
+    Only a renderer that escapes free text and writes HTML links a
+    reference: without ``escape`` the text could close the link early, and
+    under ``text_only`` there is no anchor to link to, so either writes the
+    words plain, even while a converter provides targets. For the same
+    reasons, ``ref_targets`` needs ``escape`` and refuses ``text_only``.
     """
 
     def __init__(
@@ -414,7 +416,6 @@ class MarkdownRenderer(NodeRenderer):
         text_only: bool = False,
         links: bool = False,
         link_schemes: Iterable[str] = (),
-        ref_links: bool = False,
         ref_targets: frozenset[str] = frozenset(),
     ) -> None:
         self.tables = tables
@@ -425,14 +426,13 @@ class MarkdownRenderer(NodeRenderer):
         if links and not escape:
             # Unescaped text could close the link early or open another.
             raise ValueError("links=True needs escape=True")
-        if ref_links and not escape:
-            raise ValueError("ref_links=True needs escape=True")
-        if ref_links and text_only:
+        if ref_targets and not escape:
+            raise ValueError("ref_targets needs escape=True")
+        if ref_targets and text_only:
             # The anchor a reference links to is an HTML element.
-            raise ValueError("ref_links=True writes HTML anchors; it cannot be used with text_only")
+            raise ValueError("ref_targets link to HTML anchors; they cannot be used with text_only")
         self.links = links
         self.link_schemes = allowed_link_schemes(link_schemes)
-        self.ref_links = ref_links
         self.ref_targets = frozenset(ref_targets)
 
     def render_text(self, text: RichText) -> str:
@@ -442,9 +442,10 @@ class MarkdownRenderer(NodeRenderer):
         """``text`` in Markdown, its links written inline under ``links``.
         ``single_line`` leaves out a link whose words cross a line break
         (a heading ends at one)."""
-        if not self.links and not self.ref_links:
+        targets = self._ref_targets()
+        if not self.links and not targets:
             return render_inline(text, "markdown", escape=self.escape, text_only=self.text_only)
-        wrap = self._link_wrap_for(text, single_line)
+        wrap = self._link_wrap_for(text, single_line, targets)
         rendered = render_inline(
             text, "markdown", escape=self.escape, text_only=self.text_only, edge_wrap=wrap
         )
@@ -456,23 +457,30 @@ class MarkdownRenderer(NodeRenderer):
             )
         return rendered
 
-    def _link_wrap_for(self, text: RichText, single_line: bool) -> EdgeWrap:
+    def _ref_targets(self) -> frozenset[str]:
+        """The labels a ``refs`` edge links to: the ones a converter
+        provides, else ``ref_targets``; none without ``escape`` or under
+        ``text_only``."""
+        if not self.escape or self.text_only:
+            return frozenset()
         provided = _REF_TARGETS.get()
-        targets = self.ref_targets if provided is None else provided
+        return self.ref_targets if provided is None else provided
 
+    def _link_wrap_for(
+        self, text: RichText, single_line: bool, targets: frozenset[str]
+    ) -> EdgeWrap:
         def wrap(edge: Edge) -> tuple[str, str] | None:
             """``[`` and ``](href)`` around the words of a ``links`` edge
             (under ``links``) or ``](#anchor)`` for a ``refs`` edge to a
-            target (under ``ref_links``); ``None`` for the other families,
-            a refused href, a label with no anchor, and words a Markdown
-            link cannot hold. The destination is escaped so that it parses
+            target; ``None`` for the other families, a refused href, a
+            label with no anchor, and words a Markdown link cannot hold. The destination is escaped so that it parses
             back to the href and stays on its line."""
             if isinstance(edge, LinkRef):
                 if not self.links or not is_safe_url(edge.href, self.link_schemes):
                     return None
                 after = f"]({escape_destination(edge.href)})"
             elif isinstance(edge, NodeRef):
-                if not self.ref_links or edge.label not in targets:
+                if edge.label not in targets:
                     return None
                 after = f"](#{markdown_anchor(edge.label)})"
             else:

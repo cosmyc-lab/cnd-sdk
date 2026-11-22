@@ -14,6 +14,7 @@ from factories import para, rt
 
 from cnd.converters import HtmlConverter, MarkdownConverter
 from cnd.converters.markdown import markdown_label
+from cnd.core.render import markdown_anchor
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
 from cnd.core.text import CiteRef, FootnoteRef, NodeRef
 
@@ -63,13 +64,27 @@ def _tokens(markdown: str) -> list:
     return flat
 
 
+def _assert_only_reference_links(out: str, labels: list[str]) -> None:
+    """The only links are the references' links to their anchors, and the
+    only HTML is those anchors (docs/adr/0032): a label opens no other
+    link, no image and no other HTML."""
+    anchors = [markdown_anchor(f"t{i}-{label}") for i, label in enumerate(labels)]
+    tokens = _tokens(out)
+    assert [t.attrs["href"] for t in tokens if t.type == "link_open"] == [
+        f"#{anchor}" for anchor in anchors
+    ]
+    assert [t.content for t in tokens if t.type in ("html_inline", "html_block")] == [
+        part for anchor in anchors for part in (f'<a id="{anchor}">', "</a>")
+    ]
+    assert "image" not in [t.type for t in tokens]
+
+
 class TestMarkdownLabels:
     @pytest.mark.parametrize("label", HOSTILE)
     def test_a_hostile_label_stays_inert(self, label: str) -> None:
         out = MarkdownConverter().convert(_cnd([label])).text
+        _assert_only_reference_links(out, [label])
         types = [t.type for t in _tokens(out)]
-        assert "link_open" not in types
-        assert not {"html_inline", "html_block", "image"} & set(types)
         assert types.count("heading_open") == 2  # Footnotes, Bibliography
 
     def test_every_footnote_reference_resolves(self) -> None:
@@ -88,9 +103,8 @@ class TestMarkdownLabels:
     ])
     def test_a_hostile_cite_supplement_stays_inert(self, supplement: str) -> None:
         out = MarkdownConverter().convert(_cnd(["k"], supplement=supplement)).text
+        _assert_only_reference_links(out, ["k"])
         types = [t.type for t in _tokens(out)]
-        assert "link_open" not in types
-        assert not {"html_inline", "html_block"} & set(types)
         assert types.count("heading_open") == 2
 
     @pytest.mark.parametrize("label", ["fig-1", "eq:2", "fig_1", "durand2025", "fig-é", "ünïcode.v2"])

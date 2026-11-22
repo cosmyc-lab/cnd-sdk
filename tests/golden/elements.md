@@ -12,8 +12,8 @@ built_at: "2026-10-13T00:00:00+00:00"
 
 # Section 1 Elements of format 0.5
 
-Pressure **rose** 10<sup>3</sup> times, see Theorem 1 and the note, after Knuth: $E = m c^2$ holds.
-[thm-main] [^fn-detail] @knuth1984
+Pressure **rose** 10<sup>3</sup> times, see [Theorem 1](#thm-main) and the note, after Knuth: $E = m c^2$ holds.
+[^fn-detail] @knuth1984
 
 > [!WARNING]
 > **Careful**
@@ -36,6 +36,8 @@ Pressure **rose** 10<sup>3</sup> times, see Theorem 1 and the note, after Knuth:
 ![Before](a.png)
 
 ![After](b.png)
+
+<a id="thm-main"></a>
 
 Energy and mass are equivalent.
 

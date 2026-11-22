@@ -43,16 +43,20 @@ label is unaffected.
 
 ## Decision
 
-1. `MarkdownRenderer` gains `ref_links` (off by default) and `ref_targets`.
-   When on, a `refs` edge with a usable `text_span` whose label is a
-   target is written `[text](#anchor)` over the text it spans. It goes
-   through the same inline layer and the same rules as a `links` edge
-   (ADR 0031): links never nest, none sits inside a `code` or `math` atom
-   or over words a Markdown link cannot hold. The renderer notes it in the
-   written-links record, which now holds `refs` edges as well as `links`
-   edges, so the converter leaves it off the marker line. `ref_links`
-   needs `escape`, as `links` does. It refuses `text_only`, because the
-   anchor it links to is an HTML element.
+1. `MarkdownRenderer` writes a `refs` edge with a usable `text_span`
+   whose label is a target as `[text](#anchor)` over the text it spans.
+   There is no option for it: the targets decide. A renderer used on its
+   own has none unless it is built with `ref_targets`; a converter
+   provides them (decision 4). The edge goes through the same inline
+   layer and the same rules as a `links` edge (ADR 0031): links never
+   nest, none sits inside a `code` or `math` atom or over words a
+   Markdown link cannot hold. The renderer notes it in the written-links
+   record, which now holds `refs` edges as well as `links` edges, so the
+   converter leaves it off the marker line. Only a renderer that escapes
+   free text and writes HTML links a reference: without `escape` the text
+   could close the link early, and under `text_only` there is no anchor
+   to link to. Such a renderer writes the words plain. `ref_targets`
+   therefore needs `escape` and refuses `text_only`.
 2. The anchor is `cnd.core.render.markdown_anchor(label)`. ASCII letters,
    digits and `._:-` stay as they are; every other character is
    percent-encoded as UTF-8, `%` included. The same string goes in the id
@@ -60,11 +64,11 @@ label is unaffected.
    in a URL fragment or in a Markdown link destination. A browser matches
    the fragment to the id as written before it tries a decoded form. The
    mapping is injective, so two labels never share an anchor.
-3. `MarkdownConverter(ref_links=True)` (and `default_renderer(ref_links=True)`)
-   turns it on. Each conversion computes its targets once: the labels a
-   `refs` edge of the document names that resolve to a node (not a pool
-   entry). That set decides both sides, so every link has exactly one
-   anchor and every anchor is linked to:
+3. `MarkdownConverter` does this by default, with no option to turn it
+   off. Each conversion computes its targets once: the labels a `refs`
+   edge of the document names that resolve to a node (not a pool entry).
+   That set decides both sides, so every link has exactly one anchor and
+   every anchor is linked to:
    - every target carries `<a id="anchor"></a>`. In a heading it sits on
      the heading line after the `#`s. In a paragraph it opens the line.
      Before any other block it stands on a line of its own, since a table,
@@ -77,23 +81,32 @@ label is unaffected.
      line;
    - a reference whose label resolves to nothing keeps its `[label]` and
      its warning.
+
+   A text-only conversion (a renderer with `text_only` set) has no HTML,
+   so it has no targets: no anchor, no link to one, and every reference
+   keeps its `[label]` on the marker line, as before this decision.
 4. The converter hands the targets to its renderer through a context
    variable (`cnd.core.render.providing_ref_targets`) for the duration of
-   one conversion. It does not set them on the renderer. A renderer
-   injected with `ref_links=True`, a subclass included, gets them as the
-   default one does. A renderer shared between threads, or used by a
+   one conversion. It does not set them on the renderer. Any injected
+   renderer gets them as the default one does, and the converter writes
+   the anchors whatever the renderer. A `MarkdownRenderer` (a subclass
+   included) that escapes free text writes the references in place; any
+   other renderer leaves them to the marker line, as `[label](#anchor)`. A renderer shared between threads, or used by a
    conversion nested in another, never sees another conversion's
    targets. Used on its own, the renderer links the `ref_targets` it was
    built with, and writing their anchors is the caller's job.
-5. `cites` and `footnotes` keep their markers, and the default conversion
-   is unchanged.
+5. `cites` and `footnotes` keep their markers.
 
 ## Consequences
 
-- The option is off by default for the same reason `escape` is: chunk
-  text and embeddings must not change, and inline HTML is not what a
-  plain-text consumer wants. A consumer that produces a file for people
-  or agents to read turns it on.
+- There is no option. A file converter produces a file for people or
+  agents to read, and an internal reference that cannot be followed is a
+  loss for both. Plain-text consumers (chunk text, embeddings) use a bare
+  `MarkdownRenderer`, which does not escape and has no targets, so they
+  are unaffected; a consumer that wants no HTML at all asks for a
+  text-only conversion.
+- The default Markdown conversion changes for every document with a
+  reference that resolves to a node.
 - A labelled node that nothing references gets no anchor. Its label stays
   dropped from the output, as before.
 - The anchor lands on the block that renders a nested target, not always

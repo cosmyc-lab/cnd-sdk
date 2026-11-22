@@ -18,8 +18,8 @@ built_at: "2026-07-15T08:30:00+00:00"
 
 # 1 Vue d'ensemble
 
-Les mesures nominales sont récapitulées dans la table des mesures ; la structure atomique est illustrée plus bas.
-[@durand2025, p. 42] [^fn-unit] [tab-mesures] @durand2025 [fig-atom]
+Les mesures nominales sont récapitulées dans la [table des mesures](#tab-mesures) ; la structure atomique est illustrée plus bas.
+[@durand2025, p. 42] [^fn-unit] @durand2025 [fig-atom](#fig-atom)
 
 1. Étalonner les capteurs
    1. Vérifier le zéro
@@ -51,7 +51,9 @@ e(t) = m(t) - r(t)
 (1)
 
 ## 1.1 Résultats et figures
-[fig-schema]
+[fig-schema](#fig-schema)
+
+<a id="tab-mesures"></a>
 
 | Capteur | Nominal |
 | --- | --- |
@@ -60,6 +62,8 @@ e(t) = m(t) - r(t)
 
 *Table 1: Mesures nominales par capteur.*
 
+<a id="grid-layout"></a>
+
 Zone
 
 Relevés bruts
@@ -67,6 +71,8 @@ Relevés bruts
 12.4
 
 12.6
+
+<a id="fig-schema"></a>
 
 ![Vue d'ensemble du banc de mesure](figures/banc.png)
 
@@ -91,6 +97,8 @@ Relevés bruts
 
 *Figure 2: Comparaison avant/après étalonnage.*
 
+<a id="fig-atom"></a>
+
 ![Maille cristalline](figures/reseau.svg)
 
 *Atome 1: Structure atomique du réseau mesuré.*
@@ -103,8 +111,8 @@ Relevés bruts
 
 # 2 Références
 
-Grille brute en [annexe](https://example.org/appendix/grid-raw). Les travaux antérieurs couvrent la méthode, l'auteur, l'année et une citation muette.
-[grid-layout] [^fn-proto] [@nguyen2023] @durand2025 @nguyen2023
+[Grille brut](#grid-layout)e en [annexe](https://example.org/appendix/grid-raw). Les travaux antérieurs couvrent la méthode, l'auteur, l'année et une citation muette.
+[^fn-proto] [@nguyen2023] @durand2025 @nguyen2023
 
 ## Footnotes
 

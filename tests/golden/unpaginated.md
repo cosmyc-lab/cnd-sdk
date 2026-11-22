@@ -7,8 +7,10 @@ built_at: "2026-07-22T09:30:00+00:00"
 
 # Handshake
 
-The client opens with a version token, as shown in the listing below.
-[lst-open] [^fn-token]
+The client opens with a version token, as shown in[ the listing below](#lst-open).
+[^fn-token]
+
+<a id="lst-open"></a>
 
 ```text
 OPEN v1
