@@ -80,6 +80,18 @@ reverse edges (§5), reading-order positions (§8) and pagination
 (§2.2); it also governs content hashes (§10). A conformant CND carries
 no field that merely restates something derivable.
 
+**Closed objects.** Every object of a CND — the CND itself, its
+metadata and source, every node, list item, term item, cell, rich text,
+mark, edge, `numbering`, `location`, `raw`, bibliography entry and
+footnote — carries the fields this specification defines and no other.
+An unknown key makes the CND invalid; a consumer refuses it rather than
+dropping it, and the schema states it with `additionalProperties: false`.
+The only exceptions are the free-form bags, which hold any key:
+`state_metadata` on a node, `fields` on a bibliography entry and
+`doc.extra` (§3). A CND written for another version is refused by its
+`cnd_version` first (§9, §11), so closing the objects costs no forward
+compatibility within a version.
+
 **Reading order (normative)**: the node tree is in document reading order —
 a depth-first traversal of `nodes` (each node before its nested nodes,
 siblings in list order, and the entries of a node's `items` or `cells`
@@ -317,8 +329,11 @@ All three label-keyed families share the skeleton `{label, text_span?}`:
 | `label` | string, required | The target's label. Resolves in the nodes (body and footnote content) for `refs`, in `bibliography` for `cites`, in `footnotes` for `footnotes`. |
 | `text_span` | `[start, end)` array of 2 ints \| null | Optional standoff position of the link's marker (e.g. a `@fig-3` marker) inside the `value` of the `RichText` that holds the edge. Offsets are **Unicode code points**, not bytes (docs/adr/0013). |
 
-A `text_span` satisfies `0 ≤ start ≤ end ≤ len(value)`; unlike a mark it
-may be empty. It is null for a marker that renders no text, or one that
+A `text_span` is exactly two offsets and satisfies
+`0 ≤ start ≤ end ≤ len(value)`; unlike a mark it may be empty. The
+shape — two integers, each 0 or more — is the schema's (`minItems` and
+`maxItems` 2, `minimum` 0); the bounds that depend on the text, `start ≤
+end ≤ len(value)`, are a validation rule (§9). It is null for a marker that renders no text, or one that
 does not close inside the text where it opens.
 
 `NodeRef` is exactly this skeleton:
@@ -596,13 +611,24 @@ an unknown node type cannot be read.
 
 | Field | Type |
 |---|---|
-| `level` | int |
+| `level` | int, 1 or more |
 | `numbering` | `Numbering` \| null |
 | `text` | `RichText` |
 | `heading_path` | array of string |
 | `children` | array of node |
 
 A section heading. The section's content is in `children`.
+
+`level` is 1 for a top-level section and has no upper bound: a source
+such as Typst nests headings deeper than six, and how a renderer shows a
+deep level (HTML stops at `h6`) is the renderer's concern.
+
+`heading_path` is the `heading_path` of the nearest enclosing heading
+plus one element for this heading. The enclosing heading is found
+through any container — a list item, a cell, a quote — and a heading at
+the top of the body or of a footnote has a one-element path. What an
+element holds (the bare heading text, or the text prefixed with its
+number) is the producer's choice.
 
 ### 6.2 `paragraph`
 
@@ -624,8 +650,8 @@ A `Cell`:
 
 | Field | Type | Description |
 |---|---|---|
-| `row` | int | Row coordinate. |
-| `col` | int | Column coordinate. |
+| `row` | int | Row coordinate, 0-based: 0 or more. |
+| `col` | int | Column coordinate, 0-based: 0 or more. |
 | `rowspan` | int | Rows covered, at least 1. Defaults to 1. |
 | `colspan` | int | Columns covered, at least 1. Defaults to 1. |
 | `is_header` | bool | Header cell. Defaults to `false`. |
@@ -636,6 +662,12 @@ at row "Pro", column "Price" is the price of the Pro plan. A grid used
 for arrangement only is a [`layout`](#612-layout), never a table, so a
 consumer that processes tables never reads a layout as data. `cells` is
 in reading order (§2).
+
+A cell covers the rectangle of `rowspan` rows and `colspan` columns that
+starts at (`row`, `col`). **No grid position is covered by more than one
+cell**, spans included: two cells at the same coordinates, or a span
+reaching over another cell, make the CND invalid (§9). The same rule
+holds for a [`layout`](#612-layout), which shares this `Cell` model.
 
 `kind` says what the table is, as a fact about the document. It is an
 open vocabulary (§6.0):
@@ -1045,6 +1077,8 @@ reports.
 | Marks are sorted by `(start, end, kind)` | `mark-not-canonical` | §4.1, Marks |
 | Two marks of the same kind neither overlap nor touch | `mark-same-kind-overlap` | §4.1, Marks |
 | `code` and `math` marks are atomic: no mark or edge span reaches inside one | `mark-atomic-crossed` | §4.1, Marks |
+| Every `heading_path` is its nearest enclosing heading's path plus one element | `heading-path-mismatch` | §6.1 |
+| No grid position of a `table` or `layout` is covered by more than one cell, spans included | `cell-overlap` | §6.3 |
 | Pagination is all-or-nothing, footnote content nodes included | `pagination-partial` | §2.2 |
 | Every bibliography entry meets the content floor | `bib-entry-empty` | §5.1 |
 | No `doc.extra` key repeats a `DocMetadata` field name | `doc-extra-shadows-field` | §3 |

@@ -9,9 +9,13 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
-The CND format stays **0.5.0**, but its schema gets stricter: a CND that
-parsed before can now be refused. This is a **breaking** change for a
-producer that writes keys the format does not define, or any of the
+The CND format stays **0.5.0**. The specification now states rules it
+left implicit — closed objects, the heading level and cell coordinate
+minimums, the `text_span` shape, `heading_path` consistency and
+non-overlapping cells (spec §2, §5, §6.1, §6.3, §9) — and the schema and
+`validate()` enforce them. These are clarifications of the existing
+rules, but a CND that parsed before can now be refused: **breaking** for
+a producer that writes keys the format does not define, or any of the
 shapes below.
 
 ### Changed
@@ -26,10 +30,11 @@ shapes below.
   `doc.extra` still hold any key. The declaration inherits this inside the
   value objects it shares with the CND (rich text, marks, edges, metadata),
   where a stray key used to pass.
-- **Bounds in the schema**: a heading's `level` is 1 to 6; a cell's `row`
-  and `col` are 0 or more; an edge's `text_span` is exactly two offsets of
-  0 or more. Each was a silent acceptance and is now a parse error; the
-  declaration refuses the same heading levels and cell coordinates.
+- **Bounds in the schema**: a heading's `level` is 1 or more (no upper
+  bound: a source may nest deeper than six); a cell's `row` and `col` are
+  0 or more; an edge's `text_span` is exactly two offsets of 0 or more.
+  Each was a silent acceptance and is now a parse error; the declaration
+  refuses the same heading levels and cell coordinates.
   `validate()` still reports a span past the end of its text, or with
   `start` after `end`, as `text-span-out-of-bounds`.
 - **Two new `validate()` rules**:

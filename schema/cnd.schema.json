@@ -917,7 +917,7 @@
     },
     "HeadingNode": {
       "additionalProperties": false,
-      "description": "Section heading; the section's content is in ``children``.\n\n``level`` runs from 1 to 6, the depth HTML and Markdown headings can\nexpress. ``heading_path`` is the ``heading_path`` of the nearest\nenclosing heading plus one element for this heading (``[element]`` at\nthe top of the body or of a footnote); ``validate()`` checks it\nagainst the tree (``heading-path-mismatch``).",
+      "description": "Section heading; the section's content is in ``children``.\n\n``level`` is 1 or more, with no upper bound (spec \u00a76.1): a source\nsuch as Typst nests headings deeper than six, and how a renderer\nshows a deep level is its own concern. ``heading_path`` is the\n``heading_path`` of the nearest enclosing heading plus one element\nfor this heading (``[element]`` at the top of the body or of a\nfootnote); ``validate()`` checks it against the tree\n(``heading-path-mismatch``).",
       "properties": {
         "id": {
           "format": "uuid",
@@ -959,7 +959,6 @@
           "type": "string"
         },
         "level": {
-          "maximum": 6,
           "minimum": 1,
           "title": "Level",
           "type": "integer"

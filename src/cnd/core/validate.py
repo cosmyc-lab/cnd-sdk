@@ -23,7 +23,7 @@ bibliography floor; no ``doc.extra`` key repeating a named metadata
 field.
 
 What a single value can say about itself — an unknown key, a heading
-level outside 1..6, a negative cell coordinate, a ``text_span`` that is
+level below 1, a negative cell coordinate, a ``text_span`` that is
 not two non-negative offsets — is the models' and the schema's, and is
 refused on parse before ``validate()`` runs.
 """

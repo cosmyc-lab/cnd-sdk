@@ -59,14 +59,16 @@ class NodeBase(ClosedModel):
 class HeadingNode(NodeBase):
     """Section heading; the section's content is in ``children``.
 
-    ``level`` runs from 1 to 6, the depth HTML and Markdown headings can
-    express. ``heading_path`` is the ``heading_path`` of the nearest
-    enclosing heading plus one element for this heading (``[element]`` at
-    the top of the body or of a footnote); ``validate()`` checks it
-    against the tree (``heading-path-mismatch``)."""
+    ``level`` is 1 or more, with no upper bound (spec §6.1): a source
+    such as Typst nests headings deeper than six, and how a renderer
+    shows a deep level is its own concern. ``heading_path`` is the
+    ``heading_path`` of the nearest enclosing heading plus one element
+    for this heading (``[element]`` at the top of the body or of a
+    footnote); ``validate()`` checks it against the tree
+    (``heading-path-mismatch``)."""
 
     type: Literal["heading"]
-    level: int = Field(ge=1, le=6)
+    level: int = Field(ge=1)
     numbering: Numbering | None = None
     text: RichText
     heading_path: list[str]

@@ -191,14 +191,21 @@ class TestUnknownFieldsAreRejected:
         with pytest.raises(ValidationError, match="autors"):
             Declaration.model_validate(decl)
 
-    @pytest.mark.parametrize("level", [0, 7])
-    def test_a_heading_level_outside_one_to_six_is_refused_at_the_door(self, level) -> None:
-        """The CND's heading level range, refused here rather than when
+    @pytest.mark.parametrize("level", [0, -1])
+    def test_a_heading_level_below_one_is_refused_at_the_door(self, level) -> None:
+        """The CND's heading level minimum, refused here rather than when
         the builder constructs the node."""
         with pytest.raises(ValidationError, match="level"):
             Declaration.model_validate(
                 self._decl({"type": "heading", "level": level, "text": "H"})
             )
+
+    def test_a_deep_heading_level_is_accepted(self) -> None:
+        """No upper bound: a source may nest deeper than six levels."""
+        decl = Declaration.model_validate(
+            self._decl({"type": "heading", "level": 9, "text": "H"})
+        )
+        assert decl.nodes[0].level == 9
 
     @pytest.mark.parametrize(("row", "col"), [(-1, 0), (0, -1)])
     def test_a_negative_cell_coordinate_is_refused_at_the_door(self, row, col) -> None:

@@ -381,24 +381,26 @@ def _heading(text: str, level: int, path: list[str], children=()) -> HeadingNode
 
 
 class TestHeadingLevel:
-    """Six heading levels, the depth HTML and Markdown can express; the
-    schema carries the range, so a level outside it is a shape error."""
+    """A heading level is 1 or more, with no upper bound (spec §6.1): a
+    source such as Typst nests deeper than six. The schema carries the
+    minimum, so a level below it is a shape error."""
 
-    @pytest.mark.parametrize("level", [0, -1, 7, 99])
-    def test_a_level_outside_one_to_six_is_refused(self, level: int) -> None:
+    @pytest.mark.parametrize("level", [0, -1])
+    def test_a_level_below_one_is_refused(self, level: int) -> None:
         with pytest.raises(ValidationError, match="level"):
             _heading("H", level, ["H"])
 
-    @pytest.mark.parametrize("level", [1, 6])
-    def test_the_bounds_themselves_are_valid(self, level: int) -> None:
+    @pytest.mark.parametrize("level", [1, 6, 7, 12])
+    def test_any_level_from_one_up_is_valid(self, level: int) -> None:
         assert _rules(_cnd([_heading("H", level, ["H"])])) == []
 
-    def test_the_schema_states_the_range(self) -> None:
+    def test_the_schema_states_the_minimum_only(self) -> None:
         import json
 
         schema = json.loads((FIXTURES.parent / "schema" / "cnd.schema.json").read_text())
         level = schema["$defs"]["HeadingNode"]["properties"]["level"]
-        assert (level["minimum"], level["maximum"]) == (1, 6)
+        assert level["minimum"] == 1
+        assert "maximum" not in level
 
 
 class TestHeadingPath:

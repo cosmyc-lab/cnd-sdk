@@ -689,7 +689,7 @@
     },
     "DeclHeadingNode": {
       "additionalProperties": false,
-      "description": "A section heading. No ``heading_path`` (derivable from tree\nposition) and no resolved number.\n\n``level`` runs from 1 to 6, the CND heading's own range \u2014 there is\nno level 0 and no level 7. Constraining it here makes the invalid\ninput unrepresentable rather than a counter-engine or node\nconstruction crash at build time (ADR 0019 \u00a74's own philosophy:\nreject at the door, not downstream).",
+      "description": "A section heading. No ``heading_path`` (derivable from tree\nposition) and no resolved number.\n\n``level`` starts at 1 \u2014 there is no level 0 \u2014 the CND heading's own\nbound. Constraining it here makes the invalid input unrepresentable\nrather than a counter-engine or node construction crash at build\ntime (ADR 0019 \u00a74's own philosophy: reject at the door, not\ndownstream).",
       "properties": {
         "label": {
           "anyOf": [
@@ -714,7 +714,6 @@
           "type": "string"
         },
         "level": {
-          "maximum": 6,
           "minimum": 1,
           "title": "Level",
           "type": "integer"

@@ -143,14 +143,14 @@ class DeclHeadingNode(DeclNodeBase):
     """A section heading. No ``heading_path`` (derivable from tree
     position) and no resolved number.
 
-    ``level`` runs from 1 to 6, the CND heading's own range — there is
-    no level 0 and no level 7. Constraining it here makes the invalid
-    input unrepresentable rather than a counter-engine or node
-    construction crash at build time (ADR 0019 §4's own philosophy:
-    reject at the door, not downstream)."""
+    ``level`` starts at 1 — there is no level 0 — the CND heading's own
+    bound. Constraining it here makes the invalid input unrepresentable
+    rather than a counter-engine or node construction crash at build
+    time (ADR 0019 §4's own philosophy: reject at the door, not
+    downstream)."""
 
     type: Literal["heading"]
-    level: Annotated[int, Field(ge=1, le=6)]
+    level: Annotated[int, Field(ge=1)]
     text: DeclText
     numbering: DeclNumbering | None = None
     children: list["DeclNode"] = Field(default_factory=list)
