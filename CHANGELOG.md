@@ -9,6 +9,20 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+### Fixed
+
+- Inline math is written between `$` only when its source is LaTeX; any
+  other source (Typst, MathML...) is written as the readable linear text,
+  as the block renderer already did. The HTML renderers follow the same
+  rule, inline and block. A `$` inside written math is escaped, and a `$`
+  in escaped prose is too, so `$5 and then $10` is never read as a formula.
+- A mark that crosses a blank line is closed and reopened in each paragraph
+  instead of leaving literal `**` in two of them.
+- A heading whose text holds a line break is written on one line, and a
+  heading level above 6 is written as level 6.
+- The default figure placeholder keeps the text of a figure's non-table
+  content (a listing's code and paragraphs) in its `summary`.
+
 ## [0.10.0] - 2026-11-05
 
 The CND format stays **0.5.0**: no model, schema or hash changes. The default

@@ -12,7 +12,7 @@ built_at: "2026-10-13T00:00:00+00:00"
 
 # Section 1 Elements of format 0.5
 
-Pressure **rose** 10<sup>3</sup> times, see Theorem 1 and the note, after Knuth: $E = m c^2$ holds.
+Pressure **rose** 10<sup>3</sup> times, see Theorem 1 and the note, after Knuth: E = mc^2 holds.
 [thm-main] [^fn-detail] @knuth1984
 
 > [!WARNING]

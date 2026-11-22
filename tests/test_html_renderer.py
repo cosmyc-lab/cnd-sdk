@@ -38,7 +38,7 @@ def test_every_node_type_has_a_method() -> None:
 
 
 def test_paragraph_marks_and_math() -> None:
-    raw = RawSource(format="typst", value="x^2")
+    raw = RawSource(format="latex", value="x^2")
     text = rt("Bold x2 here", marks=[
         Mark(start=0, end=4, kind="strong"),
         Mark(start=5, end=7, kind="math", raw=raw),

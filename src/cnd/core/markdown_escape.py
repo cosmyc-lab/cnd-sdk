@@ -11,7 +11,9 @@ letter stays as written).
 import re
 
 _ASCII_PUNCT = set("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")
-_ALWAYS = set("*`[]~")
+# "$" is always escaped: with a math extension on, two of them in prose
+# (``$5 and then $10``) would read as an inline formula.
+_ALWAYS = set("*`[]~$")
 _ENTITY = re.compile(r"&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]{1,31});")
 _HEADING = re.compile(r"^( {0,3})(#{1,6})(?=[ \t]|$)")
 _QUOTE = re.compile(r"^( {0,3})>")

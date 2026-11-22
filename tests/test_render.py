@@ -215,7 +215,7 @@ class TestFigureRendering:
         )
         rendered = MarkdownRenderer().render(node)
         assert 'kind="code"' in rendered
-        assert 'summary="code (python)"' in rendered
+        assert 'summary="code (python): x = 1"' in rendered
 
     def test_placeholder_for_single_table_child_includes_header_row(self) -> None:
         table = TableNode(

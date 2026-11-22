@@ -239,7 +239,11 @@ class HtmlNodeRenderer(NodeRenderer):
 
     def render_math(self, node: MathNode) -> str:
         number = _numbering(node)
-        inner = f'<code class="cnd-math">{escape(node.text)}</code>'
+        # Only a LaTeX source is shown as the source; any other is the
+        # producer's own syntax, so the readable text is shown instead.
+        raw = node.raw
+        source = raw.value if raw is not None and raw.format.lower() == "latex" else node.text
+        inner = f'<code class="cnd-math">{escape(source)}</code>'
         if number:
             inner += f'<span class="cnd-number">{escape(number)}</span>'
         return f'<div{_anchor(node)} class="cnd-math-block">{inner}</div>'

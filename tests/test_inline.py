@@ -40,7 +40,7 @@ class TestMarkdownMarks:
             ("sub", "a <sub>bc</sub> d"),
             ("underline", "a <u>bc</u> d"),
             ("highlight", "a <mark>bc</mark> d"),
-            ("math", "a $bc$ d"),
+            ("math", "a bc d"),
             ("smallcaps", "a bc d"),
         ],
     )
@@ -55,10 +55,16 @@ class TestMarkdownMarks:
         text = rt("a bc d", marks=[m(0, 1, "strong"), m(2, 4, "code")])
         assert md(text, text_only=True) == "**a** `bc` d"
 
-    def test_math_renders_its_source(self) -> None:
+    def test_latex_math_renders_its_source(self) -> None:
+        raw = RawSource(format="latex", value="E = m c^{2}")
+        text = rt("so E = mc2 holds", marks=[m(3, 10, "math", raw=raw)])
+        assert md(text) == "so $E = m c^{2}$ holds"
+        assert render_inline(text, "plain") == "so E = mc2 holds"
+
+    def test_other_math_renders_its_linear_text(self) -> None:
         raw = RawSource(format="typst", value="E = m c^2")
         text = rt("so E = mc2 holds", marks=[m(3, 10, "math", raw=raw)])
-        assert md(text) == "so $E = m c^2$ holds"
+        assert md(text) == "so E = mc2 holds"
         assert render_inline(text, "plain") == "so E = mc2 holds"
 
     def test_escape_touches_plain_segments_only(self) -> None:
@@ -139,7 +145,7 @@ class TestAtoms:
         assert "<h1>" not in parsed(out)
 
     def test_html_code_and_math(self) -> None:
-        raw = RawSource(format="typst", value="x < y")
+        raw = RawSource(format="latex", value="x < y")
         text = rt("a<b and x<y", marks=[m(0, 3, "code"), m(8, 11, "math", raw=raw)])
         assert html(text) == '<code>a&lt;b</code> and <code class="math">x &lt; y</code>'
 
