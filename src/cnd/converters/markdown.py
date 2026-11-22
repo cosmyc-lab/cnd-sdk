@@ -10,14 +10,16 @@ from collections.abc import Iterable
 
 from cnd.core.cnd import BibEntry, Cnd, DocMetadata, Footnote
 from cnd.core.markdown_escape import escape_block, escape_destination, escape_inline
-from cnd.core.nodes import CndNode, HeadingNode, ParagraphNode
+from cnd.core.nodes import CndNode, HeadingNode, ParagraphNode, child_slots, edges_of
 from cnd.core.render import (
     MarkdownRenderer,
     NodeRenderer,
     expand_headings,
+    markdown_anchor,
+    providing_ref_targets,
     recording_written_links,
 )
-from cnd.core.text import LinkRef, RichText
+from cnd.core.text import LinkRef, NodeRef, RichText
 from cnd.core.urls import allowed_link_schemes, is_safe_url
 
 from cnd.converters.base import (
@@ -145,8 +147,22 @@ class MarkdownConverter(CndConverter):
       renderer writes a link with a usable ``text_span`` as
       ``[text](href)`` over the text it spans, as the HTML converter
       writes an anchor (docs/adr/0031).
+    - Internal references kept navigable (docs/adr/0032): a ``refs``
+      edge whose label resolves to a node is written ``[text](#anchor)``
+      over the text it spans, and every node such a reference names
+      carries ``<a id="anchor"></a>``,
+      inside its heading line after the ``#``s, at the start of its
+      paragraph, or on a line of its own before any other block (a node
+      nested in a container is anchored at that container's block). The
+      anchor is ``cnd.core.render.markdown_anchor(label)``. A reference
+      without a usable span is ``[label](#anchor)`` on the marker line;
+      one whose label resolves to nothing keeps its ``[label]``. A
+      text-only conversion writes no anchor (it is HTML), so every
+      reference there keeps its ``[label]`` on the marker line.
     - Per-block markers appended on their own line under each block, for
-      the edges of every text in the block: ``[label]`` for ``refs``,
+      the edges of every text in the block: ``[label](#anchor)`` (or
+      ``[label]``, see above) for every ``refs`` edge the renderer did
+      not write inline,
       pandoc-style ``[@label]`` / ``@label`` for ``cites``, ``[^label]``
       for ``footnotes``, and ``[href](href)`` for every ``links`` edge
       the renderer did not write inline (``cnd.core.render.recording_written_links``)
@@ -173,24 +189,30 @@ class MarkdownConverter(CndConverter):
     (see ``MarkdownRenderer``); ``link_schemes`` adds schemes the links
     may use (``cnd.core.urls.allowed_link_schemes``). Inject another
     renderer to change any of that; ``text_only`` and ``link_schemes``
-    then belong to the renderer you inject.
+    then belong to the renderer you inject. Whatever the renderer, the
+    conversion writes the anchors and hands the renderer its targets
+    (``cnd.core.render.providing_ref_targets``), unless the renderer has
+    ``text_only`` set. A ``MarkdownRenderer`` that escapes free text
+    writes the references in place; any other renderer leaves them to the
+    marker line, as ``[label](#anchor)``.
 
     **Irreducibly dropped** — properties of Markdown as a target, the
     same for every document (docs/proposals/0007):
 
-    - ``text_span`` of ``refs``, ``cites`` and ``footnotes``, and of a
-      link that is not written inline — those markers are appended under
-      the block, not spliced into the text at their standoff offsets, so
-      marker *position* inside a text is lost. Their relative order is
+    - ``text_span`` of ``cites`` and ``footnotes``, and of a reference
+      or a link that is not written inline — those markers are appended
+      under the block, not spliced into the text at their standoff
+      offsets, so marker *position* inside a text is lost. Their relative order is
       preserved.
     - ``CiteRef.form`` — only the ``none`` (silent citation) and
       prose-vs-bracketed distinctions survive; ``full``, ``author`` and
       ``year`` collapse into their neighbours.
     - ``state_metadata`` on every node, and ``NodeLocation.page``:
       Markdown has no page model and no place for producer state.
-    - Node ``id`` and ``label``: Markdown has no element identity, so
-      cross-reference markers degrade to plain bracketed labels rather
-      than links.
+    - Node ``id``, and the ``label`` of a node no reference names:
+      Markdown has no element identity. A referenced node's label
+      survives as an HTML anchor (not in a text-only conversion, where
+      references degrade to plain bracketed labels).
     - ``RawSource`` (``raw`` on math, figure and a ``math`` mark) and
       ``BibEntry.fields``: the producer's verbatim source and the full
       structured bibliography entry have no Markdown target, except that
@@ -224,7 +246,7 @@ class MarkdownConverter(CndConverter):
         if renderer is None:
             # Passed only when set, so a subclass overriding the 0.9
             # ``default_renderer(text_only=...)`` keeps working.
-            options = {"link_schemes": schemes} if schemes else {}
+            options: dict[str, object] = {"link_schemes": schemes} if schemes else {}
             renderer = self.default_renderer(text_only=text_only, **options)
         super().__init__(renderer)
         self.footnotes_title = footnotes_title
@@ -232,7 +254,10 @@ class MarkdownConverter(CndConverter):
 
     @classmethod
     def default_renderer(
-        cls, *, text_only: bool = False, link_schemes: Iterable[str] = ()
+        cls,
+        *,
+        text_only: bool = False,
+        link_schemes: Iterable[str] = (),
     ) -> NodeRenderer:
         return MarkdownRenderer(
             tables="inline",
@@ -247,16 +272,21 @@ class MarkdownConverter(CndConverter):
     def convert(self, cnd: Cnd) -> ConversionResult:
         # The whole conversion runs in a record of its own: a text rendered
         # outside any block (the bibliography) never notes its links into a
-        # record a caller opened around this conversion.
-        with recording_written_links():
-            return self._convert(cnd)
+        # record a caller opened around this conversion. The reference
+        # targets are this conversion's too, handed to the renderer for its
+        # duration without changing it. A text-only output has no HTML, so
+        # no anchor for a reference to link to.
+        text_only = getattr(self.renderer, "text_only", False)
+        targets = frozenset() if text_only else _ref_targets(cnd)
+        with recording_written_links(), providing_ref_targets(targets):
+            return self._convert(cnd, targets)
 
-    def _convert(self, cnd: Cnd) -> ConversionResult:
+    def _convert(self, cnd: Cnd, targets: frozenset[str] = frozenset()) -> ConversionResult:
         warnings: list[str] = []
         sections = [
             self._front_matter(cnd),
-            self._body(cnd, warnings),
-            self._footnotes_section(cnd, warnings),
+            self._body(cnd, warnings, targets),
+            self._footnotes_section(cnd, warnings, targets),
             self._bibliography_section(cnd, warnings),
         ]
         text = "\n\n".join(section for section in sections if section)
@@ -296,15 +326,24 @@ class MarkdownConverter(CndConverter):
 
     # -- body -----------------------------------------------------------
 
-    def _body(self, cnd: Cnd, warnings: list[str]) -> str:
-        blocks = [self._block(cnd, visit.node, warnings) for visit in iter_body(cnd)]
+    def _body(self, cnd: Cnd, warnings: list[str], targets: frozenset[str] = frozenset()) -> str:
+        blocks = [self._block(cnd, visit.node, warnings, targets) for visit in iter_body(cnd)]
         return "\n\n".join(block for block in blocks if block)
 
-    def _block(self, cnd: Cnd, node: CndNode, warnings: list[str]) -> str:
-        """One block and, on its own line under it, its markers."""
+    def _block(
+        self, cnd: Cnd, node: CndNode, warnings: list[str], targets: frozenset[str] = frozenset()
+    ) -> str:
+        """One block, the anchors of the reference targets it renders, and,
+        on its own line under it, its markers."""
         with recording_written_links() as written:
             rendered = self.renderer.render(node).strip()
-        markers = self._marker_line(cnd, node, warnings, written)
+        anchors = "".join(
+            f'<a id="{markdown_anchor(label)}"></a>'
+            for label in _target_labels(cnd, node, targets)
+        )
+        if anchors:
+            rendered = _with_anchors(node, rendered, anchors)
+        markers = self._marker_line(cnd, node, warnings, written, targets)
         if markers and rendered:
             # Only a paragraph or a heading takes its markers on the next
             # line. Under any other block (list, table, quote, admonition,
@@ -315,25 +354,37 @@ class MarkdownConverter(CndConverter):
         return markers or rendered
 
     def _marker_line(
-        self, cnd: Cnd, node: CndNode, warnings: list[str], written: list[LinkRef]
+        self,
+        cnd: Cnd,
+        node: CndNode,
+        warnings: list[str],
+        written: list[LinkRef | NodeRef],
+        targets: frozenset[str] = frozenset(),
     ) -> str:
         """The markers of the block the renderer has just rendered. A link
-        the renderer noted as written inline (``written``, from
-        ``cnd.core.render.recording_written_links``) is left out, once per
-        time it was written; every other link is here."""
+        or a reference the renderer noted as written inline (``written``,
+        from ``cnd.core.render.recording_written_links``) is left out, once
+        per time it was written; every other one is here."""
         pending = Counter(id(link) for link in written)
         schemes = getattr(self.renderer, "link_schemes", frozenset())
         rendered: list[str] = []
         for marker in resolve_markers(cnd, node, warnings):
-            if marker.family == "links" and pending[id(marker.link)] > 0:
+            if marker.family in ("links", "refs") and pending[id(marker.link)] > 0:
                 pending[id(marker.link)] -= 1
                 continue
-            rendered.append(self._marker(marker, schemes))
+            rendered.append(self._marker(marker, schemes, targets))
         return " ".join(part for part in rendered if part)
 
     @staticmethod
-    def _marker(marker: ResolvedMarker, schemes: frozenset[str] = frozenset()) -> str:
+    def _marker(
+        marker: ResolvedMarker,
+        schemes: frozenset[str] = frozenset(),
+        targets: frozenset[str] = frozenset(),
+    ) -> str:
         if marker.family == "refs":
+            if marker.label in targets:
+                text = escape_inline(_single_line(marker.label))
+                return f"[{text}](#{markdown_anchor(marker.label)})"
             return f"[{_label_text(marker.label)}]"
         if marker.family == "footnotes":
             return f"[^{markdown_label(marker.label)}]"
@@ -360,18 +411,26 @@ class MarkdownConverter(CndConverter):
 
     # -- pools ----------------------------------------------------------
 
-    def _footnotes_section(self, cnd: Cnd, warnings: list[str]) -> str:
+    def _footnotes_section(
+        self, cnd: Cnd, warnings: list[str], targets: frozenset[str] = frozenset()
+    ) -> str:
         if not cnd.footnotes:
             return ""
         lines = [f"## {self.footnotes_title}", ""]
-        lines.extend(self._footnote_definition(cnd, note, warnings) for note in cnd.footnotes)
+        lines.extend(
+            self._footnote_definition(cnd, note, warnings, targets) for note in cnd.footnotes
+        )
         return "\n".join(lines)
 
-    def _footnote_definition(self, cnd: Cnd, note: Footnote, warnings: list[str]) -> str:
+    def _footnote_definition(
+        self, cnd: Cnd, note: Footnote, warnings: list[str], targets: frozenset[str] = frozenset()
+    ) -> str:
         """``[^label]: first block``; every further line is indented four
         spaces, so several blocks stay inside the one footnote. The label
         goes through ``markdown_label``, as the marker's does."""
-        blocks = [self._block(cnd, child, warnings) for child in expand_headings(note.children)]
+        blocks = [
+            self._block(cnd, child, warnings, targets) for child in expand_headings(note.children)
+        ]
         body = "\n\n".join(block for block in blocks if block)
         lines = body.split("\n")
         rest = [f"    {line}" if line else "" for line in lines[1:]]
@@ -387,6 +446,69 @@ class MarkdownConverter(CndConverter):
                 warnings.append(warning)
             lines.append(f"- **{_label_text(entry.label)}** — {self.renderer.render_text(reference)}")
         return "\n".join(lines)
+
+
+def _ref_targets(cnd: Cnd) -> frozenset[str]:
+    """The labels a ``refs`` edge of the document names and that resolve to
+    a node (not a pool entry): the labels that get an anchor, and the only
+    ones a reference links to, so every such link lands."""
+    named = {
+        edge.label
+        for visit in cnd.iter_all()
+        for edge in edges_of(visit.node)
+        if isinstance(edge, NodeRef)
+    }
+    return frozenset(
+        label
+        for label in named
+        if (target := cnd.resolve(label)) is not None
+        and not isinstance(target, (BibEntry, Footnote))
+    )
+
+
+def _target_labels(cnd: Cnd, node: CndNode, targets: frozenset[str]) -> list[str]:
+    """The target labels of ``node`` and of every node its block renders,
+    in reading order (the walk of ``cnd.converters.base.marker_texts``):
+    the section of the block's own heading is made of blocks of their own,
+    but any other container renders everything nested in it itself, a
+    nested heading's section included, so a nested target is anchored at
+    the block that holds it. A label counts only on the node
+    ``Cnd.resolve`` returns for it, so an id is written once, where a
+    reference resolves, even in a CND that repeats a label."""
+    if not targets:
+        return []
+    labels = [node.label] if _is_anchored(cnd, node, targets) else []
+    if not isinstance(node, HeadingNode):
+        labels.extend(_nested_target_labels(cnd, node, targets))
+    return labels
+
+
+def _nested_target_labels(cnd: Cnd, node: CndNode, targets: frozenset[str]) -> list[str]:
+    labels: list[str] = []
+    for slot in child_slots(node):
+        for child in slot.nodes:
+            if _is_anchored(cnd, child, targets):
+                labels.append(child.label)
+            labels.extend(_nested_target_labels(cnd, child, targets))
+    return labels
+
+
+def _is_anchored(cnd: Cnd, node: CndNode, targets: frozenset[str]) -> bool:
+    return node.label in targets and cnd.resolve(node.label) is node
+
+
+_HEADING_START = re.compile(r"#{1,6}(?:[ \t]+|$)")
+
+
+def _with_anchors(node: CndNode, rendered: str, anchors: str) -> str:
+    """``rendered`` carrying ``anchors``: inside a heading line after its
+    ``#``s, at the start of a paragraph, on a line of its own before any
+    other block (a table, a list or a fence must start its line)."""
+    if isinstance(node, HeadingNode) and (m := _HEADING_START.match(rendered)):
+        return f"{rendered[: m.end()].rstrip()} {anchors}{rendered[m.end():]}"
+    if isinstance(node, ParagraphNode) and rendered:
+        return f"{anchors}{rendered}"
+    return f"{anchors}\n\n{rendered}" if rendered else anchors
 
 
 def _single_line(text: str) -> str:

@@ -70,12 +70,14 @@ class TestRenderOnce:
 class TestMarkers:
     def test_markers_of_nested_paragraphs_reach_the_block(self) -> None:
         target = para("target", label="t")
+        # No span: a spanned reference is written in place (docs/adr/0032),
+        # and this test needs one on the marker line.
         lst = ListNode(
             type="list", id=uuid4(),
-            items=[item(para(rt("see it", refs=[NodeRef(label="t", text_span=[4, 6])])))],
+            items=[item(para(rt("see it", refs=[NodeRef(label="t")])))],
         )
         out = MarkdownConverter().convert(_cnd([target, lst])).text
-        assert "- see it\n\n[t]" in out
+        assert "- see it\n\n[t](#t)" in out
 
     def test_html_markers_of_nested_paragraphs_reach_the_block(self) -> None:
         target = para("target", label="t")
@@ -109,11 +111,12 @@ class TestMarkers:
         return any(t.content == marker for t in tokens[start:end] if t.type == "inline")
 
     def test_marker_under_a_list_is_its_own_paragraph(self) -> None:
+        # No span: a spanned reference is written in place (docs/adr/0032).
         lst = ListNode(type="list", id=uuid4(),
-                       items=[item(para(rt("see", refs=[NodeRef(label="t", text_span=[0, 3])])))])
+                       items=[item(para(rt("see", refs=[NodeRef(label="t")])))])
         tokens = self._parse(lst, para("target", label="t"))
-        self._marker_paragraph(tokens, "[t]")
-        assert not self._inside(tokens, "list_item_open", "list_item_close", "[t]")
+        self._marker_paragraph(tokens, "[t](#t)")
+        assert not self._inside(tokens, "list_item_open", "list_item_close", "[t](#t)")
 
     def test_marker_under_a_table_is_not_a_row(self) -> None:
         # No span: a spanned link is written in its cell (docs/adr/0031),
@@ -128,10 +131,10 @@ class TestMarkers:
 
     def test_marker_under_a_quote_is_its_own_paragraph(self) -> None:
         quote = QuoteNode(type="quote", id=uuid4(),
-                          children=[para(rt("see", refs=[NodeRef(label="t", text_span=[0, 3])]))])
+                          children=[para(rt("see", refs=[NodeRef(label="t")]))])
         tokens = self._parse(quote, para("target", label="t"))
-        self._marker_paragraph(tokens, "[t]")
-        assert not self._inside(tokens, "blockquote_open", "blockquote_close", "[t]")
+        self._marker_paragraph(tokens, "[t](#t)")
+        assert not self._inside(tokens, "blockquote_open", "blockquote_close", "[t](#t)")
 
     def test_spans_of_two_texts_are_never_compared(self) -> None:
         figure = FigureNode(
@@ -267,8 +270,9 @@ class TestHtml:
 
 
 def _section_heading() -> HeadingNode:
-    """A heading whose section holds one paragraph with a ref marker."""
-    child = para(rt("SECTION-TEXT", refs=[NodeRef(label="tgt-c1", text_span=[0, 7])]))
+    """A heading whose section holds one paragraph with a ref marker
+    (no span, so Markdown keeps it on the marker line, docs/adr/0032)."""
+    child = para(rt("SECTION-TEXT", refs=[NodeRef(label="tgt-c1")]))
     return HeadingNode(
         type="heading", id=uuid4(), level=3, text=rt("Inner"), heading_path=["Inner"],
         children=[child],
@@ -296,7 +300,7 @@ def _holding(kind: str):
 
 _CONTAINERS = ["quote", "list item", "admonition", "table cell", "layout cell", "figure"]
 _CONVERTERS = {
-    "markdown": (lambda: MarkdownConverter(), "[tgt-c1]"),
+    "markdown": (lambda: MarkdownConverter(), "[tgt-c1](#tgt-c1)"),
     "markdown text_only": (lambda: MarkdownConverter(text_only=True), "[tgt-c1]"),
     "html": (lambda: HtmlConverter(), 'href="#tgt-c1"'),
 }
@@ -333,7 +337,7 @@ class TestNestedHeadings:
         note = Footnote(id=uuid4(), label="fn", children=[para("Intro."), _section_heading()])
         body = para(rt("Text.", footnotes=[FootnoteRef(label="fn", text_span=[4, 5])]))
         out = MarkdownConverter().convert(_cnd([body, para("t", label="tgt-c1")], footnotes=[note])).text
-        assert "[^fn]: Intro.\n\n    ### Inner\n\n    SECTION-TEXT\n    [tgt-c1]" in out
+        assert "[^fn]: Intro.\n\n    ### Inner\n\n    SECTION-TEXT\n    [tgt-c1](#tgt-c1)" in out
 
     def test_nested_sections_expand_in_pre_order(self) -> None:
         deep = HeadingNode(

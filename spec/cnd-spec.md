@@ -879,7 +879,13 @@ renders what it supports and leaves the text of anything else unchanged.
   that does not render inline goes to the marker line after its block,
   `[href](href)`, its text and destination escaped so that the
   destination parses back to the href. An href that fails the URL rule
-  below is written as escaped plain text, never as a link.
+  below is written as escaped plain text, never as a link. A `refs` edge
+  whose label resolves to a node links to an anchor, `<a id="…"></a>`,
+  written on that node: `[text](#…)` over the text it spans, under the
+  same rules, or `[label](#…)` on the marker line when it cannot be
+  placed there; one that resolves to nothing stays `[label]` on the
+  marker line (docs/adr/0032). The text-only option writes no anchor, so
+  every reference stays `[label]` on the marker line.
 - **HTML.** Marks map to `<strong>`, `<em>`, `<code>`, `<s>`, `<sup>`,
   `<sub>`, `<u>`, `<mark>`; a `math` mark keeps its source in a
   `<code class="math">` element. An `admonition` maps to an `<aside>`

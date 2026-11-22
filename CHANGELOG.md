@@ -9,6 +9,36 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+The default Markdown conversion changes for every document with an internal
+reference that resolves to a node.
+
+### Added
+
+- `MarkdownRenderer(ref_targets=...)`: the labels a renderer used on its own
+  links a `refs` edge to. It needs `escape` and refuses `text_only`.
+- `cnd.core.render.providing_ref_targets`: a converter hands a renderer its
+  reference targets for one conversion without changing the renderer.
+- `cnd.core.render.markdown_anchor(label)`: the anchor id for a label,
+  `[A-Za-z0-9._:-]` kept, everything else percent-encoded as UTF-8; a link
+  to it is `#` plus the same string.
+
+### Changed
+
+- **Markdown output keeps internal references navigable** (docs/adr/0032):
+  `MarkdownConverter` writes a `refs` edge with a usable `text_span` as
+  `[text](#anchor)` where its words are, and puts `<a id="anchor"></a>` on
+  every node a reference names (in a heading line after the `#`s, at the
+  start of a paragraph, on its own line before any other block). A reference
+  the renderer could not place becomes `[label](#anchor)` on the marker
+  line; an unresolved one keeps its `[label]`. There is no option to turn
+  it off. An injected renderer gets the same anchors; one that does not
+  escape free text leaves every reference on the marker line as
+  `[label](#anchor)`. A text-only conversion writes no anchor and keeps
+  every reference as `[label]` on the marker line. Footnotes and citations
+  are unchanged.
+- `cnd.core.render.recording_written_links` also records the `refs` edges a
+  renderer writes inline as links to anchors.
+
 ## [0.10.0] - 2026-11-05
 
 The CND format stays **0.5.0**: no model, schema or hash changes. The default

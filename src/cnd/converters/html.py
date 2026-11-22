@@ -42,7 +42,7 @@ from cnd.core.render import (
     note_written_links,
     recording_written_links,
 )
-from cnd.core.text import Edge, LinkRef, RichText
+from cnd.core.text import Edge, LinkRef, NodeRef, RichText
 from cnd.core.urls import allowed_link_schemes, is_safe_image_source, is_safe_url
 
 from cnd.converters.base import (
@@ -105,11 +105,10 @@ def _numbering(node: HeadingNode | MathNode | FigureNode) -> str:
 class HtmlNodeRenderer(NodeRenderer):
     """Render one node as an HTML fragment. Text is always escaped.
 
-    A node's ``label`` becomes the element's ``id``, which is what gives
-    the HTML converter real in-document cross-reference links where the
-    Markdown converter only has bracketed text. Node ``id`` (the UUID),
-    ``state_metadata`` and ``location`` are not emitted. A container
-    renders its nested nodes itself.
+    A node's ``label`` becomes the element's ``id``, which is what the
+    HTML converter's in-document cross-reference links point to. Node
+    ``id`` (the UUID), ``state_metadata`` and ``location`` are not
+    emitted. A container renders its nested nodes itself.
 
     A ``links`` edge with a ``text_span`` makes the text it spans an
     ``<a class="cnd-link">``, unless its href fails
@@ -461,7 +460,7 @@ class HtmlConverter(CndConverter):
         return rendered
 
     def _markers(
-        self, cnd: Cnd, node: CndNode, warnings: list[str], written: list[LinkRef]
+        self, cnd: Cnd, node: CndNode, warnings: list[str], written: list[LinkRef | NodeRef]
     ) -> str:
         inline = self._inline_link_ids(node)
         # A renderer without ``inline_links`` (a Markdown renderer writing
