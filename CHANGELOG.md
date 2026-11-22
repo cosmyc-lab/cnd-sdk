@@ -9,6 +9,45 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+The CND format stays **0.5.0**, but its schema gets stricter: a CND that
+parsed before can now be refused. This is a **breaking** change for a
+producer that writes keys the format does not define, or any of the
+shapes below.
+
+### Changed
+
+- **A CND object refuses an unknown key.** Every model that reads CND JSON
+  (the CND, its metadata and source, nodes, list items, term items, cells,
+  rich text, marks, the four edge families, `numbering`, `location`, `raw`,
+  bibliography entries and footnotes) used to drop a key it did not know,
+  so a typo or a field from another version vanished on parse. It is now a
+  parse error, and the schema says `additionalProperties: false` on every
+  object. The free-form bags `state_metadata`, `BibEntry.fields` and
+  `doc.extra` still hold any key. The declaration inherits this inside the
+  value objects it shares with the CND (rich text, marks, edges, metadata),
+  where a stray key used to pass.
+- **Bounds in the schema**: a heading's `level` is 1 to 6; a cell's `row`
+  and `col` are 0 or more; an edge's `text_span` is exactly two offsets of
+  0 or more. Each was a silent acceptance and is now a parse error; the
+  declaration refuses the same heading levels and cell coordinates.
+  `validate()` still reports a span past the end of its text, or with
+  `start` after `end`, as `text-span-out-of-bounds`.
+- **Two new `validate()` rules**:
+  - `heading-path-mismatch`: a heading's `heading_path` must be its
+    nearest enclosing heading's path plus one element (through lists,
+    cells and other containers; a footnote's headings start their own
+    path). What the element holds is not checked.
+  - `cell-overlap`: no two cells of a `table` or `layout` cover the same
+    position, spans included. The check compares rectangles, so a huge
+    span costs no more than a small one.
+
+### Fixed
+
+- `fixtures/structured.cnd`: the "Paramètre" header cell spanned two
+  columns over the "Valeur" cell beside it. It now spans one, and
+  `fixtures/hashes.json` is regenerated (the table's node hash and the
+  document's content hash change).
+
 ## [0.10.0] - 2026-11-05
 
 The CND format stays **0.5.0**: no model, schema or hash changes. The default

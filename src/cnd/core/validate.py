@@ -17,14 +17,23 @@ Invariants checked: ``cnd_version`` is the version this SDK implements;
 ids unique across the whole CND; labels unique;
 edges resolve in their own domain; ``text_span`` inside its text; marks
 in bounds, canonically ordered, merged per kind and never reaching into
-an atomic mark; pagination all-or-nothing; bibliography floor; no
-``doc.extra`` key repeating a named metadata field.
+an atomic mark; each ``heading_path`` consistent with the tree; no two
+cells of a grid covering the same position; pagination all-or-nothing;
+bibliography floor; no ``doc.extra`` key repeating a named metadata
+field.
+
+What a single value can say about itself — an unknown key, a heading
+level outside 1..6, a negative cell coordinate, a ``text_span`` that is
+not two non-negative offsets — is the models' and the schema's, and is
+refused on parse before ``validate()`` runs.
 """
 
+import heapq
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
 
 from cnd.core.cnd import CND_VERSION, BibEntry, Cnd, DocMetadata, Footnote
-from cnd.core.nodes import CndNode, texts_of
+from cnd.core.nodes import Cell, CndNode, HeadingNode, LayoutNode, TableNode, texts_of
 from cnd.core.text import ATOMIC_MARK_KINDS, LinkRef, RichText
 
 # The lifted bibliographic fields; an entry satisfies the content floor
@@ -74,6 +83,8 @@ def validate(cnd: Cnd) -> list[Violation]:
     violations += _check_link_domains(cnd)
     violations += _check_text_spans(cnd)
     violations += _check_marks(cnd)
+    violations += _check_heading_paths(cnd)
+    violations += _check_cell_grids(cnd)
     violations += _check_pagination(cnd)
     violations += _check_bibliography_floor(cnd)
     violations += _check_doc_extra(cnd)
@@ -377,6 +388,102 @@ def _mark_violations(text: RichText, where: str) -> list[Violation]:
                     )
                 )
     return out
+
+
+def _check_heading_paths(cnd: Cnd) -> list[Violation]:
+    """Each ``heading_path`` is its nearest enclosing heading's path plus
+    one element for the heading itself.
+
+    The enclosing heading is found through any container (a list item, a
+    cell, a quote), and the top of the body and of each footnote starts
+    from ``[]``. A heading is compared with its parent's path *as
+    written*, so one wrong path is reported once rather than again for
+    every consistent heading below it. What an element holds — a bare
+    title or one prefixed with its number — is the producer's choice and
+    is not checked.
+    """
+    violations: list[Violation] = []
+    for visit in cnd.iter_all():
+        node = visit.node
+        if not isinstance(node, HeadingNode):
+            continue
+        enclosing = visit.ctx.heading_path
+        path = node.heading_path
+        if len(path) == len(enclosing) + 1 and path[:-1] == enclosing:
+            continue
+        violations.append(
+            Violation(
+                "heading-path-mismatch",
+                f"heading_path {path!r} should be the enclosing heading's "
+                f"path {enclosing!r} plus one element for this heading",
+                f"heading {node.id}",
+            )
+        )
+    return violations
+
+
+def _check_cell_grids(cnd: Cnd) -> list[Violation]:
+    """No two cells of a ``table`` or ``layout`` cover the same grid
+    position, spans included; two cells at the same ``(row, col)`` are the
+    simplest case."""
+    violations: list[Violation] = []
+    for visit in cnd.iter_all():
+        node = visit.node
+        if not isinstance(node, (TableNode, LayoutNode)):
+            continue
+        for index, earlier in _overlapping_cells(node.cells):
+            cell, other = node.cells[index], node.cells[earlier]
+            same = (cell.row, cell.col) == (other.row, other.col)
+            violations.append(
+                Violation(
+                    "cell-overlap",
+                    (
+                        f"sits at the same position as cell {earlier}"
+                        if same
+                        else f"covers a position cell {earlier} "
+                        f"(row {other.row}, col {other.col}) already covers"
+                    ),
+                    f"cell {index} (row {cell.row}, col {cell.col}) "
+                    f"of {node.type} {node.id}",
+                )
+            )
+    return violations
+
+
+def _overlapping_cells(cells: list[Cell]) -> list[tuple[int, int]]:
+    """``(index, earlier_index)`` for every cell whose rectangle meets one
+    already placed, in ``cells`` order.
+
+    A sweep down the rows that compares rectangles and never fills a
+    grid, so its cost does not depend on the spans: a cell of a billion
+    rows costs what a cell of one does. The cells still covering the
+    current row are kept as disjoint column intervals sorted by first
+    column, so a new cell need only be compared with its two neighbours.
+    A cell found overlapping is reported and left out of the sweep, so
+    the cells that remain cover each position at most once.
+    """
+    order = sorted(range(len(cells)), key=lambda i: (cells[i].row, cells[i].col))
+    starts: list[int] = []  # first column of each live interval, sorted
+    live: list[tuple[int, int]] = []  # (end column, cell index), parallel to starts
+    expiry: list[tuple[int, int]] = []  # heap of (end row, first column)
+    found: list[tuple[int, int]] = []
+    for index in order:
+        cell = cells[index]
+        while expiry and expiry[0][0] <= cell.row:
+            _, first = heapq.heappop(expiry)
+            at = bisect_left(starts, first)
+            del starts[at], live[at]
+        first, end = cell.col, cell.col + cell.colspan
+        at = bisect_right(starts, first)
+        if at > 0 and live[at - 1][0] > first:
+            found.append((index, live[at - 1][1]))
+        elif at < len(starts) and starts[at] < end:
+            found.append((index, live[at][1]))
+        else:
+            starts.insert(at, first)
+            live.insert(at, (end, index))
+            heapq.heappush(expiry, (cell.row + cell.rowspan, first))
+    return sorted(found)
 
 
 def _check_doc_extra(cnd: Cnd) -> list[Violation]:

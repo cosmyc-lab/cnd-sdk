@@ -1,6 +1,7 @@
 {
   "$defs": {
     "AdmonitionNode": {
+      "additionalProperties": false,
       "description": "A callout (\"Note\", \"Warning\"). ``kind`` is an open vocabulary; the\nknown values are ``KNOWN_ADMONITION_KINDS``.",
       "properties": {
         "id": {
@@ -129,6 +130,7 @@
       "type": "object"
     },
     "BibEntry": {
+      "additionalProperties": false,
       "description": "Bibliography pool entry \u2014 target of ``cites`` edges.\n\n``formatted`` is the reference string as displayed in the built\ndocument (the faithful capture). It is nullable because requiring it\npresupposes a style engine ran, which a hand author or a markdown\nproducer has no reason to have. A curated typed subset of common\nbibliographic fields is lifted alongside it; the full source entry\n(e.g. Hayagriva) is carried losslessly as structured JSON in ``fields``.\n\nAn entry must carry ``formatted``, structured fields, or both \u2014 never an\nempty, unconsumable entry. That floor is a validator rule, not a shape\nthe type system can express.",
       "properties": {
         "id": {
@@ -246,13 +248,16 @@
       "type": "object"
     },
     "Cell": {
-      "description": "One cell of a ``table`` or a ``layout``; content is block nodes.",
+      "additionalProperties": false,
+      "description": "One cell of a ``table`` or a ``layout``; content is block nodes.\n\n``row`` and ``col`` are 0-based. A cell covers the rectangle of\n``rowspan`` rows by ``colspan`` columns from there, and no two cells\nof a grid cover the same position (``validate()``, ``cell-overlap``).",
       "properties": {
         "row": {
+          "minimum": 0,
           "title": "Row",
           "type": "integer"
         },
         "col": {
+          "minimum": 0,
           "title": "Col",
           "type": "integer"
         },
@@ -344,6 +349,7 @@
       "type": "object"
     },
     "CiteRef": {
+      "additionalProperties": false,
       "description": "Forward citation edge; ``label`` resolves in the CND ``bibliography`` pool.",
       "properties": {
         "label": {
@@ -354,8 +360,11 @@
           "anyOf": [
             {
               "items": {
+                "minimum": 0,
                 "type": "integer"
               },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             },
             {
@@ -405,6 +414,7 @@
       "type": "object"
     },
     "CodeNode": {
+      "additionalProperties": false,
       "description": "Code block, verbatim. Inline code is a ``code`` mark. ``title`` is\nthe label an author gives a listing, typically a file name.",
       "properties": {
         "id": {
@@ -484,6 +494,7 @@
       "type": "object"
     },
     "DocDate": {
+      "additionalProperties": false,
       "description": "Partial or full document date from cnd metadata.",
       "properties": {
         "year": {
@@ -522,6 +533,7 @@
       "type": "object"
     },
     "DocMetadata": {
+      "additionalProperties": false,
       "description": "Bibliographic metadata for the work the CND represents.\n\nThis identifies the *work* \u2014 title, authors, date. The input artifact it\nwas built from is ``Cnd.source``, deliberately separate: the same work\ncan be built from a Typst source and later re-imported from another\nformat (docs/proposals/0008).\n\n``status`` and ``version`` are the values the author declares on the\ndocument, unrelated to ``cnd_version`` and to any build history. ``extra``\nholds any other title-page metadata; its keys never repeat a field name\n(validation, docs/proposals/0013).",
       "properties": {
         "title": {
@@ -619,6 +631,7 @@
       "type": "object"
     },
     "FigureNode": {
+      "additionalProperties": false,
       "description": "Captioned/numbered wrapper; content keeps its own node type in\n``children``. ``kind`` is the figure's category (open vocabulary),\nuseful above all for author-defined categories ``children`` cannot\nreveal. ``description`` is the text equivalent of the visual. An\nunconvertible body (a drawing) yields ``children=[]`` with ``raw``.",
       "properties": {
         "id": {
@@ -787,6 +800,7 @@
       "type": "object"
     },
     "Footnote": {
+      "additionalProperties": false,
       "description": "Footnote pool entry \u2014 target of ``footnotes`` edges. Its content is\nblock nodes: real nodes (global id/label uniqueness, location rule)\nkept out of the body walk (docs/proposals/0013).",
       "properties": {
         "id": {
@@ -869,6 +883,7 @@
       "type": "object"
     },
     "FootnoteRef": {
+      "additionalProperties": false,
       "description": "Forward footnote edge; ``label`` resolves in the CND ``footnotes`` pool.",
       "properties": {
         "label": {
@@ -879,8 +894,11 @@
           "anyOf": [
             {
               "items": {
+                "minimum": 0,
                 "type": "integer"
               },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             },
             {
@@ -898,7 +916,8 @@
       "type": "object"
     },
     "HeadingNode": {
-      "description": "Section heading; the section's content is in ``children``.",
+      "additionalProperties": false,
+      "description": "Section heading; the section's content is in ``children``.\n\n``level`` runs from 1 to 6, the depth HTML and Markdown headings can\nexpress. ``heading_path`` is the ``heading_path`` of the nearest\nenclosing heading plus one element for this heading (``[element]`` at\nthe top of the body or of a footnote); ``validate()`` checks it\nagainst the tree (``heading-path-mismatch``).",
       "properties": {
         "id": {
           "format": "uuid",
@@ -940,6 +959,8 @@
           "type": "string"
         },
         "level": {
+          "maximum": 6,
+          "minimum": 1,
           "title": "Level",
           "type": "integer"
         },
@@ -1038,6 +1059,7 @@
       "type": "object"
     },
     "ImageNode": {
+      "additionalProperties": false,
       "description": "Leaf image content.",
       "properties": {
         "id": {
@@ -1112,6 +1134,7 @@
       "type": "object"
     },
     "LayoutNode": {
+      "additionalProperties": false,
       "description": "A grid used for arrangement only; position carries no relation.",
       "properties": {
         "id": {
@@ -1170,6 +1193,7 @@
       "type": "object"
     },
     "LinkRef": {
+      "additionalProperties": false,
       "description": "Forward hyperlink edge; ``href`` resolves nowhere in the CND.\n\nThe fourth forward family and the only one not keyed by label: a\nhyperlink's target is outside the document by definition, so it admits\nno resolution domain and has no dangling state \u2014 a URL is a URL. The\nscheme is a consumer's business (``https:``, ``doi:``, an application\nscheme); the format only carries the string.",
       "properties": {
         "href": {
@@ -1180,8 +1204,11 @@
           "anyOf": [
             {
               "items": {
+                "minimum": 0,
                 "type": "integer"
               },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             },
             {
@@ -1199,6 +1226,7 @@
       "type": "object"
     },
     "ListItem": {
+      "additionalProperties": false,
       "description": "One list entry. Its content is block nodes; a nested list is a\n``list`` node with its own ``ordered``. ``checked`` is ``None`` for an\nitem that is not a task-list checkbox.",
       "properties": {
         "number": {
@@ -1292,6 +1320,7 @@
       "type": "object"
     },
     "ListNode": {
+      "additionalProperties": false,
       "description": "Bullet (``ordered=False``) or numbered (``ordered=True``) list.",
       "properties": {
         "id": {
@@ -1355,6 +1384,7 @@
       "type": "object"
     },
     "Mark": {
+      "additionalProperties": false,
       "description": "A standoff span of inline formatting inside a ``RichText.value``.\n\n``raw`` is the source of the covered text, used by ``math`` (the\nreadable linear form lives in ``value``, the formula here).",
       "properties": {
         "start": {
@@ -1390,6 +1420,7 @@
       "type": "object"
     },
     "MathNode": {
+      "additionalProperties": false,
       "description": "Block equation. Inline math is a ``math`` mark.",
       "properties": {
         "id": {
@@ -1467,6 +1498,7 @@
       "type": "object"
     },
     "NodeLocation": {
+      "additionalProperties": false,
       "description": "Layout facts the SDK cannot derive from the tree: the page where the\nnode begins in the built document.\n\nNullable, because a page only exists for a paginated source. Pagination\nis all-or-nothing across a CND \u2014 either every node carries a location or\nnone does \u2014 so ``location`` never encodes \"unknown page\" (docs/adr/0012,\ndocs/proposals/0008). Whether a CND is paginated is itself derived, not\nserialized: see ``Cnd.paginated``.\n\nPositions in reading order (document/sibling/page index and totals) are\nNOT serialized \u2014 the node tree is normatively in reading order, so the\nSDK derives them during traversal (see ``NodeTraverseContext``), the\nsame way reverse reference edges are derived (docs/adr/0008).",
       "properties": {
         "page": {
@@ -1481,6 +1513,7 @@
       "type": "object"
     },
     "NodeRef": {
+      "additionalProperties": false,
       "description": "Forward cross-reference edge to another node.\n\nAn edge is ``{label, text_span?}``: it names its target by label and\nresolves through the CND's label index (docs/adr/0017, superseding the\n``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the\nreference marker sits in the ``value`` of the ``RichText`` that holds\nthe edge, as a ``[start, end)`` pair of Unicode code-point offsets\n(docs/adr/0013).",
       "properties": {
         "label": {
@@ -1491,8 +1524,11 @@
           "anyOf": [
             {
               "items": {
+                "minimum": 0,
                 "type": "integer"
               },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             },
             {
@@ -1510,6 +1546,7 @@
       "type": "object"
     },
     "Numbering": {
+      "additionalProperties": false,
       "description": "A resolved counter as displayed: ``value`` (\"3\", \"2.1.1\", \"(1)\")\nand the counter word in the document's language (``name``, \"Figure\").\n\nReplaces the flat ``number`` + ``counter_label`` pair, so a word\nwithout a number can no longer be written (docs/proposals/0013).",
       "properties": {
         "value": {
@@ -1536,6 +1573,7 @@
       "type": "object"
     },
     "ParagraphNode": {
+      "additionalProperties": false,
       "description": "A paragraph: the leaf that carries prose.",
       "properties": {
         "id": {
@@ -1590,6 +1628,7 @@
       "type": "object"
     },
     "QuoteNode": {
+      "additionalProperties": false,
       "description": "Block quotation. An inline quotation stays text in its paragraph.",
       "properties": {
         "id": {
@@ -1713,6 +1752,7 @@
       "type": "object"
     },
     "RawSource": {
+      "additionalProperties": false,
       "description": "The producer's verbatim source for a node, with its language.\n\nA bare string dropped the one thing a consumer needs to decide whether\nto attempt a parse: which language the content is in. ``format`` is an\nopen string (``\"typst\"``, ``\"latex\"``, ``\"mathml\"``\u2026), never a closed\nenum \u2014 a new producer must not require a spec revision.",
       "properties": {
         "format": {
@@ -1732,6 +1772,7 @@
       "type": "object"
     },
     "RichText": {
+      "additionalProperties": false,
       "description": "Prose: a text, its language, its marks and its forward edges.\n\nAn edge belongs to the text in which its marker opens; its owning\nnode is the nearest node holding the text. Every list defaults to\nempty and may be omitted, so ``{\"value\": \"\u2026\"}`` is a complete text.\n``lang`` null inherits from the enclosing text, then the node chain,\nthen ``doc.lang``.",
       "properties": {
         "value": {
@@ -1798,6 +1839,7 @@
       "type": "object"
     },
     "SourceInfo": {
+      "additionalProperties": false,
       "description": "The input artifact the CND was built from.\n\n``hash`` is self-describing (``\"sha256:\u2026\"``). Its comparability is\nnarrow and normative: two hashes are comparable only between CNDs from\nthe **same producer over the same source**, where equal means unchanged\nand different means changed. Comparing across producers is meaningless.\n\n``uri`` is an identifier in the producer's own space and is **never\npromised resolvable** \u2014 a consumer must not dereference it.",
       "properties": {
         "type": {
@@ -1829,6 +1871,7 @@
       "type": "object"
     },
     "TableNode": {
+      "additionalProperties": false,
       "description": "A table whose rows and columns carry meaning. ``kind`` states what\nit is: ``\"data\"`` (a dataset of records), ``\"content\"`` (cells to\nread), ``None`` (unstated). Open vocabulary; never guessed by a\nproducer. A captioned table is wrapped in a ``FigureNode``.",
       "properties": {
         "id": {
@@ -1899,6 +1942,7 @@
       "type": "object"
     },
     "TermItem": {
+      "additionalProperties": false,
       "description": "One term and its definition (block nodes in ``children``).",
       "properties": {
         "term": {
@@ -1974,6 +2018,7 @@
       "type": "object"
     },
     "TermsNode": {
+      "additionalProperties": false,
       "description": "Definition list.",
       "properties": {
         "id": {
@@ -2032,6 +2077,7 @@
       "type": "object"
     }
   },
+  "additionalProperties": false,
   "description": "Top-level CND \u2014 a compiled document as a tree of typed nodes.",
   "properties": {
     "id": {

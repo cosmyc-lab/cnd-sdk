@@ -1262,10 +1262,12 @@ escaping, link notation).
 Because the declaration is authored by hand, an **unknown field is
 rejected rather than dropped** — a `capton` typed for `caption` raises
 instead of vanishing, so the mistake surfaces exactly where it is meant
-to be corrected. (This strictness reaches the declaration's own models:
-nodes, list items, term items, cells, footnotes, bibliography entries,
-`numbering` and the top level. A stray key inside a value object it shares with the CND — a
-`RichText`, a mark, a link edge, the document metadata — is not caught.)
+to be corrected. (This strictness reaches every object of a declaration:
+its own models — nodes, list items, term items, cells, footnotes,
+bibliography entries, `numbering` and the top level — and the value
+objects it shares with the CND — a `RichText`, a mark, a link edge, the
+document metadata — whose schema closes them too. Only the free-form
+bags, `state_metadata`, `fields` and `doc.extra`, hold any key.)
 
 **Hyperlinks.** The full object form of a text is the CND's own
 `RichText`, so a declaration carries `links` exactly as it carries

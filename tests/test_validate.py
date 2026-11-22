@@ -10,7 +10,8 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
-from factories import rt
+from factories import cell, para, rt
+from pydantic import ValidationError
 
 from cnd import (
     BibEntry,
@@ -19,10 +20,13 @@ from cnd import (
     Footnote,
     FootnoteRef,
     HeadingNode,
+    LayoutNode,
+    ListNode,
     Mark,
     NodeLocation,
     NodeRef,
     ParagraphNode,
+    TableNode,
     validate,
 )
 from cnd.core.text import CiteRef, LinkRef
@@ -55,9 +59,13 @@ def _rules(cnd: Cnd) -> list[str]:
 
 class TestValidCorpus:
     def test_every_fixture_validates(self) -> None:
-        for path in sorted(FIXTURES.glob("*.cnd")):
+        """Every committed CND, the declaration and reconciliation fixtures
+        included, parses under the closed models and breaks no rule."""
+        paths = sorted(FIXTURES.rglob("*.cnd"))
+        assert len(paths) > 20
+        for path in paths:
             cnd = Cnd.model_validate_json(path.read_text())
-            assert validate(cnd) == [], f"{path.name}: {validate(cnd)}"
+            assert validate(cnd) == [], f"{path.relative_to(FIXTURES)}: {validate(cnd)}"
 
 
 class TestLabelUniqueness:
@@ -297,10 +305,21 @@ class TestSpansAndMetadata:
         text = rt("short", links=[{"href": "https://x.test", "text_span": [2, 9]}])
         assert "text-span-out-of-bounds" in _rules(_doc([_p(text)]))
 
-    @pytest.mark.parametrize("span", [[1], [1, 2, 3], [9, 2], [-3, 4], []])
-    def test_a_malformed_text_span_is_reported_never_raised(self, span) -> None:
-        text = rt("short", links=[{"href": "https://x.test", "text_span": span}])
+    def test_a_reversed_text_span_is_reported(self) -> None:
+        text = rt("short", links=[{"href": "https://x.test", "text_span": [4, 2]}])
         assert "text-span-out-of-bounds" in _rules(_doc([_p(text)]))
+
+    @pytest.mark.parametrize("span", [[1], [1, 2, 3], [-3, 4], [2, -1], []])
+    @pytest.mark.parametrize("edge", [NodeRef, CiteRef, FootnoteRef])
+    def test_a_malformed_text_span_is_a_shape_error(self, span, edge) -> None:
+        """Two non-negative offsets is the shape (spec §5: "`[start, end)`
+        array of 2 ints", "0 ≤ start"); the schema carries it, so a
+        malformed span is refused on parse. Only the bound that depends on
+        the text, ``end ≤ len(value)``, is left to ``validate()``."""
+        with pytest.raises(ValidationError, match="text_span"):
+            edge(label="x", text_span=span)
+        with pytest.raises(ValidationError, match="text_span"):
+            rt("short", links=[{"href": "https://x.test", "text_span": span}])
 
     def test_an_empty_label_edge_with_a_bad_span_is_reported(self) -> None:
         text = rt("short", refs=[NodeRef(label="", text_span=[2, 9])])
@@ -352,3 +371,177 @@ class TestCndVersion:
 
     def test_the_current_version_is_fine(self) -> None:
         assert validate(_cnd([])) == []
+
+
+def _heading(text: str, level: int, path: list[str], children=()) -> HeadingNode:
+    return HeadingNode(
+        id=uuid4(), type="heading", level=level, text=rt(text),
+        heading_path=path, children=list(children),
+    )
+
+
+class TestHeadingLevel:
+    """Six heading levels, the depth HTML and Markdown can express; the
+    schema carries the range, so a level outside it is a shape error."""
+
+    @pytest.mark.parametrize("level", [0, -1, 7, 99])
+    def test_a_level_outside_one_to_six_is_refused(self, level: int) -> None:
+        with pytest.raises(ValidationError, match="level"):
+            _heading("H", level, ["H"])
+
+    @pytest.mark.parametrize("level", [1, 6])
+    def test_the_bounds_themselves_are_valid(self, level: int) -> None:
+        assert _rules(_cnd([_heading("H", level, ["H"])])) == []
+
+    def test_the_schema_states_the_range(self) -> None:
+        import json
+
+        schema = json.loads((FIXTURES.parent / "schema" / "cnd.schema.json").read_text())
+        level = schema["$defs"]["HeadingNode"]["properties"]["level"]
+        assert (level["minimum"], level["maximum"]) == (1, 6)
+
+
+class TestHeadingPath:
+    """A heading's ``heading_path`` is the path of its nearest enclosing
+    heading plus one element for itself, through any container; a
+    footnote's headings start a path of their own. What an element holds
+    (numbered or bare text) is the producer's, and is not checked."""
+
+    def test_a_consistent_tree_is_valid(self) -> None:
+        deepest = _heading("D", 3, ["1 A", "B", "D"])
+        inner = _heading("B", 2, ["1 A", "B"], [deepest])
+        listed = ListNode(
+            id=uuid4(), type="list",
+            items=[{"children": [_heading("C", 2, ["1 A", "C"])]}],
+        )
+        outer = _heading("A", 1, ["1 A"], [inner, listed])
+        assert _rules(_cnd([outer, _heading("E", 1, ["E"])])) == []
+
+    def test_a_top_level_heading_has_a_one_element_path(self) -> None:
+        assert _rules(_cnd([_heading("A", 1, ["Root", "A"])])) == ["heading-path-mismatch"]
+
+    def test_an_empty_path_is_a_mismatch(self) -> None:
+        assert _rules(_cnd([_heading("A", 1, [])])) == ["heading-path-mismatch"]
+
+    def test_a_child_must_extend_its_parent_path(self) -> None:
+        child = _heading("B", 2, ["Other", "B"])
+        cnd = _cnd([_heading("A", 1, ["A"], [child])])
+
+        [violation] = validate(cnd)
+
+        assert violation.rule == "heading-path-mismatch"
+        assert str(child.id) in violation.where
+
+    def test_a_skipped_ancestor_is_a_mismatch(self) -> None:
+        child = _heading("B", 2, ["B"])
+        assert _rules(_cnd([_heading("A", 1, ["A"], [child])])) == ["heading-path-mismatch"]
+
+    def test_the_path_threads_through_a_table_cell(self) -> None:
+        table = TableNode(
+            id=uuid4(), type="table",
+            cells=[cell(0, 0, children=[_heading("In cell", 2, ["In cell"])])],
+        )
+        assert _rules(_cnd([_heading("A", 1, ["A"], [table])])) == ["heading-path-mismatch"]
+        table.cells[0].children[0].heading_path = ["A", "In cell"]
+        assert _rules(_cnd([_heading("A", 1, ["A"], [table])])) == []
+
+    def test_a_footnote_heading_starts_its_own_path(self) -> None:
+        good = Footnote(id=uuid4(), label="fn", children=[_heading("N", 1, ["N"])])
+        bad = Footnote(id=uuid4(), label="fn2", children=[_heading("N2", 1, ["A", "N2"])])
+        body = _heading("A", 1, ["A"], [_p(rt("x", footnotes=[{"label": "fn"}, {"label": "fn2"}]))])
+
+        assert _rules(_cnd([body], footnotes=[good, bad])) == ["heading-path-mismatch"]
+
+    def test_one_wrong_heading_is_reported_once_not_for_its_subtree(self) -> None:
+        """A child is checked against its parent's path as written, so a
+        wrong parent does not cascade into its consistent descendants."""
+        child = _heading("B", 2, ["X", "Wrong", "B"])
+        parent = _heading("A", 1, ["X", "Wrong"], [child])
+
+        [violation] = validate(_cnd([parent]))
+
+        assert violation.rule == "heading-path-mismatch"
+        assert str(parent.id) in violation.where
+
+
+def _table(*cells, kind=TableNode) -> TableNode:
+    return kind(id=uuid4(), type="table" if kind is TableNode else "layout", cells=list(cells))
+
+
+class TestCellGrid:
+    """A grid position is covered by at most one cell, spans included."""
+
+    @pytest.mark.parametrize(("row", "col"), [(-1, 0), (0, -1)])
+    def test_a_negative_coordinate_is_refused(self, row: int, col: int) -> None:
+        with pytest.raises(ValidationError):
+            cell(row, col)
+
+    def test_the_schema_states_the_coordinate_minimum(self) -> None:
+        import json
+
+        schema = json.loads((FIXTURES.parent / "schema" / "cnd.schema.json").read_text())
+        props = schema["$defs"]["Cell"]["properties"]
+        assert props["row"]["minimum"] == 0
+        assert props["col"]["minimum"] == 0
+
+    @pytest.mark.parametrize("kind", [TableNode, LayoutNode])
+    def test_a_full_grid_with_spans_is_valid(self, kind) -> None:
+        grid = _table(
+            cell(0, 0, "a", colspan=2), cell(0, 2, "b"),
+            cell(1, 0, "c", rowspan=2), cell(1, 1, "d"), cell(1, 2, "e"),
+            cell(2, 1, "f", colspan=2),
+            kind=kind,
+        )
+        assert _rules(_cnd([grid])) == []
+
+    @pytest.mark.parametrize("kind", [TableNode, LayoutNode])
+    def test_two_cells_at_the_same_position(self, kind) -> None:
+        grid = _table(cell(0, 0, "a"), cell(0, 1, "b"), cell(0, 0, "c"), kind=kind)
+
+        [violation] = validate(_cnd([grid]))
+
+        assert violation.rule == "cell-overlap"
+        assert str(grid.id) in violation.where
+        assert "cell 2" in violation.where
+
+    def test_a_colspan_reaching_over_the_next_cell(self) -> None:
+        grid = _table(cell(0, 0, "a", colspan=2), cell(0, 1, "b"))
+        assert _rules(_cnd([grid])) == ["cell-overlap"]
+
+    def test_a_rowspan_reaching_over_a_cell_below(self) -> None:
+        grid = _table(cell(0, 0, "a", rowspan=3), cell(0, 1, "b"), cell(2, 0, "c"))
+        assert _rules(_cnd([grid])) == ["cell-overlap"]
+
+    def test_two_spanning_cells_crossing(self) -> None:
+        grid = _table(cell(0, 1, "a", rowspan=3), cell(1, 0, "b", colspan=3))
+        assert _rules(_cnd([grid])) == ["cell-overlap"]
+
+    def test_each_overlapping_cell_is_reported(self) -> None:
+        grid = _table(cell(0, 0, "a", colspan=3), cell(0, 1, "b"), cell(0, 2, "c"))
+        assert _rules(_cnd([grid])) == ["cell-overlap", "cell-overlap"]
+
+    def test_a_huge_span_is_checked_without_expanding_it(self) -> None:
+        """Rectangles are compared, never filled in, so a span of a
+        billion rows costs what a span of one does."""
+        import time
+
+        far = 10**9
+        clean = _table(cell(0, 0, "a", rowspan=far, colspan=far), cell(far, far, "b"))
+        clash = _table(cell(0, 0, "a", rowspan=far, colspan=far), cell(far - 1, 5, "b"))
+        start = time.perf_counter()
+        assert _rules(_cnd([clean])) == []
+        assert _rules(_cnd([clash])) == ["cell-overlap"]
+        assert time.perf_counter() - start < 1
+
+    def test_a_grid_inside_a_footnote_is_checked(self) -> None:
+        note = Footnote(id=uuid4(), label="fn", children=[_table(cell(0, 0, "a"), cell(0, 0, "b"))])
+        body = _p(rt("x", footnotes=[{"label": "fn"}]))
+        assert _rules(_cnd([body], footnotes=[note])) == ["cell-overlap"]
+
+    def test_many_cells_in_one_row_stay_fast(self) -> None:
+        import time
+
+        grid = _table(*(cell(0, col) for col in range(20_000)), cell(0, 19_999))
+        start = time.perf_counter()
+        assert _rules(_cnd([grid])) == ["cell-overlap"]
+        assert time.perf_counter() - start < 10  # catches quadratic growth, not speed

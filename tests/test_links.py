@@ -297,7 +297,9 @@ class TestNoLinkIsLost:
 
     @pytest.mark.parametrize("span", [[2, 2], [9, 12], [3, 1], [1]])
     def test_empty_clamped_or_malformed_span(self, span) -> None:
-        text = rt("abcd", links=[LinkRef(href="https://e.com", text_span=span)])
+        # A one-offset span no longer parses; ``model_construct`` stands for
+        # a model built without validation, which the converter still survives.
+        text = rt("abcd", links=[LinkRef.model_construct(href="https://e.com", text_span=span)])
         assert 'href="https://e.com">https://e.com</a>' in self._markers(text)
 
     @pytest.mark.parametrize("kind", ["code", "math"])

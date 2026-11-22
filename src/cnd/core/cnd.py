@@ -4,7 +4,9 @@ from datetime import datetime
 from typing import Any, Union
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import Field, PrivateAttr
+
+from cnd.core.model import ClosedModel
 
 from cnd.core.nodes import (
     CndNode,
@@ -26,7 +28,7 @@ version the models implement.
 """
 
 
-class DocDate(BaseModel):
+class DocDate(ClosedModel):
     """Partial or full document date from cnd metadata."""
 
     year: int
@@ -34,7 +36,7 @@ class DocDate(BaseModel):
     day: int | None = None
 
 
-class DocMetadata(BaseModel):
+class DocMetadata(ClosedModel):
     """Bibliographic metadata for the work the CND represents.
 
     This identifies the *work* — title, authors, date. The input artifact it
@@ -59,7 +61,7 @@ class DocMetadata(BaseModel):
     extra: dict[str, str] = Field(default={})
 
 
-class SourceInfo(BaseModel):
+class SourceInfo(ClosedModel):
     """The input artifact the CND was built from.
 
     ``hash`` is self-describing (``"sha256:…"``). Its comparability is
@@ -76,7 +78,7 @@ class SourceInfo(BaseModel):
     uri: str | None = None
 
 
-class BibEntry(BaseModel):
+class BibEntry(ClosedModel):
     """Bibliography pool entry — target of ``cites`` edges.
 
     ``formatted`` is the reference string as displayed in the built
@@ -104,7 +106,7 @@ class BibEntry(BaseModel):
     fields: dict[str, Any] = Field(default={})
 
 
-class Footnote(BaseModel):
+class Footnote(ClosedModel):
     """Footnote pool entry — target of ``footnotes`` edges. Its content is
     block nodes: real nodes (global id/label uniqueness, location rule)
     kept out of the body walk (docs/proposals/0013)."""
@@ -118,7 +120,7 @@ LinkTarget = Union[CndNode, BibEntry, Footnote]
 """What a link family can resolve to: a node, or an out-of-tree pool entry."""
 
 
-class Cnd(BaseModel):
+class Cnd(ClosedModel):
     """Top-level CND — a compiled document as a tree of typed nodes."""
 
     id: UUID = Field(default_factory=uuid4)
