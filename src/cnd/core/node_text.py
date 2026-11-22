@@ -209,6 +209,16 @@ def _gfm_cell(text: str, *, text_only: bool) -> str:
     return text.replace("|", "\\|").replace("\n", " " if text_only else "<br>")
 
 
+def _row_zero_is_header(node: TableNode) -> bool:
+    """Whether grid row 0 reads as the header row. An empty cell does not
+    count against it: a header row often has blank cells (a corner cell),
+    which :func:`header_rows` would reject for not being flagged."""
+    if 0 in header_rows(node):
+        return True
+    row = [cell for cell in node.cells if cell.row == 0]
+    return any(c.is_header for c in row) and all(c.is_header or not c.children for c in row)
+
+
 def render_table_markdown(
     node: TableNode,
     *,
@@ -219,33 +229,44 @@ def render_table_markdown(
 
     ``cell_text`` turns a cell into inline Markdown; the default is the
     cell's plain text. Call it only on a table whose cells pass
-    :func:`is_inline_cell`, or block content is flattened. Spanned cells
-    (``rowspan``/``colspan`` > 1) place their text once, at the cell's own
-    ``(row, col)`` — Markdown has no merged-cell syntax, so the rest of the
-    span is left blank rather than repeated. The separator row follows the
-    header row (cells flagged ``is_header`` when present, else row 0).
+    :func:`is_inline_cell`, or block content is flattened.
+
+    The output is always one valid GFM table, and every cell stays readable:
+
+    * Markdown has no merged-cell syntax, so a cell with ``rowspan`` or
+      ``colspan`` > 1 repeats its text in every position it covers (a reader
+      of the plain text, or a retriever, then finds the value in each row and
+      column it applies to). A position holding a cell of its own is never
+      overwritten.
+    * GFM needs its separator right after the first line, so the separator
+      always follows grid row 0. When row 0 is a header row (see
+      :func:`header_rows`, blank cells aside) it is the Markdown header. When it is not (the
+      header cells start lower, or sit only in the first column), a header
+      row of empty cells is emitted first, so no data row is promoted to a
+      header and none is lost; a header row that comes later is an ordinary
+      row of the body.
+
     Each cell has ``|`` escaped and newlines turned into ``<br>`` (a space
     under ``text_only``) so the row keeps its column count.
     """
     if not node.cells:
         return ""
     render_cell = cell_text or cell_plain_text
-    max_row = max(cell.row + cell.rowspan - 1 for cell in node.cells)
-    max_col = max(cell.col + cell.colspan - 1 for cell in node.cells)
+    max_row = max(cell.row + max(cell.rowspan, 1) - 1 for cell in node.cells)
+    max_col = max(cell.col + max(cell.colspan, 1) - 1 for cell in node.cells)
     grid: list[list[str]] = [["" for _ in range(max_col + 1)] for _ in range(max_row + 1)]
-    flagged: set[int] = set()
+    origins = {(cell.row, cell.col) for cell in node.cells}
     for cell in node.cells:
-        grid[cell.row][cell.col] = _gfm_cell(render_cell(cell), text_only=text_only)
-        if cell.is_header:
-            flagged.add(cell.row)
+        text = _gfm_cell(render_cell(cell), text_only=text_only)
+        for row in range(cell.row, cell.row + max(cell.rowspan, 1)):
+            for col in range(cell.col, cell.col + max(cell.colspan, 1)):
+                if (row, col) == (cell.row, cell.col) or (row, col) not in origins:
+                    grid[row][col] = text
 
-    header_row_index = min(flagged) if flagged else 0
-    lines: list[str] = []
-    for row_index, row in enumerate(grid):
-        lines.append("| " + " | ".join(row) + " |")
-        if row_index == header_row_index:
-            lines.append("| " + " | ".join("---" for _ in row) + " |")
-
+    if not _row_zero_is_header(node):
+        grid.insert(0, ["" for _ in range(max_col + 1)])
+    lines = ["| " + " | ".join(row) + " |" for row in grid]
+    lines.insert(1, "| " + " | ".join("---" for _ in grid[0]) + " |")
     return "\n".join(lines)
 
 

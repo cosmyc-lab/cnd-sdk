@@ -30,10 +30,10 @@ Les capteurs analogiques et numériques sont regroupés par bus de terrain. Voir
 
 La fréquence d'échantillonnage nominale est de 10 Hz pour les boucles rapides.
 
-| Capteur |  | Plage |
+| Capteur | Capteur | Plage |
 | --- | --- | --- |
 | Pression | PT-101 | 0–16 bar |
-|  | PT-102 | 0–25 bar |
+| Pression | PT-102 | 0–25 bar |
 | Débit | FT-201 | 0–500 L/min |
 
 *Table 1: Plages de mesure des capteurs de terrain.*
@@ -63,7 +63,7 @@ Les alarmes sont classées en quatre niveaux de criticité : info, avertissement
 Le délai d'acquittement maximal est défini par la politique site. Consulter la matrice des délais.
 [tab-delais-alarmes]
 
-| Niveau |  | Délai max |
+| Niveau | Niveau | Délai max |
 | --- | --- | --- |
 | Info | — | 24 h |
 | Critique | P1 | 5 min |

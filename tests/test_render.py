@@ -339,7 +339,7 @@ class TestNodeTextHelpers:
             **_base(),
         )
         rows = render_table_markdown(node).split("\n")
-        assert rows[0] == "| A |  |"
+        assert rows[0] == "| A | A |"
         assert rows[-1] == "| B | C |"
 
 
