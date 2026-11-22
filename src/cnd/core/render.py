@@ -31,7 +31,6 @@ except ImportError:  # pragma: no cover — Python 3.10, via pydantic's typing-e
 from cnd.core.inline import EdgeWrap, concat_texts, render_inline, with_whole_mark, wrapped_edges
 from cnd.core.markdown_escape import escape_block, escape_destination, escape_inline
 from cnd.core.node_text import (
-    blocks_plain_text,
     NodeTextMode,
     attr_value,
     cell_plain_text,
@@ -61,6 +60,8 @@ from cnd.core.nodes import (
     QuoteNode,
     TableNode,
     TermsNode,
+    child_slots,
+    texts_of,
 )
 from cnd.core.text import Edge, LinkRef, RichText
 from cnd.core.urls import allowed_link_schemes, is_safe_image_source, is_safe_url
@@ -79,6 +80,22 @@ __all__ = [
 def _one_line(text: str) -> str:
     """``text`` with every line ending (CR, LF, CRLF) made a space."""
     return text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ")
+
+
+def _summary_text(node: CndNode) -> str:
+    """The plain text of ``node`` for a figure summary: ``blocks_plain_text``
+    except that a table's body is left out at any depth (a nested table
+    counts as the word ``table``)."""
+    if isinstance(node, TableNode):
+        return str(node.type)
+    parts = [text.value for text in texts_of(node)]
+    if isinstance(node, (CodeNode, MathNode)):
+        parts.append(node.text)
+    elif isinstance(node, ImageNode) and node.alt:
+        parts.append(node.alt)
+    for slot in child_slots(node):
+        parts.extend(_summary_text(child) for child in slot.nodes)
+    return " ".join(part for part in parts if part)
 
 
 def _unix_newlines(text: str) -> str:
@@ -459,7 +476,7 @@ class MarkdownRenderer(NodeRenderer):
             prefix = " ".join(p for p in (node.numbering.name, node.numbering.value) if p)
             prefix = _one_line(prefix)
             text = f"{escape_inline(prefix) if self.escape else prefix} {text}"
-        # Markdown has six heading levels; a deeper one reads as a paragraph.
+        # Markdown has six heading levels: a deeper one is clamped to the last.
         return f"{'#' * min(node.level, 6)} {text}"
 
     def render_paragraph(self, node: ParagraphNode) -> str:
@@ -717,7 +734,7 @@ class MarkdownRenderer(NodeRenderer):
             case _:
                 # Everything but a table's body (docs/proposals/0012): the
                 # words of the block, after its label for a code block.
-                text = blocks_plain_text([child])
+                text = _summary_text(child)
                 if isinstance(child, CodeNode):
                     label = f"code ({child.lang})" if child.lang else "code"
                     return f"{label}: {text}" if text else label

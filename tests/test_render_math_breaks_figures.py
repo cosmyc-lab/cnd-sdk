@@ -5,11 +5,11 @@ from uuid import uuid4
 
 from markdown_it import MarkdownIt
 
-from factories import para, rt
+from factories import cell, para, rt
 
 from cnd.converters.html import HtmlNodeRenderer
 from cnd.core.inline import render_inline
-from cnd.core.nodes import CodeNode, FigureNode, HeadingNode, MathNode
+from cnd.core.nodes import CodeNode, FigureNode, HeadingNode, MathNode, QuoteNode, TableNode
 from cnd.core.render import MarkdownRenderer
 from cnd.core.text import Mark, RawSource
 
@@ -175,3 +175,11 @@ class TestFigureContent:
     def test_html_figure_keeps_everything(self) -> None:
         out = HTML.render(self._listing())
         assert "x = 1" in out and "Sets the counter." in out
+
+    def test_nested_table_body_stays_out_of_the_summary(self) -> None:
+        table = TableNode(type="table", cells=[cell(0, 0, "SECRETBODY")], **_id())
+        quote = QuoteNode(type="quote", children=[table, para("ok")], **_id())
+        node = FigureNode(type="figure", children=[quote], **_id())
+        out = MD.render(node)
+        assert "SECRETBODY" not in out
+        assert "ok" in out
