@@ -38,7 +38,7 @@ conventions.
 | [0028](adr/0028-content-hashing-0-5.md) | Content hashing, 0.5 amendments — defaults dropped, nested nodes excluded, paths in the document hash | accepted |
 | [0029](adr/0029-matching-v2.md) | Matching v2 — the full walk, spec §8 paths and container keys | accepted, extends 0018 |
 | [0030](adr/0030-typst-authoring-markers.md) | Typst authoring markers — labelled metadata and a code-title state key | accepted, extends 0023 |
-| [0031](adr/0031-markdown-links-where-their-words-are.md) | Markdown writes a hyperlink where its words are, and a caller may allow its own schemes | accepted, extended by 0032 |
+| [0031](adr/0031-markdown-links-where-their-words-are.md) | Markdown writes a hyperlink where its words are, and a caller may allow its own schemes | accepted, extended by 0032 (which replaces its decision 4 for `refs`) |
 | [0032](adr/0032-markdown-internal-references-link-to-anchors.md) | Markdown output keeps internal references navigable — references link to anchors | accepted, extends 0031 |
 
 ## Proposals (docs/proposals/)

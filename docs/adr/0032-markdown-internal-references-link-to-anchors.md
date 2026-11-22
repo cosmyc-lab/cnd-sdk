@@ -91,11 +91,13 @@ label is unaffected.
    renderer gets them as the default one does, and the converter writes
    the anchors whatever the renderer. A `MarkdownRenderer` (a subclass
    included) that escapes free text writes the references in place; any
-   other renderer leaves them to the marker line, as `[label](#anchor)`. A renderer shared between threads, or used by a
-   conversion nested in another, never sees another conversion's
-   targets. Used on its own, the renderer links the `ref_targets` it was
+   other renderer leaves them to the marker line, as `[label](#anchor)`.
+   A renderer shared between threads, or used by a conversion nested in
+   another, never sees another conversion's targets. Used on its own, the renderer links the `ref_targets` it was
    built with, and writing their anchors is the caller's job.
-5. `cites` and `footnotes` keep their markers.
+5. `cites` and `footnotes` keep their markers. For `refs`, this decision
+   replaces ADR 0031 decision 4, which kept every reference as a bracketed
+   label on the marker line.
 
 ## Consequences
 

@@ -105,11 +105,10 @@ def _numbering(node: HeadingNode | MathNode | FigureNode) -> str:
 class HtmlNodeRenderer(NodeRenderer):
     """Render one node as an HTML fragment. Text is always escaped.
 
-    A node's ``label`` becomes the element's ``id``, which is what gives
-    the HTML converter real in-document cross-reference links where the
-    Markdown converter only has bracketed text. Node ``id`` (the UUID),
-    ``state_metadata`` and ``location`` are not emitted. A container
-    renders its nested nodes itself.
+    A node's ``label`` becomes the element's ``id``, which is what the
+    HTML converter's in-document cross-reference links point to. Node
+    ``id`` (the UUID), ``state_metadata`` and ``location`` are not
+    emitted. A container renders its nested nodes itself.
 
     A ``links`` edge with a ``text_span`` makes the text it spans an
     ``<a class="cnd-link">``, unless its href fails
