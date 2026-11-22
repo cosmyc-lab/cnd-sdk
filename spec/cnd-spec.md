@@ -850,7 +850,8 @@ The reference SDK provides a renderer hierarchy in `cnd.core.render`
 renders what it supports and leaves the text of anything else unchanged.
 
 - **Markdown.** `strong`, `emph`, `code` and `strike` render as `**…**`,
-  `*…*`, `` `…` `` and `~~…~~`; `math` as `$…$`. The four marks without
+  `*…*`, `` `…` `` and `~~…~~`; `math` as `$…$` when its `raw`
+  source is LaTeX, and as its readable linear text otherwise. The four marks without
   CommonMark or GFM syntax — `sup`, `sub`, `underline`, `highlight` —
   render as inline HTML (`<sup>`, `<sub>`, `<u>`, `<mark>`) by default.
   A text-only option writes no HTML: `sup` becomes `^x` over one
