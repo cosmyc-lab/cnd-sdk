@@ -224,7 +224,7 @@ class TestRendering:
         placeholder = MarkdownRenderer().render(figure)
         assert placeholder.startswith(f"[[figure:{figure.id} ")
         assert 'kind="listing"' in placeholder
-        assert 'summary="code (json)"' in placeholder
+        assert 'summary="code (json): ' in placeholder
 
         inline = MarkdownRenderer(figures="inline").render(figure)
         assert inline.startswith("```json\n")

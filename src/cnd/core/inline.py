@@ -20,6 +20,7 @@ text of any other mark unchanged. ``value`` is always the plain text, so
 dropping a mark never loses words.
 """
 
+import re
 import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -101,9 +102,10 @@ def render_inline(
     - ``"plain"`` returns ``value``: every mark is dropped, and a ``math``
       mark keeps its readable ``value``.
     - ``"html"`` escapes the text and maps every known mark to its
-      element; ``math`` becomes ``<code class="math">`` holding its source.
+      element; ``math`` becomes ``<code class="math">`` holding its LaTeX
+      source, else its linear text (``math_source``).
     - ``"markdown"`` follows spec §7. ``escape`` escapes the plain
-      segments (never code or math) with ``escape_block``. ``text_only``
+      segments (never code or LaTeX math) with ``escape_block``. ``text_only``
       never writes an HTML tag: ``sup`` and ``sub`` become ``^x`` and
       ``_x`` (``^(text)``, ``_(text)`` over several characters; the
       ``_`` written ``\\_`` under ``escape``), ``underline`` and
@@ -213,7 +215,17 @@ def _spans(text: RichText, dialect: InlineDialect, text_only: bool) -> list[_Spa
                 start += 1
             while end > start and value[end - 1].isspace():
                 end -= 1
-        if start < end:
+        if dialect == "markdown" and mark.kind not in ATOMIC_MARK_KINDS:
+            # A delimiter or a tag cannot cross a blank line: each
+            # paragraph gets its own span.
+            for a, b in _paragraph_parts(value, start, end):
+                while a < b and value[a].isspace():
+                    a += 1
+                while b > a and value[b - 1].isspace():
+                    b -= 1
+                if a < b:
+                    spans.append(_Span(a, b, mark.kind, mark))
+        elif start < end:
             spans.append(_Span(start, end, mark.kind, mark))
     return spans
 
@@ -272,11 +284,55 @@ def _tree(value: str, spans: list[_Span]) -> _Piece:
     return root
 
 
+def math_source(mark: Mark | None, covered: str) -> tuple[str, bool]:
+    """The source to write for a ``math`` mark, and whether it is LaTeX.
+
+    Only a LaTeX source (``raw.format``, any case) is written as math; any
+    other source (Typst, MathML...) would be read wrongly as LaTeX, so the
+    readable linear text the mark covers is written instead.
+    """
+    raw = mark.raw if mark is not None else None
+    if raw is not None and raw.format.lower() == "latex":
+        return raw.value, True
+    return covered, False
+
+
+def _inline_dollars(source: str) -> str:
+    """``source`` with every ``$`` not already escaped by a backslash
+    escaped, and a final backslash that would escape the closing ``$``
+    followed by a space."""
+    out: list[str] = []
+    backslashes = 0
+    for ch in source:
+        if ch == "$" and backslashes % 2 == 0:
+            out.append("\\$")
+        else:
+            out.append(ch)
+        backslashes = backslashes + 1 if ch == "\\" else 0
+    if backslashes % 2 == 1:
+        out.append(" ")
+    return "".join(out)
+
+
+_BLANK_LINES = re.compile(r"(?:\r\n|\r|\n)(?:[ \t]*(?:\r\n|\r|\n))+")
+
+
+def _paragraph_parts(value: str, start: int, end: int) -> list[tuple[int, int]]:
+    """``[start, end)`` cut at every paragraph break: a line ending
+    followed by one or more blank (whitespace-only) lines."""
+    parts: list[tuple[int, int]] = []
+    cursor = start
+    for m in _BLANK_LINES.finditer(value, start, end):
+        parts.append((cursor, m.start()))
+        cursor = m.end()
+    parts.append((cursor, end))
+    return parts
+
+
 def _render_html(value: str, piece: _Piece) -> str:
     span = piece.span
     if span is not None and span.kind == "math":
-        raw = span.mark.raw if span.mark is not None else None
-        source = raw.value if raw is not None else value[piece.start : piece.end]
+        source, _ = math_source(span.mark, value[piece.start : piece.end])
         return f'<code class="math">{html_escape(source)}</code>'
     if span is not None and span.kind == "code":
         return f"<code>{html_escape(value[piece.start : piece.end])}</code>"
@@ -359,9 +415,11 @@ class _MarkdownWriter:
         if span.kind == "code":
             return _code_span(covered), "`"
         if span.kind == "math":
-            raw = span.mark.raw if span.mark is not None else None
-            source = raw.value if raw is not None else covered
-            return f"${_one_line(source)}$", "$"
+            source, latex = math_source(span.mark, covered)
+            source = _one_line(source)
+            if latex:
+                return f"${_inline_dollars(source)}$", "$"
+            return (escape_block(source) if self.escape else source), ""
         inner = self.render(piece)
         if span.kind == _EDGE:
             return f"{span.wrap[0]}{inner}{span.wrap[1]}", ""

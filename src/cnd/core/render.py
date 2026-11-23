@@ -60,6 +60,8 @@ from cnd.core.nodes import (
     QuoteNode,
     TableNode,
     TermsNode,
+    child_slots,
+    texts_of,
 )
 from cnd.core.text import Edge, LinkRef, RichText
 from cnd.core.urls import allowed_link_schemes, is_safe_image_source, is_safe_url
@@ -78,6 +80,22 @@ __all__ = [
 def _one_line(text: str) -> str:
     """``text`` with every line ending (CR, LF, CRLF) made a space."""
     return text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ")
+
+
+def _summary_text(node: CndNode) -> str:
+    """The plain text of ``node`` for a figure summary: ``blocks_plain_text``
+    except that a table's body is left out at any depth (a nested table
+    counts as the word ``table``)."""
+    if isinstance(node, TableNode):
+        return str(node.type)
+    parts = [text.value for text in texts_of(node)]
+    if isinstance(node, (CodeNode, MathNode)):
+        parts.append(node.text)
+    elif isinstance(node, ImageNode) and node.alt:
+        parts.append(node.alt)
+    for slot in child_slots(node):
+        parts.extend(_summary_text(child) for child in slot.nodes)
+    return " ".join(part for part in parts if part)
 
 
 def _unix_newlines(text: str) -> str:
@@ -312,7 +330,7 @@ class MarkdownRenderer(NodeRenderer):
     Three further flags default to off:
 
     - ``escape`` — escape free text (every rich text, image alt aside) so
-      it cannot start Markdown syntax. Code and math are never escaped.
+      it cannot start Markdown syntax. Code and LaTeX math are never escaped.
     - ``heading_numbers`` — prefix each heading with its numbering
       (``name`` and ``value``, escaped under ``escape`` like free text).
     - ``text_only`` — no HTML in the output: ``sup`` and ``sub`` render
@@ -445,7 +463,12 @@ class MarkdownRenderer(NodeRenderer):
         return f"{prefix.rstrip()}\n{content}"
 
     def render_heading(self, node: HeadingNode) -> str:
-        text = self._inline_markdown(node.text, single_line=True)
+        # A heading ends at a line break: fold each one to a space (one
+        # character each, so the marks keep their offsets).
+        folded = node.text.value.replace("\r", " ").replace("\n", " ")
+        text = self._inline_markdown(
+            node.text.model_copy(update={"value": folded}), single_line=True
+        )
         if self.escape and (m := _CLOSING_HASHES.search(text)):
             # CommonMark drops a closing "#" sequence from an ATX heading.
             text = f"{text[: m.start(1)]}\\{text[m.start(1):]}"
@@ -453,7 +476,8 @@ class MarkdownRenderer(NodeRenderer):
             prefix = " ".join(p for p in (node.numbering.name, node.numbering.value) if p)
             prefix = _one_line(prefix)
             text = f"{escape_inline(prefix) if self.escape else prefix} {text}"
-        return f"{'#' * node.level} {text}"
+        # Markdown has six heading levels: a deeper one is clamped to the last.
+        return f"{'#' * min(node.level, 6)} {text}"
 
     def render_paragraph(self, node: ParagraphNode) -> str:
         return self.render_text(node.text)
@@ -705,7 +729,13 @@ class MarkdownRenderer(NodeRenderer):
         match child:
             case ImageNode():
                 return child.alt or child.path or "image"
-            case CodeNode():
-                return f"code ({child.lang})" if child.lang else "code"
-            case _:
+            case TableNode():
                 return str(child.type)
+            case _:
+                # Everything but a table's body (docs/proposals/0012): the
+                # words of the block, after its label for a code block.
+                text = _summary_text(child)
+                if isinstance(child, CodeNode):
+                    label = f"code ({child.lang})" if child.lang else "code"
+                    return f"{label}: {text}" if text else label
+                return text or str(child.type)
