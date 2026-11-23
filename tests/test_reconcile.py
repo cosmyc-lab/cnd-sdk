@@ -1,4 +1,5 @@
-"""Reconciliation — matching v2 and the diff built on it (docs/adr/0018).
+"""Reconciliation — matching v3 and the diff built on it (docs/adr/0018,
+docs/adr/0032).
 
 Two kinds of test live here. The per-pass tests pin *which* key matched a
 pair, and each is built so that only the pass under test can match the
@@ -285,16 +286,17 @@ def test_editing_one_node_leaves_the_others_alone():
 
 
 def test_inserting_at_the_top_shifts_the_rest_without_losing_them():
-    """The inserted node is added; the shifted ones are recovered by pass 3
-    and reported as moved — not as added/removed pairs."""
+    """The inserted node is added; the shifted ones are recovered by pass 3,
+    not reported as added/removed pairs, and — matching v3 — not as moved
+    either: their order relative to each other did not change."""
     old = _cnd([_para("alpha"), _para("beta")])
     new = _cnd([_para("inserted"), _para("alpha"), _para("beta")])
 
     report = diff(old, new)
     assert [_text(change.new.node) for change in report.added] == ["inserted"]
-    assert [_text(change.new.node) for change in report.moved] == ["alpha", "beta"]
-    assert report.removed == ()
-    assert all(change.matched_by == "hash" for change in report.moved)
+    assert [_text(change.new.node) for change in report.unchanged] == ["alpha", "beta"]
+    assert report.moved == report.removed == ()
+    assert all(change.matched_by == "hash" for change in report.unchanged)
 
 
 def test_moving_a_node_into_a_section_is_a_move_not_a_rewrite():
@@ -303,9 +305,9 @@ def test_moving_a_node_into_a_section_is_a_move_not_a_rewrite():
     new = _cnd([_heading("Section", children=[_para("body")])])
 
     report = diff(old, new)
-    # The heading moved up a slot too, so both nodes are moved; only the
-    # re-parented one is the subject here.
-    assert {_text(change.new.node) for change in report.moved} == {"Section", "body"}
+    # The heading shifted up a slot, which is no move (matching v3): only
+    # the re-parented paragraph moved.
+    assert [_text(change.new.node) for change in report.moved] == ["body"]
     change = _by_text(report, "body")
     assert change.status == "moved"
     assert change.old.path == ("nodes", 0)
@@ -343,8 +345,8 @@ def test_documented_limitation_edit_plus_insertion_above_defeats_the_matcher():
         "inserted",
     ]
     assert [_text(change.old.node) for change in report.removed] == ["beta"]
-    assert [_text(change.new.node) for change in report.moved] == ["alpha", "gamma"]
-    assert report.changed == ()
+    assert [_text(change.new.node) for change in report.unchanged] == ["alpha", "gamma"]
+    assert report.changed == report.moved == ()
 
 
 def test_the_same_case_with_a_label_is_matched_exactly():
@@ -371,7 +373,7 @@ def test_diff_order_is_new_reading_order_then_removals():
 
     report = diff(old, new)
     statuses = [change.status for change in report.nodes]
-    assert statuses == ["unchanged", "moved", "removed"]
+    assert statuses == ["unchanged", "unchanged", "removed"]
 
 
 # --- finer granularity (format 0.5) -----------------------------------
@@ -419,8 +421,10 @@ def test_footnote_content_is_matched_like_the_body():
 
     report = diff(old, new)
     assert _by_text(report, "note, edited").status == "changed"
-    # The entry holds no text of its own: the change is the paragraph's.
-    assert [change.label for change in report.footnotes.unchanged] == ["fn-a"]
+    # Matching v3 compares a note on its content: the paragraph changed,
+    # and so did the note, which still pairs on its label.
+    assert [change.label for change in report.footnotes.changed] == ["fn-a"]
+    assert report.footnotes.changed[0].matched_by == "label"
 
 
 def _quote(*children) -> QuoteNode:
@@ -459,7 +463,9 @@ def test_an_edited_table_that_also_shifted_keeps_its_id():
     report = diff(old, new)
     change = next(c for c in report.nodes if c.new.node.type == "table")
     assert change.old.node.id == table.id
-    assert change.status == "moved"
+    # Its own hash is equal and it only shifted: unchanged (matching v3).
+    # The edit is reported on the cell's paragraph.
+    assert change.status == "unchanged"
     # The last pass names itself: a caller can tell it from the "hash"
     # pass, which pairs a container only when its nested content is equal.
     assert change.matched_by == "container-hash"
@@ -558,10 +564,10 @@ def test_diffing_against_an_empty_document(empty_side: str):
 class TestConformanceVectors:
     """`(old, new) -> expected matching` vectors (docs/adr/0018, 0020 §4).
 
-    Matching v2 is a versioned reference algorithm rather than a normative
+    Matching v3 is a versioned reference algorithm rather than a normative
     rule, and that is precisely why it needs vectors: a normative rule can
     be read off the spec, a heuristic can only be reproduced by pinning its
-    output. A second implementation claiming "matching v2" reproduces these
+    output. A second implementation claiming "matching v3" reproduces these
     or it is running a different algorithm.
     """
 
@@ -598,10 +604,32 @@ class TestConformanceVectors:
                 f"{name}: matching drifted. If that was deliberate it is a "
                 "new matcher version (ADR 0018), not a regeneration."
             )
+            footnotes = [
+                {
+                    "status": change.status,
+                    "label": change.label,
+                    "old_label": change.old.label if change.old else None,
+                    "matched_by": change.matched_by,
+                }
+                for change in report.footnotes.changes
+            ]
+            assert footnotes == case["footnotes"], (
+                f"{name}: footnote pool matching drifted."
+            )
+
+    def test_a_renumbered_note_pairs_on_its_content(self) -> None:
+        """Matching v3's footnote claim, pinned in the corpus."""
+        case = self._expected()["cases"]["12-note-inserted-at-the-top"]
+        pairs = [
+            (f["old_label"], f["label"], f["matched_by"]) for f in case["footnotes"]
+        ]
+
+        assert ("1", "2", "content") in pairs and ("2", "3", "content") in pairs
+        assert all(n["status"] != "moved" for n in case["nodes"])
 
     def test_the_vectors_declare_the_matcher_version(self) -> None:
-        """A vector set without its version is unusable: matching v2 would
-        legitimately produce different output."""
+        """A vector set without its version is unusable: another matcher
+        version would legitimately produce different output."""
         assert self._expected()["matcher_version"] == MATCHER_VERSION
 
     def test_every_case_directory_has_a_vector(self) -> None:
@@ -820,3 +848,258 @@ class TestReconcileAgainstTheCorpus:
             assert validate(result.cnd) == [], directory.name
             ids = [v.node.id for v in result.cnd.iter_all()]
             assert len(set(ids)) == len(ids), f"{directory.name}: duplicate ids"
+
+
+# --- matching v3: footnotes by content, real moves only (docs/adr/0032) ---
+
+
+def _note(label: str, *texts: str, id: UUID | None = None) -> Footnote:
+    return Footnote(
+        id=id or uuid4(), label=label, children=[_para(text) for text in texts]
+    )
+
+
+def _numbered(*contents: str) -> list[Footnote]:
+    """Notes labelled with their display number, as a producer that numbers
+    its notes writes them: inserting one renumbers every note after it."""
+    return [_note(str(n), text) for n, text in enumerate(contents, start=1)]
+
+
+def test_the_matcher_version_is_v3():
+    assert MATCHER_VERSION == "v3"
+
+
+def test_inserting_a_note_at_the_top_pairs_every_note_with_its_content():
+    old = _cnd([_para("body")], footnotes=_numbered("alpha", "beta"))
+    new = _rebuild(_cnd([_para("body")], footnotes=_numbered("inserted", "alpha", "beta")))
+
+    report = diff(old, new)
+    pool = {(c.old.label if c.old else None, c.new.label if c.new else None): c for c in report.footnotes.changes}
+    assert set(pool) == {(None, "1"), ("1", "2"), ("2", "3")}
+    assert pool[(None, "1")].status == "added"
+    # Renumbered, same content: a display number is presentation state.
+    assert pool[("1", "2")].status == "unchanged"
+    assert pool[("2", "3")].status == "unchanged"
+    assert pool[("1", "2")].matched_by == "content"
+    # The notes' content is unchanged in place: nothing moved.
+    assert [_text(c.new.node) for c in report.added] == ["inserted"]
+    assert report.moved == () and report.changed == () and report.removed == ()
+
+
+def test_inserting_a_note_at_the_top_keeps_each_note_its_previous_id():
+    old = _cnd([_para("body")], footnotes=_numbered("alpha", "beta"))
+    new = _rebuild(_cnd([_para("body")], footnotes=_numbered("inserted", "alpha", "beta")))
+
+    result = reconcile(new, old).cnd
+
+    by_text = {_text(note.children[0]): note for note in result.footnotes}
+    old_by_text = {_text(note.children[0]): note for note in old.footnotes}
+    for text in ("alpha", "beta"):
+        assert by_text[text].id == old_by_text[text].id
+        assert by_text[text].children[0].id == old_by_text[text].children[0].id
+    assert by_text["inserted"].id not in {note.id for note in old.footnotes}
+
+
+def test_reordering_two_numbered_notes_follows_their_content():
+    old = _cnd([_para("body")], footnotes=_numbered("alpha", "beta"))
+    new = _rebuild(_cnd([_para("body")], footnotes=_numbered("beta", "alpha")))
+
+    report = diff(old, new)
+    assert all(c.status == "unchanged" for c in report.nodes)
+    assert all(c.status == "unchanged" for c in report.footnotes.changes)
+    pairs = {(c.old.label, c.new.label) for c in report.footnotes.changes}
+    assert pairs == {("1", "2"), ("2", "1")}
+    result = reconcile(new, old).cnd
+    assert _text(result.footnotes[0].children[0]) == "beta"
+    assert result.footnotes[0].id == old.footnotes[1].id
+
+
+def test_two_identical_notes_pair_by_label_deterministically():
+    old = _cnd([_para("body")], footnotes=[_note("fn-a", "same"), _note("fn-b", "same")])
+    new = _rebuild(
+        _cnd([_para("body")], footnotes=[_note("fn-b", "same"), _note("fn-a", "same")])
+    )
+
+    for _ in range(3):
+        report = diff(old, new)
+        pairs = [(c.old.label, c.new.label) for c in report.footnotes.changes]
+        assert pairs == [("fn-b", "fn-b"), ("fn-a", "fn-a")]
+    result = reconcile(new, old).cnd
+    assert {n.label: n.id for n in result.footnotes} == {n.label: n.id for n in old.footnotes}
+
+
+def test_two_identical_numbered_notes_never_lose_a_pairing():
+    old = _cnd([_para("body")], footnotes=_numbered("same", "same"))
+    new = _rebuild(_cnd([_para("body")], footnotes=_numbered("new", "same", "same")))
+
+    report = diff(old, new)
+    assert [c.status for c in report.footnotes.changes] == ["unchanged", "unchanged", "added"]
+    assert report.moved == () and report.removed == ()
+
+
+def test_an_edited_note_that_kept_its_label_pairs_on_the_label():
+    old = _cnd([_para("body")], footnotes=_numbered("alpha", "beta"))
+    new = _rebuild(_cnd([_para("body")], footnotes=_numbered("alpha", "beta, edited")))
+
+    report = diff(old, new)
+    change = next(c for c in report.footnotes.changes if c.label == "2")
+    assert change.old.label == "2"
+    assert change.matched_by == "label"
+    assert change.status == "changed"
+    assert _by_text(report, "beta, edited").status == "changed"
+
+
+def test_inserting_a_paragraph_at_the_top_moves_nothing():
+    old = _cnd([_para("alpha"), _para("beta"), _para("gamma")])
+    new = _cnd([_para("inserted"), _para("alpha"), _para("beta"), _para("gamma")])
+
+    report = diff(old, new)
+    assert [_text(c.new.node) for c in report.added] == ["inserted"]
+    assert report.moved == ()
+    assert [_text(c.new.node) for c in report.unchanged] == ["alpha", "beta", "gamma"]
+
+
+def test_removing_a_paragraph_moves_nothing():
+    old = _cnd([_para("alpha"), _para("dropped"), _para("gamma")])
+    new = _cnd([_para("alpha"), _para("gamma")])
+
+    report = diff(old, new)
+    assert report.moved == ()
+    assert [_text(c.old.node) for c in report.removed] == ["dropped"]
+
+
+def test_re_parenting_a_node_is_still_a_move():
+    old = _cnd([_para("body"), _heading("Section")])
+    new = _cnd([_heading("Section", children=[_para("body")])])
+
+    report = diff(old, new)
+    assert [_text(c.new.node) for c in report.moved] == ["body"]
+    assert _by_text(report, "Section").status == "unchanged"
+
+
+def test_swapping_two_siblings_reports_the_later_one_moved():
+    old = _cnd([_para("alpha"), _para("beta"), _para("gamma")])
+    new = _cnd([_para("beta"), _para("alpha"), _para("gamma")])
+
+    report = diff(old, new)
+    assert [_text(c.new.node) for c in report.moved] == ["alpha"]
+    assert [_text(c.new.node) for c in report.unchanged] == ["beta", "gamma"]
+
+
+def test_moving_one_node_to_the_end_reports_only_that_node():
+    old = _cnd([_para("a"), _para("b"), _para("c"), _para("d")])
+    new = _cnd([_para("b"), _para("c"), _para("d"), _para("a")])
+
+    report = diff(old, new)
+    assert [_text(c.new.node) for c in report.moved] == ["a"]
+
+
+def test_inserting_a_list_item_at_the_top_moves_nothing():
+    old = _cnd([_list(item("alpha"), item("beta"))])
+    new = _cnd([_list(item("inserted"), item("alpha"), item("beta"))])
+
+    report = diff(old, new)
+    assert report.moved == ()
+    assert [_text(c.new.node) for c in report.added] == ["inserted"]
+
+
+def test_moving_a_paragraph_to_another_cell_is_a_move():
+    """The table kept its shape, so its cells line up one to one: a
+    paragraph that changed cell changed place."""
+    old = _cnd([_table(cell(0, 0, "x"), cell(0, 1))])
+    new = _cnd([_table(cell(0, 0), cell(0, 1, "x"))])
+
+    report = diff(old, new)
+    assert [_text(c.new.node) for c in report.moved] == ["x"]
+
+
+def test_moving_content_into_another_note_is_a_move():
+    old = _cnd([_para("body")], footnotes=[_note("fn-a", "keep", "travels"), _note("fn-b", "other")])
+    new = _rebuild(
+        _cnd([_para("body")], footnotes=[_note("fn-a", "keep"), _note("fn-b", "other", "travels")])
+    )
+
+    report = diff(old, new)
+    assert [_text(c.new.node) for c in report.moved] == ["travels"]
+
+
+def test_only_exact_inherits_a_note_only_when_its_label_agrees():
+    old = _cnd([_para("body")], footnotes=_numbered("alpha", "beta"))
+    new = _rebuild(_cnd([_para("body")], footnotes=_numbered("inserted", "alpha", "beta")))
+
+    exact = reconcile(new, old, only_exact=True).cnd
+    full = reconcile(new, old).cnd
+
+    old_ids = {note.id for note in old.footnotes}
+    assert not old_ids & {note.id for note in exact.footnotes}
+    assert old_ids == {note.id for note in full.footnotes} & old_ids
+
+
+def test_only_exact_still_inherits_a_note_whose_label_agrees():
+    old = _cnd([_para("body")], footnotes=[_note("fn-a", "alpha")])
+    new = _rebuild(_cnd([_para("body")], footnotes=[_note("fn-a", "alpha")]))
+
+    exact = reconcile(new, old, only_exact=True).cnd
+    assert exact.footnotes[0].id == old.footnotes[0].id
+
+
+def _brute_earliest_longest_increasing(keys):
+    """The reference the tie-break is defined by: among the longest
+    increasing subsequences, the lexicographically smallest index set."""
+    from itertools import combinations
+
+    for size in range(len(keys), -1, -1):
+        for indices in combinations(range(len(keys)), size):
+            if all(keys[a] < keys[b] for a, b in zip(indices, indices[1:])):
+                return set(indices)
+    return set()
+
+
+def test_the_moved_tie_break_keeps_the_earliest_longest_increasing_run():
+    """Seeded brute force over small sibling groups: the O(n log n) pick is
+    the earliest of the longest increasing runs, which is the v3 contract
+    a second implementation reproduces (docs/adr/0032)."""
+    import random
+
+    from cnd.reconcile.diff import _earliest_longest_increasing
+
+    rng = random.Random(32)
+    for _ in range(500):
+        size = rng.randint(0, 8)
+        # Positions are tuples (item or cell index, child index).
+        keys = [divmod(k, 3) for k in rng.sample(range(24), size)]
+        assert _earliest_longest_increasing(keys) == (
+            _brute_earliest_longest_increasing(keys)
+        ), keys
+
+
+def test_reconcile_matches_the_footnote_pool_once(monkeypatch):
+    """The node alignment and the pool remap rest on one pool matching."""
+    import cnd.reconcile.inherit as inherit
+    import cnd.reconcile.match as match
+
+    calls: list[int] = []
+    real = match.match_pool
+
+    def counting(old, new):
+        result = real(old, new)
+        if any(isinstance(e, Footnote) for e in (*old, *new)):
+            calls.append(1)
+        return result
+
+    monkeypatch.setattr(match, "match_pool", counting)
+    monkeypatch.setattr(inherit, "match_pool", counting)
+    old = _cnd([_para("body")], footnotes=_numbered("alpha", "beta"))
+    new = _rebuild(_cnd([_para("body")], footnotes=_numbered("inserted", "alpha", "beta")))
+
+    reconcile(new, old)
+
+    assert len(calls) == 1
+
+
+def test_a_pool_entry_needs_its_content_key():
+    """A default would make every hand-built note equal on content."""
+    from cnd.reconcile import PoolEntry
+
+    with pytest.raises(TypeError):
+        PoolEntry(entry=_note("1", "x"), hash="sha256:0")  # type: ignore[call-arg]

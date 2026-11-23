@@ -1,5 +1,6 @@
-"""Node matching across two CNDs — reference algorithm "matching v2"
-(docs/adr/0029, which extends docs/adr/0018).
+"""Node matching across two CNDs — reference algorithm "matching v3"
+(docs/adr/0032, which extends docs/adr/0018 and replaces the footnote
+keying of docs/adr/0029).
 
 The matcher answers "is this the same node as in the previous build?"
 for two built CNDs. It is a **versioned reference algorithm, not part of
@@ -13,14 +14,26 @@ CND has (docs/adr/0015), so a labelled node survives both edit and move;
 an unlabelled one is recovered by heuristics that can miss (see ADR 0018,
 ADR 0029 and the ``diff`` docstring for the documented failures).
 
-**What v2 walks.** The full walk (spec §8): every node of the body,
+**What it walks.** The full walk (spec §8): every node of the body,
 including those inside list items, term items, cells, quotes and
 admonitions, then the content of every footnote. The structural path is
 the spec §8 path, so the first paragraphs of two different cells sit in
-two different slots; inside a footnote the pool index is replaced by the
-note's label, so reordering the pool moves nothing. Finer nodes make the
-matcher finer too: an edited list item is matched and reported on its
-own, where a whole list used to be marked changed.
+two different slots. Finer nodes make the matcher finer too: an edited
+list item is matched and reported on its own, where a whole list used to
+be marked changed.
+
+**Footnotes first, by content** (v3). Producers often label a note with
+its display number, so inserting a note renumbers every note after it: a
+label is not a reliable key for a footnote. The footnote pool is
+therefore matched before any node, on a digest of each note's content
+(``PoolEntry.content``), the label breaking ties; a note whose content
+changed falls back to its label (see ``match_pool``). Inside a footnote,
+the structural path names the note: on the ``old`` side by its label, on
+the ``new`` side by the label of the ``old`` note it was matched with, so
+a renumbered note's content stays in place. The content of a note that
+matched nothing sits under ``"new-footnotes"`` instead, a slot no ``old``
+node occupies. The bibliography still matches on its label: a citation
+key is chosen by the author, not numbered by the producer.
 
 **The container key.** A node hash excludes nested nodes (spec §10), so
 two containers of the same shape hash alike. A container — a list,
@@ -55,21 +68,23 @@ slot — break by reading order: the earliest unmatched candidate wins.
 Known limits: two headings or figures with identical titles can swap,
 and so can two twin containers that were both edited and shifted. The
 combined case ADR 0018 documents (an edited node with an insertion
-above it) still fails for every node that is not a container. The node
-hash itself is unchanged by any of this.
+above it) still fails for every node that is not a container; for a
+footnote, a note both renumbered and edited pairs on its label, which
+may name another note. The node hash and the pool entry hash are
+unchanged by any of this: every digest here is a matching key only.
 """
 
 import hashlib
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal, Optional
 
 from cnd.core.cnd import BibEntry, Cnd, Footnote
 from cnd.core.hashing import node_hash, pool_entry_hash
 from cnd.core.nodes import CndNode, FigureNode, HeadingNode, child_slots
 
-MATCHER_VERSION = "v2"
-"""The version of the reference algorithm implemented here (docs/adr/0029)."""
+MATCHER_VERSION = "v3"
+"""The version of the reference algorithm implemented here (docs/adr/0032)."""
 
 MatchPass = Literal["label", "hash+path", "hash", "path+type", "container-hash"]
 """Which pass matched a pair."""
@@ -80,12 +95,24 @@ PASS_HASH: MatchPass = "hash"
 PASS_PATH_TYPE: MatchPass = "path+type"
 PASS_CONTAINER_HASH: MatchPass = "container-hash"
 
+PoolMatchPass = Literal["content", "label"]
+"""Which pass matched a pair of pool entries."""
+
+POOL_PASS_CONTENT: PoolMatchPass = "content"
+POOL_PASS_LABEL: PoolMatchPass = "label"
+
+NEW_FOOTNOTES = "new-footnotes"
+"""The first path element of the content of a ``new`` note that matched no
+``old`` note: a slot of its own, which no ``old`` node can occupy."""
+
 StructuralPath = tuple[str | int, ...]
 """A node's slot: its spec §8 path, such as ``("nodes", 0, "children", 4,
 "cells", 2, "children", 0)``. Inside a footnote the pool index is
 replaced by the footnote's label (``("footnotes", "fn-a", "children",
-0)``): a pool is keyed by label and its order is not document order, so
-reordering the pool must not move the notes' content (see ``entries``)."""
+0)``): a pool's order is not document order, so reordering the pool must
+not move the notes' content (see ``entries``). When two CNDs are matched,
+the ``new`` side's footnote paths name the matched ``old`` note instead
+(see ``align_footnote_paths``)."""
 
 
 @dataclass(frozen=True)
@@ -142,12 +169,16 @@ class NodeMatching:
 class PoolEntry:
     """One out-of-tree pool entry (bibliography or footnote) with its hash.
 
-    A pool entry's ``label`` is required by the format, so pool matching is
-    exact by construction — no heuristic ever runs on a pool.
+    ``content`` is what the entry is matched and compared on. For a
+    footnote it is a digest of its own fields except ``id`` and ``label``
+    plus the hashes of every node of its content: the note's content, not
+    its number. For a bibliography entry it is the pool entry hash. It is a
+    matching key only, never a content hash (spec §10 is unchanged).
     """
 
     entry: "BibEntry | Footnote"
     hash: str
+    content: str
 
     @property
     def label(self) -> str:
@@ -155,10 +186,23 @@ class PoolEntry:
 
 
 @dataclass(frozen=True)
-class PoolMatching:
-    """The label-keyed correspondence between two pools."""
+class PoolMatch:
+    """A pair of pool entries the matcher considers the same entry."""
 
-    matches: tuple[tuple[PoolEntry, PoolEntry], ...]
+    old: PoolEntry
+    new: PoolEntry
+    matched_by: PoolMatchPass
+
+
+@dataclass(frozen=True)
+class PoolMatching:
+    """The correspondence between two pools.
+
+    ``matches`` is in ``new`` pool order; the unmatched lists keep their
+    own side's pool order.
+    """
+
+    matches: tuple[PoolMatch, ...]
     unmatched_old: tuple[PoolEntry, ...]
     unmatched_new: tuple[PoolEntry, ...]
 
@@ -169,9 +213,10 @@ def entries(cnd: Cnd) -> list[NodeEntry]:
 
     The structural path is the traversal context's ``path``, with one
     deliberate difference: a footnote's pool index is replaced by its
-    label. Pool entries match on their label and a pool has no "moved"
-    (``PoolDiff``), so the content of a note must not be reported moved
-    because the pool was reordered.
+    label. A pool has no "moved" (``PoolDiff``), so the content of a note
+    must not be reported moved because the pool was reordered. These are
+    one CND's own paths; ``align_footnote_paths`` rewrites the ``new``
+    side's against a pool matching.
     """
     hashes: dict[int, str] = {}
     subtrees: dict[int, str] = {}
@@ -233,12 +278,76 @@ def _matching_path(cnd: Cnd, path: tuple[str | int, ...]) -> StructuralPath:
 
 def pool_entries(pool: Iterable["BibEntry | Footnote"]) -> list[PoolEntry]:
     """A pool as matchable entries, in declaration order."""
-    return [PoolEntry(entry=entry, hash=pool_entry_hash(entry)) for entry in pool]
+    hashes: dict[int, str] = {}
+    subtrees: dict[int, str] = {}
+    result: list[PoolEntry] = []
+    for entry in pool:
+        entry_hash = pool_entry_hash(entry)
+        content = (
+            _note_content(entry, hashes, subtrees)
+            if isinstance(entry, Footnote)
+            else entry_hash
+        )
+        result.append(PoolEntry(entry=entry, hash=entry_hash, content=content))
+    return result
 
 
-def match_nodes(old: Cnd, new: Cnd) -> NodeMatching:
-    """Pair the nodes of ``old`` and ``new`` under matching v2."""
-    return match_entries(entries(old), entries(new))
+def _note_content(
+    note: Footnote, hashes: dict[int, str], subtrees: dict[int, str]
+) -> str:
+    """A note's matching key: its own fields but ``id`` and ``label``, then
+    each content node's hash and descendants digest, in order."""
+    # The label is blanked rather than dropped so the public pool entry
+    # hash can be reused as is; the constant blank weighs nothing.
+    parts = [pool_entry_hash(note.model_copy(update={"label": ""}))]
+    for child in note.children:
+        parts.append(_hash_of(child, hashes))
+        parts.append(_subtree_of(child, hashes, subtrees))
+    return hashlib.sha256("|".join(parts).encode()).hexdigest()
+
+
+def match_nodes(
+    old: Cnd, new: Cnd, footnotes: Optional[PoolMatching] = None
+) -> NodeMatching:
+    """Pair the nodes of ``old`` and ``new`` under matching v3.
+
+    The footnote pool is matched first, and the ``new`` side's footnote
+    paths are aligned on it (``align_footnote_paths``). A caller that also
+    consumes the pool matching passes it as ``footnotes`` — the result of
+    ``match_pool(old.footnotes, new.footnotes)`` — so the node alignment
+    and its own use of the pool rest on one computation."""
+    if footnotes is None:
+        footnotes = match_pool(old.footnotes, new.footnotes)
+    return match_entries(
+        entries(old), align_footnote_paths(entries(new), footnotes)
+    )
+
+
+def align_footnote_paths(
+    new_entries: list[NodeEntry], footnotes: PoolMatching
+) -> list[NodeEntry]:
+    """``new_entries`` with each footnote path naming the matched ``old`` note.
+
+    The content of a note matched with an ``old`` note gets that note's
+    label in its path, so a renumbered note's content sits in the same
+    slot as before. The content of an unmatched note goes under
+    ``NEW_FOOTNOTES``, a slot no ``old`` node occupies: its label may be
+    one an ``old`` note had, and that note's content is not its own.
+    """
+    old_label = {match.new.label: match.old.label for match in footnotes.matches}
+    aligned: list[NodeEntry] = []
+    for entry in new_entries:
+        path = entry.path
+        if path[0] == "footnotes":
+            label = path[1]
+            assert isinstance(label, str)
+            if label in old_label:
+                path = ("footnotes", old_label[label], *path[2:])
+            else:
+                path = (NEW_FOOTNOTES, label, *path[2:])
+            entry = replace(entry, path=path)
+        aligned.append(entry)
+    return aligned
 
 
 def match_entries(
@@ -282,28 +391,62 @@ def match_entries(
 def match_pool(
     old: Iterable["BibEntry | Footnote"], new: Iterable["BibEntry | Footnote"]
 ) -> PoolMatching:
-    """Pair two pools on their required ``label`` — exact, never heuristic."""
+    """Pair two pools.
+
+    A bibliography pairs on its required ``label``, the citation key: exact.
+
+    A footnote pool pairs in three passes, each over what the previous
+    left (an entry is a footnote when either pool holds footnotes):
+
+    1. ``content`` with the same label — the note is untouched;
+    2. ``content`` alone, earliest in pool order first — the note was
+       renumbered or relabelled, or moved in the pool;
+    3. ``label`` alone — the note's content was edited.
+
+    Splitting the content pass in two is what makes the label a
+    tie-breaker: among identical notes, a note keeps the one that had its
+    label before any other note can take it. Ties left after that break
+    by pool order, so the result is deterministic.
+    """
     old_entries = pool_entries(old)
     new_entries = pool_entries(new)
-    by_label = {entry.label: entry for entry in old_entries}
+    if not any(
+        isinstance(entry.entry, Footnote) for entry in (*old_entries, *new_entries)
+    ):
+        passes: tuple[tuple[PoolMatchPass, Callable[[PoolEntry], tuple]], ...] = (
+            (POOL_PASS_LABEL, lambda e: (e.label,)),
+        )
+    else:
+        passes = (
+            (POOL_PASS_CONTENT, lambda e: (e.content, e.label)),
+            (POOL_PASS_CONTENT, lambda e: (e.content,)),
+            (POOL_PASS_LABEL, lambda e: (e.label,)),
+        )
 
-    matches: list[tuple[PoolEntry, PoolEntry]] = []
-    unmatched_new: list[PoolEntry] = []
-    matched_labels: set[str] = set()
-    for entry in new_entries:
-        counterpart = by_label.get(entry.label)
-        if counterpart is None:
-            unmatched_new.append(entry)
-            continue
-        matches.append((counterpart, entry))
-        matched_labels.add(entry.label)
+    paired: dict[int, PoolMatch] = {}
+    remaining_old = list(enumerate(old_entries))
+    remaining_new = list(enumerate(new_entries))
+    for name, key in passes:
+        buckets: dict[tuple, list[tuple[int, PoolEntry]]] = {}
+        for index, entry in remaining_old:
+            buckets.setdefault(key(entry), []).append((index, entry))
+        taken_old: set[int] = set()
+        still_new: list[tuple[int, PoolEntry]] = []
+        for index, entry in remaining_new:
+            bucket = buckets.get(key(entry))
+            if not bucket:
+                still_new.append((index, entry))
+                continue
+            old_index, counterpart = bucket.pop(0)
+            taken_old.add(old_index)
+            paired[index] = PoolMatch(old=counterpart, new=entry, matched_by=name)
+        remaining_old = [(i, e) for i, e in remaining_old if i not in taken_old]
+        remaining_new = still_new
 
     return PoolMatching(
-        matches=tuple(matches),
-        unmatched_old=tuple(
-            entry for entry in old_entries if entry.label not in matched_labels
-        ),
-        unmatched_new=tuple(unmatched_new),
+        matches=tuple(paired[index] for index in sorted(paired)),
+        unmatched_old=tuple(entry for _, entry in remaining_old),
+        unmatched_new=tuple(entry for _, entry in remaining_new),
     )
 
 

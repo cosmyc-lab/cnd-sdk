@@ -1,5 +1,5 @@
 {
-  "matcher_version": "v2",
+  "matcher_version": "v3",
   "cases": {
     "01-label-survives-edit-and-move": {
       "why": "A labelled node is paired even when both its content and its slot changed.",
@@ -47,13 +47,13 @@
           "new_id": "00000000-0000-4000-c003-000000000003"
         },
         {
-          "status": "moved",
+          "status": "unchanged",
           "matched_by": "hash",
           "old_id": "00000000-0000-4000-c003-000000000001",
           "new_id": "00000000-0000-4000-c003-000000000004"
         },
         {
-          "status": "moved",
+          "status": "unchanged",
           "matched_by": "hash",
           "old_id": "00000000-0000-4000-c003-000000000002",
           "new_id": "00000000-0000-4000-c003-000000000005"
@@ -107,7 +107,7 @@
           "new_id": "00000000-0000-4000-c006-000000000003"
         },
         {
-          "status": "moved",
+          "status": "unchanged",
           "matched_by": "hash",
           "old_id": "00000000-0000-4000-c006-000000000001",
           "new_id": "00000000-0000-4000-c006-000000000004"
@@ -128,7 +128,7 @@
       "footnotes": []
     },
     "07-pools-key-on-label": {
-      "why": "Pool entries carry a required label, so the pool diff is exact and order-independent. A footnote's content is nodes: the rewritten note is reported as a changed paragraph, its entry stays unchanged.",
+      "why": "A rewritten note matches no content, so it pairs on its label: the note is changed and so is its paragraph. The pool diff is order-independent.",
       "nodes": [
         {
           "status": "unchanged",
@@ -157,16 +157,22 @@
       ],
       "footnotes": [
         {
-          "status": "unchanged",
-          "label": "fn-b"
+          "status": "changed",
+          "label": "fn-b",
+          "old_label": "fn-b",
+          "matched_by": "label"
         },
         {
           "status": "added",
-          "label": "fn-c"
+          "label": "fn-c",
+          "old_label": null,
+          "matched_by": null
         },
         {
           "status": "removed",
-          "label": "fn-a"
+          "label": "fn-a",
+          "old_label": "fn-a",
+          "matched_by": null
         }
       ]
     },
@@ -249,16 +255,20 @@
       "footnotes": [
         {
           "status": "unchanged",
-          "label": "fn-b"
+          "label": "fn-b",
+          "old_label": "fn-b",
+          "matched_by": "content"
         },
         {
-          "status": "unchanged",
-          "label": "fn-a"
+          "status": "changed",
+          "label": "fn-a",
+          "old_label": "fn-a",
+          "matched_by": "label"
         }
       ]
     },
     "11-container-edited-and-shifted": {
-      "why": "The table kept its own hash but its cell was edited and a paragraph was inserted above it: it is paired on its node hash alone (moved), the unedited cell moves with it, and the edited cell's paragraph is added while the old one is removed.",
+      "why": "The table kept its own hash but its cell was edited and a paragraph was inserted above it: it is paired on its node hash alone, and only shifted, so it is unchanged (matching v3); the unedited cell stays with it, and the edited cell's paragraph is added while the old one is removed.",
       "nodes": [
         {
           "status": "added",
@@ -267,19 +277,19 @@
           "new_id": "00000000-0000-4000-c011-000000000005"
         },
         {
-          "status": "moved",
+          "status": "unchanged",
           "matched_by": "hash",
           "old_id": "00000000-0000-4000-c011-000000000001",
           "new_id": "00000000-0000-4000-c011-000000000006"
         },
         {
-          "status": "moved",
+          "status": "unchanged",
           "matched_by": "container-hash",
           "old_id": "00000000-0000-4000-c011-000000000002",
           "new_id": "00000000-0000-4000-c011-000000000007"
         },
         {
-          "status": "moved",
+          "status": "unchanged",
           "matched_by": "hash",
           "old_id": "00000000-0000-4000-c011-000000000003",
           "new_id": "00000000-0000-4000-c011-000000000008"
@@ -295,6 +305,201 @@
           "matched_by": null,
           "old_id": "00000000-0000-4000-c011-000000000004",
           "new_id": null
+        }
+      ],
+      "footnotes": []
+    },
+    "12-note-inserted-at-the-top": {
+      "why": "Every note after the insertion is renumbered, yet each pairs with the note that holds its content: renumbered notes are unchanged, their content is unchanged in place, and only the new note is added.",
+      "nodes": [
+        {
+          "status": "changed",
+          "matched_by": "path+type",
+          "old_id": "00000000-0000-4000-c012-000000000001",
+          "new_id": "00000000-0000-4000-c012-000000000002"
+        },
+        {
+          "status": "added",
+          "matched_by": null,
+          "old_id": null,
+          "new_id": "00000000-0000-4000-c012-000000000400"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c012-000000000200",
+          "new_id": "00000000-0000-4000-c012-000000000401"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c012-000000000201",
+          "new_id": "00000000-0000-4000-c012-000000000402"
+        }
+      ],
+      "footnotes": [
+        {
+          "status": "unchanged",
+          "label": "2",
+          "old_label": "1",
+          "matched_by": "content"
+        },
+        {
+          "status": "unchanged",
+          "label": "3",
+          "old_label": "2",
+          "matched_by": "content"
+        },
+        {
+          "status": "added",
+          "label": "1",
+          "old_label": null,
+          "matched_by": null
+        }
+      ]
+    },
+    "13-numbered-notes-reordered": {
+      "why": "Note 1 and note 2 swap content: each new note pairs with the old note holding the same content, under the other number. Nothing changed.",
+      "nodes": [
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c013-000000000001",
+          "new_id": "00000000-0000-4000-c013-000000000002"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c013-000000000201",
+          "new_id": "00000000-0000-4000-c013-000000000400"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c013-000000000200",
+          "new_id": "00000000-0000-4000-c013-000000000401"
+        }
+      ],
+      "footnotes": [
+        {
+          "status": "unchanged",
+          "label": "1",
+          "old_label": "2",
+          "matched_by": "content"
+        },
+        {
+          "status": "unchanged",
+          "label": "2",
+          "old_label": "1",
+          "matched_by": "content"
+        }
+      ]
+    },
+    "14-identical-notes": {
+      "why": "Two notes with the same content: content alone cannot tell them apart, so each keeps the old note that had its label.",
+      "nodes": [
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c014-000000000001",
+          "new_id": "00000000-0000-4000-c014-000000000002"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c014-000000000201",
+          "new_id": "00000000-0000-4000-c014-000000000202"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash+path",
+          "old_id": "00000000-0000-4000-c014-000000000200",
+          "new_id": "00000000-0000-4000-c014-000000000203"
+        }
+      ],
+      "footnotes": [
+        {
+          "status": "unchanged",
+          "label": "fn-b",
+          "old_label": "fn-b",
+          "matched_by": "content"
+        },
+        {
+          "status": "unchanged",
+          "label": "fn-a",
+          "old_label": "fn-a",
+          "matched_by": "content"
+        }
+      ]
+    },
+    "15-insertion-is-not-a-move": {
+      "why": "A paragraph inserted at the top of the body and another at the top of the section shift every node after them; none is reported moved, because none changed order relative to its matched siblings.",
+      "nodes": [
+        {
+          "status": "added",
+          "matched_by": null,
+          "old_id": null,
+          "new_id": "00000000-0000-4000-c015-000000000005"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c015-000000000001",
+          "new_id": "00000000-0000-4000-c015-000000000006"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c015-000000000002",
+          "new_id": "00000000-0000-4000-c015-000000000007"
+        },
+        {
+          "status": "added",
+          "matched_by": null,
+          "old_id": null,
+          "new_id": "00000000-0000-4000-c015-000000000008"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c015-000000000003",
+          "new_id": "00000000-0000-4000-c015-000000000009"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c015-000000000004",
+          "new_id": "00000000-0000-4000-c015-000000000010"
+        }
+      ],
+      "footnotes": []
+    },
+    "16-real-moves": {
+      "why": "The paragraph moved into the section is re-parented: moved. Alpha and beta swapped: the later of the two in the new order, alpha, is moved. The heading only shifted: unchanged.",
+      "nodes": [
+        {
+          "status": "unchanged",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c016-000000000002",
+          "new_id": "00000000-0000-4000-c016-000000000005"
+        },
+        {
+          "status": "moved",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c016-000000000001",
+          "new_id": "00000000-0000-4000-c016-000000000006"
+        },
+        {
+          "status": "unchanged",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c016-000000000004",
+          "new_id": "00000000-0000-4000-c016-000000000007"
+        },
+        {
+          "status": "moved",
+          "matched_by": "hash",
+          "old_id": "00000000-0000-4000-c016-000000000003",
+          "new_id": "00000000-0000-4000-c016-000000000008"
         }
       ],
       "footnotes": []

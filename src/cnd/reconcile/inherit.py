@@ -67,25 +67,29 @@ def reconcile(
     its argument's ids in place would make the caller's own copy lie.
 
     ``only_exact`` restricts inheritance to pairs the **label** pass
-    matched. The default is the full matcher, which is what ADR 0018
-    specifies; ``only_exact=True`` is for a caller who would rather mint a
-    new id than inherit one on a heuristic's word — a store where a wrong
-    pairing silently merges two records, for instance.
+    matched, and pool entries to pairs whose label agrees (a footnote
+    matched on its content under another label keeps its fresh id). The
+    default is the full matcher, which is what ADR 0018 specifies;
+    ``only_exact=True`` is for a caller who would rather mint a new id
+    than inherit one on a heuristic's word — a store where a wrong pairing
+    silently merges two records, for instance.
     """
     remap: dict[UUID, UUID] = {}
 
-    matching = match_nodes(previous, new)
+    footnotes = match_pool(previous.footnotes, new.footnotes)
+    matching = match_nodes(previous, new, footnotes)
     for match in matching.matches:
         if only_exact and match.matched_by != PASS_LABEL:
             continue
         remap[match.new.node.id] = match.old.node.id
 
-    for old_pool, new_pool in (
-        (previous.bibliography, new.bibliography),
-        (previous.footnotes, new.footnotes),
-    ):
-        for old_entry, new_entry in match_pool(old_pool, new_pool).matches:
-            remap[new_entry.entry.id] = old_entry.entry.id
+    for pool in (match_pool(previous.bibliography, new.bibliography), footnotes):
+        for pool_match in pool.matches:
+            # A footnote pairs on its content first (matching v3), which is
+            # a heuristic among identical notes: only the label is exact.
+            if only_exact and pool_match.old.label != pool_match.new.label:
+                continue
+            remap[pool_match.new.entry.id] = pool_match.old.entry.id
 
     result = new.model_copy(deep=True)
     _check(result, remap)
