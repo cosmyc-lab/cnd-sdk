@@ -228,7 +228,9 @@ class TestEdges:
 
     @pytest.mark.parametrize("span", [[1, 1], [5, 9], [3, 2], [1]])
     def test_an_empty_or_malformed_span_is_not_wrapped(self, span) -> None:
-        link = LinkRef(href="u", text_span=span)
+        # A one-offset span no longer parses; ``model_construct`` stands for
+        # a model built without validation, which the renderer still survives.
+        link = LinkRef.model_construct(href="u", text_span=span)
         text = rt("abcd", links=[link])
         assert render_inline(text, "html", edge_wrap=self._anchor) == "abcd"
         assert wrapped_edges(text, self._anchor) == []

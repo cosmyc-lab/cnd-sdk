@@ -7,12 +7,22 @@ in Unicode code points (docs/adr/0013). Verbatim content (code, math
 source, ``raw``) and metadata stay plain strings.
 """
 
-from typing import Literal, Union
+from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from cnd.core.model import ClosedModel
 
 
-class RawSource(BaseModel):
+TextSpan = Annotated[list[Annotated[int, Field(ge=0)]], Field(min_length=2, max_length=2)]
+"""An edge's ``text_span``: a ``[start, end)`` pair of non-negative
+code-point offsets (spec §5, "array of 2 ints", ``0 ≤ start``). The shape
+is the schema's (``minItems``/``maxItems`` 2, ``minimum`` 0); the bounds
+that depend on the text, ``start ≤ end ≤ len(value)``, are
+``validate()``'s (``text-span-out-of-bounds``)."""
+
+
+class RawSource(ClosedModel):
     """The producer's verbatim source for a node, with its language.
 
     A bare string dropped the one thing a consumer needs to decide whether
@@ -25,7 +35,7 @@ class RawSource(BaseModel):
     value: str
 
 
-class NodeRef(BaseModel):
+class NodeRef(ClosedModel):
     """Forward cross-reference edge to another node.
 
     An edge is ``{label, text_span?}``: it names its target by label and
@@ -37,26 +47,26 @@ class NodeRef(BaseModel):
     """
 
     label: str
-    text_span: list[int] | None = None
+    text_span: TextSpan | None = None
 
 
-class CiteRef(BaseModel):
+class CiteRef(ClosedModel):
     """Forward citation edge; ``label`` resolves in the CND ``bibliography`` pool."""
 
     label: str
-    text_span: list[int] | None = None
+    text_span: TextSpan | None = None
     form: Literal["normal", "prose", "full", "author", "year", "none"] | None = None
     supplement: str | None = None
 
 
-class FootnoteRef(BaseModel):
+class FootnoteRef(ClosedModel):
     """Forward footnote edge; ``label`` resolves in the CND ``footnotes`` pool."""
 
     label: str
-    text_span: list[int] | None = None
+    text_span: TextSpan | None = None
 
 
-class LinkRef(BaseModel):
+class LinkRef(ClosedModel):
     """Forward hyperlink edge; ``href`` resolves nowhere in the CND.
 
     The fourth forward family and the only one not keyed by label: a
@@ -67,7 +77,7 @@ class LinkRef(BaseModel):
     """
 
     href: str
-    text_span: list[int] | None = None
+    text_span: TextSpan | None = None
 
 
 Edge = Union[NodeRef, CiteRef, FootnoteRef, LinkRef]
@@ -85,7 +95,7 @@ ATOMIC_MARK_KINDS = frozenset({"code", "math"})
 inside them partially (docs/proposals/0013, Marks rule 4)."""
 
 
-class Mark(BaseModel):
+class Mark(ClosedModel):
     """A standoff span of inline formatting inside a ``RichText.value``.
 
     ``raw`` is the source of the covered text, used by ``math`` (the
@@ -98,7 +108,7 @@ class Mark(BaseModel):
     raw: RawSource | None = None
 
 
-class RichText(BaseModel):
+class RichText(ClosedModel):
     """Prose: a text, its language, its marks and its forward edges.
 
     An edge belongs to the text in which its marker opens; its owning
@@ -121,7 +131,7 @@ class RichText(BaseModel):
         return [*self.refs, *self.cites, *self.footnotes, *self.links]
 
 
-class Numbering(BaseModel):
+class Numbering(ClosedModel):
     """A resolved counter as displayed: ``value`` ("3", "2.1.1", "(1)")
     and the counter word in the document's language (``name``, "Figure").
 

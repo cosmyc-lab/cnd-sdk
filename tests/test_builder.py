@@ -202,6 +202,46 @@ class TestTranscription:
         assert decl.nodes[0].text.value == "x"
 
 
+class TestHeadingPathsPassValidation:
+    """The builder runs ``validate()``, so the paths it derives must meet
+    ``heading-path-mismatch`` wherever a heading can sit."""
+
+    @pytest.mark.parametrize("numbering", [False, True])
+    def test_headings_in_containers_and_footnotes_build(self, numbering: bool) -> None:
+        decl = _decl(
+            [
+                {"type": "heading", "level": 1, "text": "A", "children": [
+                    {"type": "list", "items": [{"children": [
+                        {"type": "heading", "level": 2, "text": "In item"},
+                    ]}]},
+                    {"type": "table", "cells": [{"row": 0, "col": 0, "children": [
+                        {"type": "heading", "level": 2, "text": "In cell", "children": [
+                            {"type": "heading", "level": 3, "text": "Deeper"},
+                        ]},
+                    ]}]},
+                    {"type": "paragraph", "text": {"value": "x", "footnotes": [{"label": "fn"}]}},
+                ]},
+            ],
+            footnotes=[{"label": "fn", "children": [
+                {"type": "heading", "level": 1, "text": "In note"},
+            ]}],
+        )
+
+        cnd = build(decl, numbering=numbering)
+
+        paths = {
+            v.node.text.value: v.node.heading_path
+            for v in cnd.iter_all()
+            if isinstance(v.node, HeadingNode)
+        }
+        a = "1 A" if numbering else "A"
+        in_cell = "1.2 In cell" if numbering else "In cell"
+        assert paths["In item"] == [a, "1.1 In item" if numbering else "In item"]
+        assert paths["In cell"] == [a, in_cell]
+        assert paths["Deeper"] == [a, in_cell, "1.2.1 Deeper" if numbering else "Deeper"]
+        assert paths["In note"] == ["2 In note" if numbering else "In note"]
+
+
 class TestNoSharedState:
     """The CND never shares a mutable object with its declaration: two
     builds of one declaration are two independent documents."""

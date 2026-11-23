@@ -107,7 +107,6 @@
                     {
                       "row": 0,
                       "col": 0,
-                      "colspan": 2,
                       "is_header": true,
                       "children": [
                         {

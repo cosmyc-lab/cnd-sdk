@@ -160,6 +160,20 @@ class TestUnknownFieldsAreRejected:
         heading = _committed_schema()["$defs"]["DeclHeadingNode"]
         assert heading.get("additionalProperties") is False
 
+    def test_the_committed_schema_closes_every_object(self) -> None:
+        """The declaration's own models and the CND value objects it
+        shares (rich text, marks, edges, metadata) alike."""
+        schema = _committed_schema()
+        assert schema.get("additionalProperties") is False
+        open_defs = [
+            name
+            for name, definition in schema["$defs"].items()
+            if definition.get("type") == "object"
+            and definition.get("additionalProperties") is not False
+        ]
+        assert open_defs == []
+        assert {"RichText", "Mark", "NodeRef", "DocMetadata"} <= set(schema["$defs"])
+
     def test_the_extension_bag_still_holds_arbitrary_keys(self) -> None:
         """`extra=forbid` guards the model's own fields, not the contents
         of a dict-typed one."""
@@ -170,17 +184,49 @@ class TestUnknownFieldsAreRejected:
         )
         assert decl.nodes[0].state_metadata == {"anything": 1}
 
-    def test_strictness_is_partial_at_the_reused_value_objects(self) -> None:
-        """A documented limit, pinned so it is a known boundary and not a
-        surprise: a stray key *inside* a reused CND value object (here a
-        rich text) is not caught, because forbidding on it would change
-        CND parsing (docs: `_Strict`)."""
-        decl = Declaration.model_validate(
-            self._decl(
-                {"type": "paragraph", "text": {"value": "x", "marsk": []}}
+    @pytest.mark.parametrize(
+        "text",
+        [
+            {"value": "x", "marsk": []},
+            {"value": "x", "marks": [{"start": 0, "end": 1, "kind": "strong", "knd": 1}]},
+            {"value": "x", "refs": [{"label": "a", "txt_span": [0, 1]}]},
+        ],
+    )
+    def test_a_typo_inside_a_reused_value_object_is_rejected(self, text) -> None:
+        """The CND's own value objects (rich text, marks, edges, metadata)
+        now refuse an unknown key too, so the declaration's strictness no
+        longer stops at them."""
+        with pytest.raises(ValidationError, match="marsk|knd|txt_span"):
+            Declaration.model_validate(self._decl({"type": "paragraph", "text": text}))
+
+    def test_a_typo_in_the_document_metadata_is_rejected(self) -> None:
+        decl = self._decl({"type": "paragraph", "text": "x"})
+        decl["doc"] = {"title": "T", "autors": ["A"]}
+        with pytest.raises(ValidationError, match="autors"):
+            Declaration.model_validate(decl)
+
+    @pytest.mark.parametrize("level", [0, -1])
+    def test_a_heading_level_below_one_is_refused_at_the_door(self, level) -> None:
+        """The CND's heading level minimum, refused here rather than when
+        the builder constructs the node."""
+        with pytest.raises(ValidationError, match="level"):
+            Declaration.model_validate(
+                self._decl({"type": "heading", "level": level, "text": "H"})
             )
+
+    def test_a_deep_heading_level_is_accepted(self) -> None:
+        """No upper bound: a source may nest deeper than six levels."""
+        decl = Declaration.model_validate(
+            self._decl({"type": "heading", "level": 9, "text": "H"})
         )
-        assert decl.nodes[0].text.value == "x"
+        assert decl.nodes[0].level == 9
+
+    @pytest.mark.parametrize(("row", "col"), [(-1, 0), (0, -1)])
+    def test_a_negative_cell_coordinate_is_refused_at_the_door(self, row, col) -> None:
+        with pytest.raises(ValidationError, match="row|col"):
+            Declaration.model_validate(
+                self._decl({"type": "table", "cells": [{"row": row, "col": col}]})
+            )
 
     def test_a_typo_inside_a_cell_is_now_rejected(self) -> None:
         """Cells hold nodes, so the declaration declares its own strict

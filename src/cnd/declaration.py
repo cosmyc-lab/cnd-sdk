@@ -103,15 +103,14 @@ class _Strict(BaseModel):
     not need silent tolerance here — ``declaration_version`` signals a
     version mismatch explicitly.
 
-    **This strictness stops at the reused value objects.**
-    ``extra="forbid"`` is per model and does not reach what the
-    declaration shares with the CND (``RichText``, its marks and edges,
-    ``DocMetadata``): those keep the CND's lenient config, since forbidding
-    on them would change CND parsing. A stray key on a node, a list item,
-    a term item, a cell, a footnote or at the top level is caught; one
-    *inside* a text object or a link edge is not. The open extension bags
-    (``state_metadata``, ``fields``) are dict-typed and unaffected — they
-    still hold arbitrary keys.
+    The value objects the declaration shares with the CND (``RichText``,
+    its marks and edges, ``DocMetadata``) are closed CND models
+    (``cnd.core.model.ClosedModel``), so a stray key is caught everywhere:
+    on a node, a list item, a term item, a cell, a footnote, at the top
+    level, and inside a text object, a mark, a link edge or the document
+    metadata. The open extension bags (``state_metadata``, ``fields``,
+    ``doc.extra``) are dict-typed and unaffected — they still hold
+    arbitrary keys.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -144,10 +143,11 @@ class DeclHeadingNode(DeclNodeBase):
     """A section heading. No ``heading_path`` (derivable from tree
     position) and no resolved number.
 
-    ``level`` starts at 1 — there is no level 0. Constraining it here
-    makes the invalid input unrepresentable rather than a counter-engine
-    crash at build time (ADR 0019 §4's own philosophy: reject at the
-    door, not downstream)."""
+    ``level`` starts at 1 — there is no level 0 — the CND heading's own
+    bound. Constraining it here makes the invalid input unrepresentable
+    rather than a counter-engine or node construction crash at build
+    time (ADR 0019 §4's own philosophy: reject at the door, not
+    downstream)."""
 
     type: Literal["heading"]
     level: Annotated[int, Field(ge=1)]
@@ -251,8 +251,8 @@ class DeclTermsNode(DeclNodeBase):
 class DeclCell(_Strict):
     """One cell of a declared ``table`` or ``layout``; content is nodes."""
 
-    row: int
-    col: int
+    row: int = Field(ge=0)
+    col: int = Field(ge=0)
     rowspan: int = Field(default=1, ge=1)
     colspan: int = Field(default=1, ge=1)
     is_header: bool = False

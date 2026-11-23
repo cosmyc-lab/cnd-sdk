@@ -3,7 +3,9 @@ from typing import Annotated, Any, Literal, Union
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from cnd.core.model import ClosedModel
 
 from cnd.core.text import (  # noqa: F401  (re-exported for existing imports)
     CiteRef,
@@ -17,7 +19,7 @@ from cnd.core.text import (  # noqa: F401  (re-exported for existing imports)
 )
 
 
-class NodeLocation(BaseModel):
+class NodeLocation(ClosedModel):
     """Layout facts the SDK cannot derive from the tree: the page where the
     node begins in the built document.
 
@@ -44,7 +46,7 @@ KNOWN_TABLE_KINDS = frozenset({"data", "content"})
 """Known ``table.kind`` values (open vocabulary; ``None`` = unstated)."""
 
 
-class NodeBase(BaseModel):
+class NodeBase(ClosedModel):
     """Shared fields for every node. The link families live in the node's
     texts (``RichText``), not here (docs/proposals/0013)."""
 
@@ -55,10 +57,18 @@ class NodeBase(BaseModel):
 
 
 class HeadingNode(NodeBase):
-    """Section heading; the section's content is in ``children``."""
+    """Section heading; the section's content is in ``children``.
+
+    ``level`` is 1 or more, with no upper bound (spec §6.1): a source
+    such as Typst nests headings deeper than six, and how a renderer
+    shows a deep level is its own concern. ``heading_path`` is the
+    ``heading_path`` of the nearest enclosing heading plus one element
+    for this heading (``[element]`` at the top of the body or of a
+    footnote); ``validate()`` checks it against the tree
+    (``heading-path-mismatch``)."""
 
     type: Literal["heading"]
-    level: int
+    level: int = Field(ge=1)
     numbering: Numbering | None = None
     text: RichText
     heading_path: list[str]
@@ -133,7 +143,7 @@ class AdmonitionNode(NodeBase):
     children: list["CndNode"] = Field(default=[])
 
 
-class ListItem(BaseModel):
+class ListItem(ClosedModel):
     """One list entry. Its content is block nodes; a nested list is a
     ``list`` node with its own ``ordered``. ``checked`` is ``None`` for an
     item that is not a task-list checkbox."""
@@ -151,7 +161,7 @@ class ListNode(NodeBase):
     items: list[ListItem] = Field(default=[])
 
 
-class TermItem(BaseModel):
+class TermItem(ClosedModel):
     """One term and its definition (block nodes in ``children``)."""
 
     term: RichText
@@ -165,11 +175,15 @@ class TermsNode(NodeBase):
     items: list[TermItem] = Field(default=[])
 
 
-class Cell(BaseModel):
-    """One cell of a ``table`` or a ``layout``; content is block nodes."""
+class Cell(ClosedModel):
+    """One cell of a ``table`` or a ``layout``; content is block nodes.
 
-    row: int
-    col: int
+    ``row`` and ``col`` are 0-based. A cell covers the rectangle of
+    ``rowspan`` rows by ``colspan`` columns from there, and no two cells
+    of a grid cover the same position (``validate()``, ``cell-overlap``)."""
+
+    row: int = Field(ge=0)
+    col: int = Field(ge=0)
     rowspan: int = Field(default=1, ge=1)
     colspan: int = Field(default=1, ge=1)
     is_header: bool = False

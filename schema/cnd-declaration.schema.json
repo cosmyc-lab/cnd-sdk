@@ -1,6 +1,7 @@
 {
   "$defs": {
     "CiteRef": {
+      "additionalProperties": false,
       "description": "Forward citation edge; ``label`` resolves in the CND ``bibliography`` pool.",
       "properties": {
         "label": {
@@ -11,8 +12,11 @@
           "anyOf": [
             {
               "items": {
+                "minimum": 0,
                 "type": "integer"
               },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             },
             {
@@ -293,10 +297,12 @@
       "description": "One cell of a declared ``table`` or ``layout``; content is nodes.",
       "properties": {
         "row": {
+          "minimum": 0,
           "title": "Row",
           "type": "integer"
         },
         "col": {
+          "minimum": 0,
           "title": "Col",
           "type": "integer"
         },
@@ -683,7 +689,7 @@
     },
     "DeclHeadingNode": {
       "additionalProperties": false,
-      "description": "A section heading. No ``heading_path`` (derivable from tree\nposition) and no resolved number.\n\n``level`` starts at 1 \u2014 there is no level 0. Constraining it here\nmakes the invalid input unrepresentable rather than a counter-engine\ncrash at build time (ADR 0019 \u00a74's own philosophy: reject at the\ndoor, not downstream).",
+      "description": "A section heading. No ``heading_path`` (derivable from tree\nposition) and no resolved number.\n\n``level`` starts at 1 \u2014 there is no level 0 \u2014 the CND heading's own\nbound. Constraining it here makes the invalid input unrepresentable\nrather than a counter-engine or node construction crash at build\ntime (ADR 0019 \u00a74's own philosophy: reject at the door, not\ndownstream).",
       "properties": {
         "label": {
           "anyOf": [
@@ -1441,6 +1447,7 @@
       "type": "object"
     },
     "DocDate": {
+      "additionalProperties": false,
       "description": "Partial or full document date from cnd metadata.",
       "properties": {
         "year": {
@@ -1479,6 +1486,7 @@
       "type": "object"
     },
     "DocMetadata": {
+      "additionalProperties": false,
       "description": "Bibliographic metadata for the work the CND represents.\n\nThis identifies the *work* \u2014 title, authors, date. The input artifact it\nwas built from is ``Cnd.source``, deliberately separate: the same work\ncan be built from a Typst source and later re-imported from another\nformat (docs/proposals/0008).\n\n``status`` and ``version`` are the values the author declares on the\ndocument, unrelated to ``cnd_version`` and to any build history. ``extra``\nholds any other title-page metadata; its keys never repeat a field name\n(validation, docs/proposals/0013).",
       "properties": {
         "title": {
@@ -1576,6 +1584,7 @@
       "type": "object"
     },
     "FootnoteRef": {
+      "additionalProperties": false,
       "description": "Forward footnote edge; ``label`` resolves in the CND ``footnotes`` pool.",
       "properties": {
         "label": {
@@ -1586,8 +1595,11 @@
           "anyOf": [
             {
               "items": {
+                "minimum": 0,
                 "type": "integer"
               },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             },
             {
@@ -1605,6 +1617,7 @@
       "type": "object"
     },
     "LinkRef": {
+      "additionalProperties": false,
       "description": "Forward hyperlink edge; ``href`` resolves nowhere in the CND.\n\nThe fourth forward family and the only one not keyed by label: a\nhyperlink's target is outside the document by definition, so it admits\nno resolution domain and has no dangling state \u2014 a URL is a URL. The\nscheme is a consumer's business (``https:``, ``doi:``, an application\nscheme); the format only carries the string.",
       "properties": {
         "href": {
@@ -1615,8 +1628,11 @@
           "anyOf": [
             {
               "items": {
+                "minimum": 0,
                 "type": "integer"
               },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             },
             {
@@ -1634,6 +1650,7 @@
       "type": "object"
     },
     "Mark": {
+      "additionalProperties": false,
       "description": "A standoff span of inline formatting inside a ``RichText.value``.\n\n``raw`` is the source of the covered text, used by ``math`` (the\nreadable linear form lives in ``value``, the formula here).",
       "properties": {
         "start": {
@@ -1669,6 +1686,7 @@
       "type": "object"
     },
     "NodeRef": {
+      "additionalProperties": false,
       "description": "Forward cross-reference edge to another node.\n\nAn edge is ``{label, text_span?}``: it names its target by label and\nresolves through the CND's label index (docs/adr/0017, superseding the\n``{id, label}`` form of docs/adr/0002). ``text_span`` marks where the\nreference marker sits in the ``value`` of the ``RichText`` that holds\nthe edge, as a ``[start, end)`` pair of Unicode code-point offsets\n(docs/adr/0013).",
       "properties": {
         "label": {
@@ -1679,8 +1697,11 @@
           "anyOf": [
             {
               "items": {
+                "minimum": 0,
                 "type": "integer"
               },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             },
             {
@@ -1698,6 +1719,7 @@
       "type": "object"
     },
     "RawSource": {
+      "additionalProperties": false,
       "description": "The producer's verbatim source for a node, with its language.\n\nA bare string dropped the one thing a consumer needs to decide whether\nto attempt a parse: which language the content is in. ``format`` is an\nopen string (``\"typst\"``, ``\"latex\"``, ``\"mathml\"``\u2026), never a closed\nenum \u2014 a new producer must not require a spec revision.",
       "properties": {
         "format": {
@@ -1717,6 +1739,7 @@
       "type": "object"
     },
     "RichText": {
+      "additionalProperties": false,
       "description": "Prose: a text, its language, its marks and its forward edges.\n\nAn edge belongs to the text in which its marker opens; its owning\nnode is the nearest node holding the text. Every list defaults to\nempty and may be omitted, so ``{\"value\": \"\u2026\"}`` is a complete text.\n``lang`` null inherits from the enclosing text, then the node chain,\nthen ``doc.lang``.",
       "properties": {
         "value": {
@@ -1783,6 +1806,7 @@
       "type": "object"
     },
     "SourceInfo": {
+      "additionalProperties": false,
       "description": "The input artifact the CND was built from.\n\n``hash`` is self-describing (``\"sha256:\u2026\"``). Its comparability is\nnarrow and normative: two hashes are comparable only between CNDs from\nthe **same producer over the same source**, where equal means unchanged\nand different means changed. Comparing across producers is meaningless.\n\n``uri`` is an identifier in the producer's own space and is **never\npromised resolvable** \u2014 a consumer must not dereference it.",
       "properties": {
         "type": {
