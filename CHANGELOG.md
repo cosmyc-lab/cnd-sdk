@@ -9,6 +9,41 @@ the minor version, fixes bump the patch version).
 
 ## [Unreleased]
 
+The CND format stays **0.5.0**: no model, schema or hash change. The
+reconciliation algorithm moves to **matching v3** (docs/adr/0032).
+
+### Changed
+
+- **Footnotes are matched on their content** when reconciling. A producer
+  that labels notes with their display number renumbers every note after
+  an insertion, and matching on the label paired each note with its
+  neighbour's id while the diff said `unchanged`. The footnote pool is now
+  matched first: same content and label, then same content (the label
+  breaking ties among identical notes), then same label (an edited note).
+  A note's content is matched inside the note it was paired with, so a
+  renumbered note's content stays `unchanged` and keeps its ids. A
+  renumbered note with the same content is `unchanged` in the pool diff;
+  a note whose content was edited is `changed`. The bibliography still
+  matches on its citation key.
+- **`moved` reports real moves only**: a matched node whose hash is equal
+  is `moved` when it was re-parented (including a change of item or cell
+  inside a list or table that kept its shape) or reordered relative to
+  its matched siblings (outside a longest increasing run of their old
+  order). A node merely shifted by an insertion or removal before it is
+  `unchanged`; before, every node after an insertion was `moved`.
+- `reconcile(..., only_exact=True)` inherits a pool entry's id only when
+  its label agrees, since pairing a footnote on its content is a
+  heuristic among identical notes.
+- **Breaking (pre-1.0):** `PoolMatching.matches` holds `PoolMatch(old,
+  new, matched_by)` objects instead of `(old, new)` pairs; `PoolEntry`
+  gains `content` (a matching key, not a content hash) and `PoolChange`
+  gains `matched_by`. `match_nodes` and `diff` align the new side's
+  footnote paths on the pool matching (`align_footnote_paths`); the
+  content of an unmatched note sits under `"new-footnotes"`.
+- `MATCHER_VERSION` is `"v3"`. `fixtures/matching.json` is regenerated as
+  v3, its footnote vectors carry `old_label` and `matched_by`, and cases
+  12 to 16 are added. `cnd diff --json` reports the same two pool fields.
+
 ## [0.10.0] - 2026-11-05
 
 The CND format stays **0.5.0**: no model, schema or hash changes. The default

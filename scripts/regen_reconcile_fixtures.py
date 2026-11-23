@@ -12,7 +12,9 @@ fixture coordinates, nothing more.
 
 Cases 08 to 10 exercise what format 0.5 made finer (docs/proposals/0013):
 nodes inside list items and cells, and footnote content. Case 11 pins the
-last pass matching v2 added (docs/adr/0029).
+last pass matching v2 added (docs/adr/0029). Cases 12 to 16 pin what
+matching v3 changed (docs/adr/0032): footnotes matched on their content,
+and ``moved`` reported for real moves only.
 """
 
 import json
@@ -132,7 +134,8 @@ CASES["06-combined-case-fails"] = (
     "reported added/removed. Pinned as a failure, not papered over.",
 )
 
-# 7 — pools match on their required label: exact, never heuristic.
+# 7 — the bibliography matches on its label; a footnote whose content was
+# rewritten falls back to its label too (matching v3).
 pool_old = cnd([para(7, 1, "alpha", label="p")])
 pool_old["footnotes"] = [
     note(7, 100, "fn-a", para(7, 200, "first")),
@@ -146,9 +149,9 @@ pool_new["footnotes"] = [
 CASES["07-pools-key-on-label"] = (
     pool_old,
     pool_new,
-    "Pool entries carry a required label, so the pool diff is exact and "
-    "order-independent. A footnote's content is nodes: the rewritten note "
-    "is reported as a changed paragraph, its entry stays unchanged.",
+    "A rewritten note matches no content, so it pairs on its label: the "
+    "note is changed and so is its paragraph. The pool diff is "
+    "order-independent.",
 )
 
 # 8 — an edited list item is matched and reported on its own.
@@ -203,9 +206,137 @@ CASES["11-container-edited-and-shifted"] = (
         ]
     ),
     "The table kept its own hash but its cell was edited and a paragraph was "
-    "inserted above it: it is paired on its node hash alone (moved), the "
-    "unedited cell moves with it, and the edited cell's paragraph is added "
-    "while the old one is removed.",
+    "inserted above it: it is paired on its node hash alone, and only "
+    "shifted, so it is unchanged (matching v3); the unedited cell stays with "
+    "it, and the edited cell's paragraph is added while the old one is "
+    "removed.",
+)
+
+
+def numbered(case: int, first: int, *texts: str) -> list[dict]:
+    """Notes labelled with their display number, as a producer that numbers
+    its notes writes them; ``first`` is the first note's id offset."""
+    return [
+        note(case, first + n, str(n + 1), para(case, first + 100 + n, text))
+        for n, text in enumerate(texts)
+    ]
+
+
+# 12 — a note inserted at the top renumbers every note after it; matching v3
+# pairs each note on its content, not on its number.
+inserted_old = cnd([cite_notes(12, 1, "1", "2")])
+inserted_old["footnotes"] = numbered(12, 100, "alpha", "beta")
+inserted_new = cnd([cite_notes(12, 2, "1", "2", "3")])
+inserted_new["footnotes"] = numbered(12, 300, "inserted", "alpha", "beta")
+CASES["12-note-inserted-at-the-top"] = (
+    inserted_old,
+    inserted_new,
+    "Every note after the insertion is renumbered, yet each pairs with the "
+    "note that holds its content: renumbered notes are unchanged, their "
+    "content is unchanged in place, and only the new note is added.",
+)
+
+# 13 — two numbered notes swap places: each follows its content.
+swapped_old = cnd([cite_notes(13, 1, "1", "2")])
+swapped_old["footnotes"] = numbered(13, 100, "alpha", "beta")
+swapped_new = cnd([cite_notes(13, 2, "1", "2")])
+swapped_new["footnotes"] = numbered(13, 300, "beta", "alpha")
+CASES["13-numbered-notes-reordered"] = (
+    swapped_old,
+    swapped_new,
+    "Note 1 and note 2 swap content: each new note pairs with the old note "
+    "holding the same content, under the other number. Nothing changed.",
+)
+
+# 14 — two identical notes: the label breaks the tie, deterministically.
+twins_old = cnd([cite_notes(14, 1, "fn-a", "fn-b")])
+twins_old["footnotes"] = [
+    note(14, 100, "fn-a", para(14, 200, "same")),
+    note(14, 101, "fn-b", para(14, 201, "same")),
+]
+twins_new = cnd([cite_notes(14, 2, "fn-a", "fn-b")])
+twins_new["footnotes"] = [
+    note(14, 102, "fn-b", para(14, 202, "same")),
+    note(14, 103, "fn-a", para(14, 203, "same")),
+]
+CASES["14-identical-notes"] = (
+    twins_old,
+    twins_new,
+    "Two notes with the same content: content alone cannot tell them "
+    "apart, so each keeps the old note that had its label.",
+)
+
+# 15 — insertions shift the nodes after them; that is no move.
+CASES["15-insertion-is-not-a-move"] = (
+    cnd(
+        [
+            para(15, 1, "alpha"),
+            {
+                "id": uid(15, 2),
+                "type": "heading",
+                "level": 1,
+                "text": {"value": "Section"},
+                "heading_path": ["Section"],
+                "children": [para(15, 3, "first"), para(15, 4, "second")],
+            },
+        ]
+    ),
+    cnd(
+        [
+            para(15, 5, "inserted"),
+            para(15, 6, "alpha"),
+            {
+                "id": uid(15, 7),
+                "type": "heading",
+                "level": 1,
+                "text": {"value": "Section"},
+                "heading_path": ["Section"],
+                "children": [
+                    para(15, 8, "inserted too"),
+                    para(15, 9, "first"),
+                    para(15, 10, "second"),
+                ],
+            },
+        ]
+    ),
+    "A paragraph inserted at the top of the body and another at the top of "
+    "the section shift every node after them; none is reported moved, "
+    "because none changed order relative to its matched siblings.",
+)
+
+# 16 — real moves: a re-parented node, and the later node of a swap.
+CASES["16-real-moves"] = (
+    cnd(
+        [
+            para(16, 1, "alpha"),
+            para(16, 2, "beta"),
+            para(16, 3, "travels"),
+            {
+                "id": uid(16, 4),
+                "type": "heading",
+                "level": 1,
+                "text": {"value": "Section"},
+                "heading_path": ["Section"],
+            },
+        ]
+    ),
+    cnd(
+        [
+            para(16, 5, "beta"),
+            para(16, 6, "alpha"),
+            {
+                "id": uid(16, 7),
+                "type": "heading",
+                "level": 1,
+                "text": {"value": "Section"},
+                "heading_path": ["Section"],
+                "children": [para(16, 8, "travels")],
+            },
+        ]
+    ),
+    "The paragraph moved into the section is re-parented: moved. Alpha and "
+    "beta swapped: the later of the two in the new order, alpha, is moved. "
+    "The heading only shifted: unchanged.",
 )
 
 
@@ -242,7 +373,12 @@ def main() -> None:
                 for change in report.nodes
             ],
             "footnotes": [
-                {"status": change.status, "label": change.label}
+                {
+                    "status": change.status,
+                    "label": change.label,
+                    "old_label": change.old.label if change.old else None,
+                    "matched_by": change.matched_by,
+                }
                 for change in report.footnotes.changes
             ],
         }

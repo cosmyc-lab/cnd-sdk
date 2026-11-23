@@ -113,11 +113,11 @@ the corpus matches, carrying all four vector kinds the same ADR requires
 (foreign format → declaration) is not here and never will be: it belongs
 with the producers, not the hub (same ADR, §2).
 
-`diff` sits apart from the other four: matching v2 is a **versioned
+`diff` sits apart from the other four: matching v3 is a **versioned
 reference algorithm, not a normative rule**
 ([`docs/adr/0018`](docs/adr/0018-reconciliation-reference-algorithm.md);
-v2 itself is [`docs/adr/0029`](docs/adr/0029-matching-v2.md)).
-Reproducing `matching.json` proves an implementation runs v2 — it is not
+v3 itself is [`docs/adr/0032`](docs/adr/0032-matching-v3.md)).
+Reproducing `matching.json` proves an implementation runs v3 — it is not
 something the format requires of anyone.
 
 ## Reconciliation
@@ -148,15 +148,19 @@ format** — exact for labelled nodes, best-effort for the rest, and every
 pairing reports which pass made it so a caller can tell the two apart.
 Pass `only_exact=True` to inherit ids on labels alone.
 
-The version implemented is **matching v2**
-([`docs/adr/0029`](docs/adr/0029-matching-v2.md)): it runs over the full
-walk (the body, then every footnote's content) with spec §8 paths, keys a
-footnote's content by its note's label, and keys a container (list,
-terms, table, layout, quote, admonition) on its own hash plus a digest of
-its nested content. A last `container-hash` pass pairs a container whose
-nested content was edited and that also moved. Twin headings or figures
-with identical titles, and twin containers both edited and shifted, can
-still swap.
+The version implemented is **matching v3**
+([`docs/adr/0032`](docs/adr/0032-matching-v3.md), building on
+[`docs/adr/0029`](docs/adr/0029-matching-v2.md)): it runs over the full
+walk (the body, then every footnote's content) with spec §8 paths, and
+keys a container (list, terms, table, layout, quote, admonition) on its
+own hash plus a digest of its nested content. A last `container-hash`
+pass pairs a container whose nested content was edited and that also
+moved. Footnotes are matched first, on their content, the label breaking
+ties, so a note renumbered by an insertion keeps its id. `moved` means
+re-parented or reordered among matched siblings: a node merely shifted by
+an insertion before it is `unchanged`. Twin headings or figures with
+identical titles, and twin containers both edited and shifted, can still
+swap.
 
 Turning a foreign format into a CND (`cnd declare`) is a different kind of
 absence: it belongs with the producers permanently, since bundling it would

@@ -25,7 +25,7 @@ conventions.
 | [0015](adr/0015-cnds-immutable-ids-not-durable.md) | CNDs are immutable build artifacts; node ids are not durable | accepted |
 | [0016](adr/0016-content-hashing.md) | Derived content hashing — canonical serialisation and excluded presentation state | superseded by 0028 |
 | [0017](adr/0017-cross-references-resolve-by-label.md) | Cross-references resolve by target label; drop the id from link families | accepted |
-| [0018](adr/0018-reconciliation-reference-algorithm.md) | Reconciliation (diff, id inheritance) is a versioned reference algorithm, not a format guarantee | accepted, extended by 0029 |
+| [0018](adr/0018-reconciliation-reference-algorithm.md) | Reconciliation (diff, id inheritance) is a versioned reference algorithm, not a format guarantee | accepted, extended by 0029; `moved` and footnote pool matching superseded by 0032 |
 | [0019](adr/0019-production-topology-two-doors.md) | Production topology — a declarative door and a direct door over one shared contract | accepted |
 | [0020](adr/0020-repository-as-conformance-hub.md) | The repository is a conformance hub; the hub ships a conformance CLI | accepted |
 | [0021](adr/0021-artifact-naming-and-file-identity.md) | Artifact naming and file identity — the CND and the declaration | accepted |
@@ -36,9 +36,10 @@ conventions.
 | [0026](adr/0026-open-vocabularies.md) | Open vocabularies — known values, free values, a fallback per field | accepted |
 | [0027](adr/0027-no-compatibility-guarantee-before-1-0.md) | No compatibility guarantee before format 1.0.0 | accepted |
 | [0028](adr/0028-content-hashing-0-5.md) | Content hashing, 0.5 amendments — defaults dropped, nested nodes excluded, paths in the document hash | accepted |
-| [0029](adr/0029-matching-v2.md) | Matching v2 — the full walk, spec §8 paths and container keys | accepted, extends 0018 |
+| [0029](adr/0029-matching-v2.md) | Matching v2 — the full walk, spec §8 paths and container keys | accepted, extends 0018; footnote keying superseded by 0032 |
 | [0030](adr/0030-typst-authoring-markers.md) | Typst authoring markers — labelled metadata and a code-title state key | accepted, extends 0023 |
 | [0031](adr/0031-markdown-links-where-their-words-are.md) | Markdown writes a hyperlink where its words are, and a caller may allow its own schemes | accepted |
+| [0032](adr/0032-matching-v3.md) | Matching v3 — footnotes matched on their content, `moved` for real moves only | accepted, extends 0018, supersedes parts of 0018 and 0029 |
 
 ## Proposals (docs/proposals/)
 

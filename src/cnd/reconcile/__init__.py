@@ -1,5 +1,5 @@
 """Reconciliation — matching nodes across two builds (docs/adr/0018;
-matching v2, docs/adr/0029).
+matching v3, docs/adr/0032, which builds on matching v2, docs/adr/0029).
 
 A **versioned reference algorithm**, not part of the format: it is an SDK
 facility (docs/adr/0006) and creates no conformance obligation on a
@@ -33,18 +33,24 @@ from cnd.reconcile.diff import (
 from cnd.reconcile.inherit import ReconcileError, Reconciliation, reconcile
 from cnd.reconcile.match import (
     MATCHER_VERSION,
+    NEW_FOOTNOTES,
     PASS_CONTAINER_HASH,
     PASS_HASH,
     PASS_HASH_PATH,
     PASS_LABEL,
     PASS_PATH_TYPE,
+    POOL_PASS_CONTENT,
+    POOL_PASS_LABEL,
     MatchPass,
     NodeEntry,
     NodeMatch,
     NodeMatching,
     PoolEntry,
+    PoolMatch,
     PoolMatching,
+    PoolMatchPass,
     StructuralPath,
+    align_footnote_paths,
     entries,
     match_entries,
     match_nodes,
@@ -54,11 +60,14 @@ from cnd.reconcile.match import (
 
 __all__ = [
     "MATCHER_VERSION",
+    "NEW_FOOTNOTES",
     "PASS_CONTAINER_HASH",
     "PASS_HASH",
     "PASS_HASH_PATH",
     "PASS_LABEL",
     "PASS_PATH_TYPE",
+    "POOL_PASS_CONTENT",
+    "POOL_PASS_LABEL",
     "CndDiff",
     "MatchPass",
     "NodeChange",
@@ -69,11 +78,14 @@ __all__ = [
     "PoolChange",
     "PoolDiff",
     "PoolEntry",
+    "PoolMatch",
+    "PoolMatchPass",
     "PoolMatching",
     "PoolStatus",
     "ReconcileError",
     "Reconciliation",
     "StructuralPath",
+    "align_footnote_paths",
     "diff",
     "entries",
     "match_entries",

@@ -207,6 +207,7 @@ class TestDiff:
                 }
                 for n in payload["nodes"]
             ] == case["nodes"], name
+            assert payload["footnotes"] == case["footnotes"], name
 
     def test_plain_output_names_the_pass_that_matched(self, capsys) -> None:
         """`via label` is a fact, `via hash` is a guess — a reader has to
@@ -214,7 +215,7 @@ class TestDiff:
         _, out, _ = _run(capsys, "diff", *self._pair("01-label-survives-edit-and-move"))
 
         assert "via label" in out
-        assert "matching v2" in out
+        assert "matching v3" in out
 
     def test_an_identical_pair_reports_nothing_changed(self, capsys) -> None:
         code, out, _ = _run(

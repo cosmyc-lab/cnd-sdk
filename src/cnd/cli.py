@@ -19,9 +19,9 @@ four vector kinds ADR 0020 §4 requires (``hashes.json``,
 pairs under ``fixtures/declaration/``).
 
 ``diff`` is the odd one out and worth flagging to anyone comparing
-implementations: matching v2 is a *versioned reference algorithm*, not a
-normative rule (docs/adr/0018; v2 is docs/adr/0029). Reproducing ``matching.json`` proves an
-implementation runs v2; it is not a conformance requirement on the
+implementations: matching v3 is a *versioned reference algorithm*, not a
+normative rule (docs/adr/0018; v3 is docs/adr/0032). Reproducing ``matching.json`` proves an
+implementation runs v3; it is not a conformance requirement on the
 format, and a later version may legitimately differ.
 
 Output is human-readable by default and machine-readable under ``--json``,
@@ -114,10 +114,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "diff",
         help="what moved between two builds of a document",
         description=(
-            "Matching v2 (docs/adr/0029, extending docs/adr/0018) over two "
+            "Matching v3 (docs/adr/0032, extending docs/adr/0018) over two "
             "CNDs: each node is added, "
-            "removed, changed, moved or unchanged, plus a label-keyed diff "
-            "of both pools. A versioned reference algorithm, NOT part of "
+            "removed, changed, moved or unchanged, plus a diff of both "
+            "pools (footnotes matched on their content, citations on their "
+            "key). A versioned reference algorithm, NOT part of "
             "the format — exact for labelled nodes, best-effort for the "
             "rest, and it reports which pass paired each node so a caller "
             "can tell the two apart."
@@ -433,7 +434,12 @@ def _run_diff(args: argparse.Namespace) -> int:
 
 def _pool_payload(pool) -> list[dict]:
     return [
-        {"status": change.status, "label": change.label}
+        {
+            "status": change.status,
+            "label": change.label,
+            "old_label": change.old.label if change.old else None,
+            "matched_by": change.matched_by,
+        }
         for change in pool.changes
     ]
 
