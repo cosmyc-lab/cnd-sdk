@@ -160,6 +160,20 @@ class TestUnknownFieldsAreRejected:
         heading = _committed_schema()["$defs"]["DeclHeadingNode"]
         assert heading.get("additionalProperties") is False
 
+    def test_the_committed_schema_closes_every_object(self) -> None:
+        """The declaration's own models and the CND value objects it
+        shares (rich text, marks, edges, metadata) alike."""
+        schema = _committed_schema()
+        assert schema.get("additionalProperties") is False
+        open_defs = [
+            name
+            for name, definition in schema["$defs"].items()
+            if definition.get("type") == "object"
+            and definition.get("additionalProperties") is not False
+        ]
+        assert open_defs == []
+        assert {"RichText", "Mark", "NodeRef", "DocMetadata"} <= set(schema["$defs"])
+
     def test_the_extension_bag_still_holds_arbitrary_keys(self) -> None:
         """`extra=forbid` guards the model's own fields, not the contents
         of a dict-typed one."""
@@ -209,7 +223,7 @@ class TestUnknownFieldsAreRejected:
 
     @pytest.mark.parametrize(("row", "col"), [(-1, 0), (0, -1)])
     def test_a_negative_cell_coordinate_is_refused_at_the_door(self, row, col) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="row|col"):
             Declaration.model_validate(
                 self._decl({"type": "table", "cells": [{"row": row, "col": col}]})
             )

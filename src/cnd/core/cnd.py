@@ -210,7 +210,7 @@ class Cnd(ClosedModel):
         (spec §10).
 
         Required fields are never dropped, even when empty
-        (``heading_path: []``), and free-form objects (``state_metadata``,
+        (``nodes: []``), and free-form objects (``state_metadata``,
         ``BibEntry.fields``) are written as they are. ``id`` is kept
         explicitly: it has a default factory, and whether pydantic counts a
         freshly generated value as "the default" is not something to rely

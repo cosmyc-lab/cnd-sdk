@@ -29,7 +29,7 @@ refused on parse before ``validate()`` runs.
 """
 
 import heapq
-from bisect import bisect_left, bisect_right
+from bisect import bisect_left
 from dataclasses import dataclass
 
 from cnd.core.cnd import CND_VERSION, BibEntry, Cnd, DocMetadata, Footnote
@@ -431,17 +431,17 @@ def _check_cell_grids(cnd: Cnd) -> list[Violation]:
         node = visit.node
         if not isinstance(node, (TableNode, LayoutNode)):
             continue
-        for index, earlier in _overlapping_cells(node.cells):
-            cell, other = node.cells[index], node.cells[earlier]
+        for index, other_index in _overlapping_cells(node.cells):
+            cell, other = node.cells[index], node.cells[other_index]
             same = (cell.row, cell.col) == (other.row, other.col)
             violations.append(
                 Violation(
                     "cell-overlap",
                     (
-                        f"sits at the same position as cell {earlier}"
+                        f"sits at the same position as cell {other_index}"
                         if same
-                        else f"covers a position cell {earlier} "
-                        f"(row {other.row}, col {other.col}) already covers"
+                        else f"overlaps cell {other_index} "
+                        f"(row {other.row}, col {other.col})"
                     ),
                     f"cell {index} (row {cell.row}, col {cell.col}) "
                     f"of {node.type} {node.id}",
@@ -451,39 +451,94 @@ def _check_cell_grids(cnd: Cnd) -> list[Violation]:
 
 
 def _overlapping_cells(cells: list[Cell]) -> list[tuple[int, int]]:
-    """``(index, earlier_index)`` for every cell whose rectangle meets one
-    already placed, in ``cells`` order.
+    """``(index, other_index)`` for every cell whose rectangle meets the
+    rectangle of a cell placed before it in the sweep, sorted by
+    ``index``.
 
-    A sweep down the rows that compares rectangles and never fills a
-    grid, so its cost does not depend on the spans: a cell of a billion
-    rows costs what a cell of one does. The cells still covering the
-    current row are kept as disjoint column intervals sorted by first
-    column, so a new cell need only be compared with its two neighbours.
-    A cell found overlapping is reported and left out of the sweep, so
-    the cells that remain cover each position at most once.
+    The sweep visits cells in ``(row, col)`` order, which is not
+    necessarily ``cells`` order, so ``other_index`` may be the larger of
+    the two. It compares rectangles and never fills a grid, so its cost
+    does not depend on the spans: a cell of a billion rows costs what a
+    cell of one does. A cell found overlapping is reported and left out of
+    the sweep, so the cells that remain cover each position at most once.
+
+    The cells still covering the current row form disjoint column
+    intervals. Each is keyed by its first column, ranked among the
+    distinct ``col`` values of the grid, in a Fenwick tree of live ranks.
+    A new cell ``[col, col + colspan)`` meets a live interval exactly when
+    a live interval starts inside it, or when the nearest one starting
+    before it reaches past ``col``; both questions, like inserting and
+    expiring an interval, cost O(log n). The whole sweep is O(n log n) in
+    the number of cells, whatever the grid's shape.
     """
     order = sorted(range(len(cells)), key=lambda i: (cells[i].row, cells[i].col))
-    starts: list[int] = []  # first column of each live interval, sorted
-    live: list[tuple[int, int]] = []  # (end column, cell index), parallel to starts
-    expiry: list[tuple[int, int]] = []  # heap of (end row, first column)
+    columns = sorted({cell.col for cell in cells})
+    rank = {col: at for at, col in enumerate(columns)}
+    live = _LiveRanks(len(columns))
+    end_col = [0] * len(columns)  # end column of the live interval at a rank
+    owner = [0] * len(columns)  # cell index of the live interval at a rank
+    expiry: list[tuple[int, int]] = []  # heap of (end row, rank)
     found: list[tuple[int, int]] = []
     for index in order:
         cell = cells[index]
         while expiry and expiry[0][0] <= cell.row:
-            _, first = heapq.heappop(expiry)
-            at = bisect_left(starts, first)
-            del starts[at], live[at]
+            live.remove(heapq.heappop(expiry)[1])
         first, end = cell.col, cell.col + cell.colspan
-        at = bisect_right(starts, first)
-        if at > 0 and live[at - 1][0] > first:
-            found.append((index, live[at - 1][1]))
-        elif at < len(starts) and starts[at] < end:
-            found.append((index, live[at][1]))
-        else:
-            starts.insert(at, first)
-            live.insert(at, (end, index))
-            heapq.heappush(expiry, (cell.row + cell.rowspan, first))
+        at = rank[first]
+        before = live.count_below(at)
+        if live.count_below(bisect_left(columns, end)) > before:
+            found.append((index, owner[live.kth(before + 1)]))
+            continue
+        if before and end_col[left := live.kth(before)] > first:
+            found.append((index, owner[left]))
+            continue
+        live.add(at)
+        end_col[at], owner[at] = end, index
+        heapq.heappush(expiry, (cell.row + cell.rowspan, at))
     return sorted(found)
+
+
+class _LiveRanks:
+    """A set of ranks in ``range(size)``, as a Fenwick tree of 0/1 counts:
+    insert, remove, count below a rank and find the k-th smallest member,
+    each in O(log size)."""
+
+    def __init__(self, size: int) -> None:
+        self._size = size
+        self._tree = [0] * (size + 1)
+        self._top = 1 << size.bit_length()
+
+    def _update(self, rank: int, delta: int) -> None:
+        tree, size, at = self._tree, self._size, rank + 1
+        while at <= size:
+            tree[at] += delta
+            at += at & -at
+
+    def add(self, rank: int) -> None:
+        self._update(rank, 1)
+
+    def remove(self, rank: int) -> None:
+        self._update(rank, -1)
+
+    def count_below(self, rank: int) -> int:
+        """How many members are smaller than ``rank``."""
+        tree, total = self._tree, 0
+        while rank > 0:
+            total += tree[rank]
+            rank -= rank & -rank
+        return total
+
+    def kth(self, k: int) -> int:
+        """The ``k``-th smallest member (1-based); ``k`` must not exceed
+        the number of members."""
+        tree, size, at, step = self._tree, self._size, 0, self._top
+        while step:
+            ahead = at + step
+            if ahead <= size and tree[ahead] < k:
+                at = ahead
+                k -= tree[ahead]
+            step >>= 1
+        return at
 
 
 def _check_doc_extra(cnd: Cnd) -> list[Violation]:

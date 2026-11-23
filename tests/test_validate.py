@@ -5,8 +5,12 @@ class below builds the smallest CND that violates one rule, so a
 regression names itself.
 """
 
+import json
+import random
+import time
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 import pytest
@@ -30,6 +34,7 @@ from cnd import (
     validate,
 )
 from cnd.core.text import CiteRef, LinkRef
+from cnd.core.validate import _overlapping_cells
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -395,8 +400,6 @@ class TestHeadingLevel:
         assert _rules(_cnd([_heading("H", level, ["H"])])) == []
 
     def test_the_schema_states_the_minimum_only(self) -> None:
-        import json
-
         schema = json.loads((FIXTURES.parent / "schema" / "cnd.schema.json").read_text())
         level = schema["$defs"]["HeadingNode"]["properties"]["level"]
         assert level["minimum"] == 1
@@ -475,12 +478,10 @@ class TestCellGrid:
 
     @pytest.mark.parametrize(("row", "col"), [(-1, 0), (0, -1)])
     def test_a_negative_coordinate_is_refused(self, row: int, col: int) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="row|col"):
             cell(row, col)
 
     def test_the_schema_states_the_coordinate_minimum(self) -> None:
-        import json
-
         schema = json.loads((FIXTURES.parent / "schema" / "cnd.schema.json").read_text())
         props = schema["$defs"]["Cell"]["properties"]
         assert props["row"]["minimum"] == 0
@@ -525,8 +526,6 @@ class TestCellGrid:
     def test_a_huge_span_is_checked_without_expanding_it(self) -> None:
         """Rectangles are compared, never filled in, so a span of a
         billion rows costs what a span of one does."""
-        import time
-
         far = 10**9
         clean = _table(cell(0, 0, "a", rowspan=far, colspan=far), cell(far, far, "b"))
         clash = _table(cell(0, 0, "a", rowspan=far, colspan=far), cell(far - 1, 5, "b"))
@@ -541,9 +540,71 @@ class TestCellGrid:
         assert _rules(_cnd([body], footnotes=[note])) == ["cell-overlap"]
 
     def test_many_cells_in_one_row_stay_fast(self) -> None:
-        import time
-
         grid = _table(*(cell(0, col) for col in range(20_000)), cell(0, 19_999))
         start = time.perf_counter()
         assert _rules(_cnd([grid])) == ["cell-overlap"]
         assert time.perf_counter() - start < 10  # catches quadratic growth, not speed
+
+
+def _rect(row: int, col: int, rowspan: int = 1, colspan: int = 1) -> SimpleNamespace:
+    """A bare cell rectangle for the sweep itself: building hundreds of
+    thousands of validated cells would time the models, not the check."""
+    return SimpleNamespace(row=row, col=col, rowspan=rowspan, colspan=colspan)
+
+
+def _meets(a, b) -> bool:
+    return (
+        a.row < b.row + b.rowspan and b.row < a.row + a.rowspan
+        and a.col < b.col + b.colspan and b.col < a.col + a.colspan
+    )
+
+
+class TestCellOverlapSweep:
+    """The sweep's cost and its answers, on bare rectangles."""
+
+    @pytest.mark.parametrize("seed", range(40))
+    def test_it_agrees_with_a_brute_force_check(self, seed: int) -> None:
+        """Same semantics as the sweep, the slow way: visit cells in
+        ``(row, col)`` order, report one that meets a cell kept so far,
+        keep it otherwise."""
+        rng = random.Random(seed)
+        cells = [
+            _rect(rng.randrange(8), rng.randrange(8), rng.randint(1, 3), rng.randint(1, 3))
+            for _ in range(rng.randint(1, 30))
+        ]
+        kept, expected = [], set()
+        for index in sorted(range(len(cells)), key=lambda i: (cells[i].row, cells[i].col)):
+            if any(_meets(cells[index], cells[k]) for k in kept):
+                expected.add(index)
+            else:
+                kept.append(index)
+
+        found = _overlapping_cells(cells)
+
+        assert {index for index, _ in found} == expected
+        for index, other in found:
+            assert other in kept and _meets(cells[index], cells[other])
+
+    def test_a_wide_grid_of_several_rows_stays_fast(self) -> None:
+        """Every row change expires a whole row of live intervals and
+        inserts the next; a list-backed sweep took ~16 s here."""
+        cells = [_rect(row, col) for row in range(3) for col in range(150_000)]
+        start = time.perf_counter()
+        assert _overlapping_cells(cells) == []
+        assert time.perf_counter() - start < 8  # catches quadratic growth, not speed
+
+    def test_a_strip_beside_tall_cells_stays_fast(self) -> None:
+        """A column of 1x1 cells beside a row of cells spanning every row:
+        each strip cell expires and inserts ahead of all the tall ones; a
+        list-backed sweep took ~14 s here."""
+        n = 100_000
+        cells = [_rect(0, col, rowspan=n) for col in range(1, n + 1)]
+        cells += [_rect(row, 0) for row in range(n)]
+        start = time.perf_counter()
+        assert _overlapping_cells(cells) == []
+        assert time.perf_counter() - start < 8  # catches quadratic growth, not speed
+
+    def test_the_other_cell_may_come_later_in_cells_order(self) -> None:
+        """The sweep runs in ``(row, col)`` order: here cell 1 is placed
+        first and cell 0 is the one reported."""
+        assert _overlapping_cells([_rect(1, 0), _rect(0, 0, rowspan=2)]) == [(0, 1)]

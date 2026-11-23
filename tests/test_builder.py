@@ -234,8 +234,12 @@ class TestHeadingPathsPassValidation:
             for v in cnd.iter_all()
             if isinstance(v.node, HeadingNode)
         }
-        assert len(paths["Deeper"]) == 3
-        assert len(paths["In note"]) == 1
+        a = "1 A" if numbering else "A"
+        in_cell = "1.2 In cell" if numbering else "In cell"
+        assert paths["In item"] == [a, "1.1 In item" if numbering else "In item"]
+        assert paths["In cell"] == [a, in_cell]
+        assert paths["Deeper"] == [a, in_cell, "1.2.1 Deeper" if numbering else "Deeper"]
+        assert paths["In note"] == ["2 In note" if numbering else "In note"]
 
 
 class TestNoSharedState:

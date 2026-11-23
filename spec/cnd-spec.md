@@ -80,10 +80,8 @@ reverse edges (§5), reading-order positions (§8) and pagination
 (§2.2); it also governs content hashes (§10). A conformant CND carries
 no field that merely restates something derivable.
 
-**Closed objects.** Every object of a CND — the CND itself, its
-metadata and source, every node, list item, term item, cell, rich text,
-mark, edge, `numbering`, `location`, `raw`, bibliography entry and
-footnote — carries the fields this specification defines and no other.
+**Closed objects.** Every object of a CND carries the fields this
+specification defines and no other.
 An unknown key makes the CND invalid; a consumer refuses it rather than
 dropping it, and the schema states it with `additionalProperties: false`.
 The only exceptions are the free-form bags, which hold any key:
@@ -332,9 +330,10 @@ All three label-keyed families share the skeleton `{label, text_span?}`:
 A `text_span` is exactly two offsets and satisfies
 `0 ≤ start ≤ end ≤ len(value)`; unlike a mark it may be empty. The
 shape — two integers, each 0 or more — is the schema's (`minItems` and
-`maxItems` 2, `minimum` 0); the bounds that depend on the text, `start ≤
-end ≤ len(value)`, are a validation rule (§9). It is null for a marker that renders no text, or one that
-does not close inside the text where it opens.
+`maxItems` 2, `minimum` 0); the bounds that depend on the text,
+`start ≤ end ≤ len(value)`, are a validation rule (§9). It is null for a
+marker that renders no text, or one that does not close inside the text
+where it opens.
 
 `NodeRef` is exactly this skeleton:
 
@@ -1072,7 +1071,7 @@ reports.
 | Global label uniqueness, footnote content nodes included | `label-not-unique` | §2 |
 | Every label-keyed edge resolves (`links` is out of scope) | `link-unresolved` | §5 |
 | Every label-keyed edge resolves in its family's domain | `link-wrong-domain` | §5 |
-| Every `text_span` has two offsets and lies inside its text's `value` | `text-span-out-of-bounds` | §5 |
+| Every `text_span` lies inside its text's `value`, `start ≤ end ≤ len(value)` | `text-span-out-of-bounds` | §5 |
 | Every mark lies inside its text's `value` and is non-empty | `mark-out-of-bounds` | §4.1, Marks |
 | Marks are sorted by `(start, end, kind)` | `mark-not-canonical` | §4.1, Marks |
 | Two marks of the same kind neither overlap nor touch | `mark-same-kind-overlap` | §4.1, Marks |
@@ -1134,7 +1133,7 @@ applies at every level the schema models — inside a `RichText`, a
 `Mark`, a `Cell`, a `ListItem`, a `DocDate` — but not inside a free-form
 object (`state_metadata`, `BibEntry.fields`), whose contents are hashed
 as written. A required field is never dropped, even when empty
-(`heading_path: []`). Omitting an empty list and writing it out
+(`nodes: []`). Omitting an empty list and writing it out
 therefore hash the same, and a future version that adds an optional
 field does not move an existing hash.
 
