@@ -1041,3 +1041,65 @@ def test_only_exact_still_inherits_a_note_whose_label_agrees():
 
     exact = reconcile(new, old, only_exact=True).cnd
     assert exact.footnotes[0].id == old.footnotes[0].id
+
+
+def _brute_earliest_longest_increasing(keys):
+    """The reference the tie-break is defined by: among the longest
+    increasing subsequences, the lexicographically smallest index set."""
+    from itertools import combinations
+
+    for size in range(len(keys), -1, -1):
+        for indices in combinations(range(len(keys)), size):
+            if all(keys[a] < keys[b] for a, b in zip(indices, indices[1:])):
+                return set(indices)
+    return set()
+
+
+def test_the_moved_tie_break_keeps_the_earliest_longest_increasing_run():
+    """Seeded brute force over small sibling groups: the O(n log n) pick is
+    the earliest of the longest increasing runs, which is the v3 contract
+    a second implementation reproduces (docs/adr/0032)."""
+    import random
+
+    from cnd.reconcile.diff import _earliest_longest_increasing
+
+    rng = random.Random(32)
+    for _ in range(500):
+        size = rng.randint(0, 8)
+        # Positions are tuples (item or cell index, child index).
+        keys = [divmod(k, 3) for k in rng.sample(range(24), size)]
+        assert _earliest_longest_increasing(keys) == (
+            _brute_earliest_longest_increasing(keys)
+        ), keys
+
+
+def test_reconcile_matches_the_footnote_pool_once(monkeypatch):
+    """The node alignment and the pool remap rest on one pool matching."""
+    import cnd.reconcile.inherit as inherit
+    import cnd.reconcile.match as match
+
+    calls: list[int] = []
+    real = match.match_pool
+
+    def counting(old, new):
+        result = real(old, new)
+        if any(isinstance(e, Footnote) for e in (*old, *new)):
+            calls.append(1)
+        return result
+
+    monkeypatch.setattr(match, "match_pool", counting)
+    monkeypatch.setattr(inherit, "match_pool", counting)
+    old = _cnd([_para("body")], footnotes=_numbered("alpha", "beta"))
+    new = _rebuild(_cnd([_para("body")], footnotes=_numbered("inserted", "alpha", "beta")))
+
+    reconcile(new, old)
+
+    assert len(calls) == 1
+
+
+def test_a_pool_entry_needs_its_content_key():
+    """A default would make every hand-built note equal on content."""
+    from cnd.reconcile import PoolEntry
+
+    with pytest.raises(TypeError):
+        PoolEntry(entry=_note("1", "x"), hash="sha256:0")  # type: ignore[call-arg]

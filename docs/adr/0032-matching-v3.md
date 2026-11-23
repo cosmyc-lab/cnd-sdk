@@ -93,7 +93,10 @@ note that happened to have its label.
 equal, and `changed` otherwise. A renumbered note with the same content
 is unchanged: a display number is presentation state, like `numbering`.
 A note whose content was edited is changed, and its edited node is
-reported changed too.
+reported changed too. This differs from a container on purpose: a
+container's node hash carries fields of its own, so its status stays
+node-local, while a note has no content of its own besides its label, so
+its status follows its content key.
 
 **`moved`, defined.** A matched pair whose node hash differs is
 `changed`, as before. A pair whose hash is equal is `moved` when one of

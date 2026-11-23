@@ -178,7 +178,7 @@ class PoolEntry:
 
     entry: "BibEntry | Footnote"
     hash: str
-    content: str = ""
+    content: str
 
     @property
     def label(self) -> str:
@@ -306,12 +306,18 @@ def _note_content(
     return hashlib.sha256("|".join(parts).encode()).hexdigest()
 
 
-def match_nodes(old: Cnd, new: Cnd) -> NodeMatching:
+def match_nodes(
+    old: Cnd, new: Cnd, footnotes: Optional[PoolMatching] = None
+) -> NodeMatching:
     """Pair the nodes of ``old`` and ``new`` under matching v3.
 
     The footnote pool is matched first, and the ``new`` side's footnote
-    paths are aligned on it (``align_footnote_paths``)."""
-    footnotes = match_pool(old.footnotes, new.footnotes)
+    paths are aligned on it (``align_footnote_paths``). A caller that also
+    consumes the pool matching passes it as ``footnotes`` — the result of
+    ``match_pool(old.footnotes, new.footnotes)`` — so the node alignment
+    and its own use of the pool rest on one computation."""
+    if footnotes is None:
+        footnotes = match_pool(old.footnotes, new.footnotes)
     return match_entries(
         entries(old), align_footnote_paths(entries(new), footnotes)
     )

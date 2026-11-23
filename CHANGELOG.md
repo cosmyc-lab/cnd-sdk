@@ -36,8 +36,10 @@ reconciliation algorithm moves to **matching v3** (docs/adr/0032).
   heuristic among identical notes.
 - **Breaking (pre-1.0):** `PoolMatching.matches` holds `PoolMatch(old,
   new, matched_by)` objects instead of `(old, new)` pairs; `PoolEntry`
-  gains `content` (a matching key, not a content hash) and `PoolChange`
-  gains `matched_by`. `match_nodes` and `diff` align the new side's
+  gains a required `content` (a matching key, not a content hash) and
+  `PoolChange` gains `matched_by`. `match_nodes` accepts the footnote
+  pool matching (`footnotes=`), so a caller that also uses it computes it
+  once. `match_nodes` and `diff` align the new side's
   footnote paths on the pool matching (`align_footnote_paths`); the
   content of an unmatched note sits under `"new-footnotes"`.
 - `MATCHER_VERSION` is `"v3"`. `fixtures/matching.json` is regenerated as

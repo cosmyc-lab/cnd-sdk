@@ -76,17 +76,15 @@ def reconcile(
     """
     remap: dict[UUID, UUID] = {}
 
-    matching = match_nodes(previous, new)
+    footnotes = match_pool(previous.footnotes, new.footnotes)
+    matching = match_nodes(previous, new, footnotes)
     for match in matching.matches:
         if only_exact and match.matched_by != PASS_LABEL:
             continue
         remap[match.new.node.id] = match.old.node.id
 
-    for old_pool, new_pool in (
-        (previous.bibliography, new.bibliography),
-        (previous.footnotes, new.footnotes),
-    ):
-        for pool_match in match_pool(old_pool, new_pool).matches:
+    for pool in (match_pool(previous.bibliography, new.bibliography), footnotes):
+        for pool_match in pool.matches:
             # A footnote pairs on its content first (matching v3), which is
             # a heuristic among identical notes: only the label is exact.
             if only_exact and pool_match.old.label != pool_match.new.label:
